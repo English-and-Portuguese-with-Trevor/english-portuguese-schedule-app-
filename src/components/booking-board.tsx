@@ -2,14 +2,15 @@
 
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 
 import { cancelBooking, requestBooking, requestClassBooking } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { WeekCalendar, type BusySlotDTO, type CandidateSlotDTO } from "@/components/week-calendar";
+import { SlotPicker, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 import type { Booking, Role } from "@/lib/types";
 
 interface OpenClass {
@@ -30,6 +31,10 @@ type BookingRow = Booking & {
   } | null;
 };
 
+type Notice = { kind: "success" | "error"; text: string };
+
+const noopSubscribe = () => () => {};
+
 export function BookingBoard({
   role,
   candidates,
@@ -45,8 +50,12 @@ export function BookingBoard({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  // Every time here is shown in the viewer's timezone, which the server
+  // (UTC) can't know — so this renders on the client only.
+  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -65,44 +74,46 @@ export function BookingBoard({
     };
   }, [router]);
 
-  function handleBookSlot(start: string, end: string) {
-    setError(null);
-    setBusyKey(start);
-    startTransition(async () => {
-      const result = await requestBooking(start, end);
-      if (result.error) setError(result.error);
-      setBusyKey(null);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  async function handleBookSlot(start: string, end: string) {
+    const result = await requestBooking(start, end);
+    if (result.error) return result.error;
+    setNotice({
+      kind: "success",
+      text: role === "admin" ? "Session booked." : "Request sent — it's pending confirmation.",
     });
+    return null;
   }
 
   function handleBookClass(cls: OpenClass) {
-    setError(null);
     setBusyKey(cls.id);
     startTransition(async () => {
       const result = await requestClassBooking(cls.id);
-      if (result.error) setError(result.error);
+      setNotice(result.error ? { kind: "error", text: result.error } : { kind: "success", text: "Class requested." });
       setBusyKey(null);
     });
   }
 
   function handleCancel(bookingId: string) {
-    setError(null);
     setBusyKey(bookingId);
     startTransition(async () => {
       const result = await cancelBooking(bookingId);
-      if (result.error) setError(result.error);
+      setNotice(result.error ? { kind: "error", text: result.error } : { kind: "success", text: "Booking cancelled." });
       setBusyKey(null);
     });
   }
 
+  if (!isClient) {
+    return <p className="text-sm text-muted-foreground">Loading…</p>;
+  }
+
   return (
     <div className="flex flex-col gap-8">
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
       <section>
         <h2 className="mb-3 text-lg font-semibold">My bookings</h2>
         {myBookings.length === 0 ? (
@@ -169,16 +180,23 @@ export function BookingBoard({
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">1:1 session availability</h2>
-        <WeekCalendar
-          role={role}
-          candidates={candidates}
-          busySlots={busySlots}
-          onBookSlot={handleBookSlot}
-          isPending={isPending}
-          busyKey={busyKey}
-        />
+        <h2 className="mb-3 text-lg font-semibold">Book a 1:1 session</h2>
+        <SlotPicker role={role} candidates={candidates} busySlots={busySlots} onBook={handleBookSlot} />
       </section>
+
+      {notice && (
+        <div
+          role="status"
+          className={cn(
+            "fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-md border px-4 py-3 text-sm shadow-lg",
+            notice.kind === "success"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+              : "border-destructive/40 bg-background text-destructive",
+          )}
+        >
+          {notice.text}
+        </div>
+      )}
     </div>
   );
 }

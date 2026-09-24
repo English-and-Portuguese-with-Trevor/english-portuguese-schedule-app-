@@ -1,11 +1,8 @@
 "use server";
 
-import { addMinutes, format, isBefore } from "date-fns";
 import { revalidatePath } from "next/cache";
 
-import { generateCandidateSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
-import { BOOKING_CUTOFF_HOURS } from "@/lib/types";
 
 type ActionResult = { error: string | null };
 
@@ -94,59 +91,39 @@ async function bookIndividualSlot(
   return { error: null };
 }
 
+function friendlyDbError(error: { code?: string; message: string }): string {
+  if (error.code === "23P01") return "That time was just taken. Please pick another.";
+  if (error.code === "23505") return "You're already booked into this.";
+  if (error.message.includes("capacity")) return "That class just filled up.";
+  return error.message;
+}
+
 /**
- * Student (or admin) requests an individual 1:1 slot. Enforces the 72h
- * cutoff for students; admins bypass it and are auto-confirmed.
+ * Student (or admin) requests an individual 1:1 slot. Students go through
+ * the request_individual_booking DB function, which re-checks the 72h
+ * cutoff and availability window server-side and can only create PENDING
+ * requests. Admins write directly and are auto-confirmed.
  */
 export async function requestBooking(startIso: string, endIso: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
-  const isAdmin = profile.role === "admin";
 
-  const start = new Date(startIso);
-  const end = new Date(endIso);
-  const now = new Date();
-
-  if (!isAdmin) {
-    const cutoff = addMinutes(now, BOOKING_CUTOFF_HOURS * 60);
-    if (isBefore(start, cutoff)) {
-      return {
-        error: `Sessions must be requested at least ${BOOKING_CUTOFF_HOURS} hours in advance.`,
-      };
-    }
-  }
-
-  // Confirm the slot lines up with an active availability window (admins may
-  // override this to hand-place a student into a non-standard time).
-  if (!isAdmin) {
-    const { data: rules } = await supabase
-      .from("availability_rules")
-      .select("*")
-      .eq("is_active", true);
-
-    const candidates = generateCandidateSlots(rules ?? [], {
-      fromDate: format(start, "yyyy-MM-dd"),
-      days: 1,
-      now: new Date(0),
+  if (profile.role === "admin") {
+    const result = await bookIndividualSlot(supabase, {
+      start: new Date(startIso),
+      end: new Date(endIso),
+      studentId: profile.id,
+      status: "CONFIRMED",
+      isAdminOverride: true,
+      createdBy: profile.id,
     });
-
-    const matches = candidates.some(
-      (c) => c.start.getTime() === start.getTime() && c.end.getTime() === end.getTime(),
-    );
-    if (!matches) {
-      return { error: "That slot is no longer available." };
-    }
+    if (result.error) return result;
+  } else {
+    const { error } = await supabase.rpc("request_individual_booking", {
+      p_start: startIso,
+      p_end: endIso,
+    });
+    if (error) return { error: friendlyDbError(error) };
   }
-
-  const result = await bookIndividualSlot(supabase, {
-    start,
-    end,
-    studentId: profile.id,
-    status: isAdmin ? "CONFIRMED" : "PENDING",
-    isAdminOverride: isAdmin,
-    createdBy: isAdmin ? profile.id : null,
-  });
-
-  if (result.error) return result;
 
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
@@ -157,40 +134,17 @@ export async function requestBooking(startIso: string, endIso: string): Promise<
 export async function requestClassBooking(sessionSlotId: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
 
-  const { data: slot } = await supabase
-    .from("session_slots")
-    .select("*")
-    .eq("id", sessionSlotId)
-    .single();
+  const { error } =
+    profile.role === "admin"
+      ? await supabase.from("bookings").insert({
+          session_slot_id: sessionSlotId,
+          student_id: profile.id,
+          status: "CONFIRMED",
+          is_admin_override: true,
+        })
+      : await supabase.rpc("request_class_booking", { p_slot_id: sessionSlotId });
 
-  if (!slot || slot.status !== "OPEN") {
-    return { error: "That class is no longer available." };
-  }
-
-  if (profile.role !== "admin") {
-    const cutoff = addMinutes(new Date(), BOOKING_CUTOFF_HOURS * 60);
-    if (isBefore(new Date(slot.start_time), cutoff)) {
-      return {
-        error: `Classes must be requested at least ${BOOKING_CUTOFF_HOURS} hours in advance.`,
-      };
-    }
-  }
-
-  const { error } = await supabase.from("bookings").insert({
-    session_slot_id: slot.id,
-    student_id: profile.id,
-    status: profile.role === "admin" ? "CONFIRMED" : "PENDING",
-    is_admin_override: profile.role === "admin",
-  });
-
-  if (error) {
-    const message = error.message.includes("capacity")
-      ? "That class just filled up."
-      : error.message.includes("duplicate")
-        ? "You're already booked into this class."
-        : error.message;
-    return { error: message };
-  }
+  if (error) return { error: friendlyDbError(error) };
 
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
@@ -228,27 +182,19 @@ export async function adminBookStudent(
 export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
 
-  const { data: booking } = await supabase
-    .from("bookings")
-    .select("student_id")
-    .eq("id", bookingId)
-    .single();
+  const { error } =
+    profile.role === "admin"
+      ? await supabase
+          .from("bookings")
+          .update({
+            status: "CANCELLED",
+            cancelled_at: new Date().toISOString(),
+            cancellation_reason: reason ?? null,
+          })
+          .eq("id", bookingId)
+      : await supabase.rpc("cancel_my_booking", { p_booking_id: bookingId });
 
-  if (!booking) return { error: "Booking not found." };
-  if (booking.student_id !== profile.id && profile.role !== "admin") {
-    return { error: "You can only cancel your own bookings." };
-  }
-
-  const { error } = await supabase
-    .from("bookings")
-    .update({
-      status: "CANCELLED",
-      cancelled_at: new Date().toISOString(),
-      cancellation_reason: reason ?? null,
-    })
-    .eq("id", bookingId);
-
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyDbError(error) };
 
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
