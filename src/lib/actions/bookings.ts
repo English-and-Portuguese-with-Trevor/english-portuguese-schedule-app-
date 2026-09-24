@@ -94,12 +94,16 @@ function friendlyDbError(error: { code?: string; message: string }): string {
 }
 
 /**
- * Student (or admin) requests an individual 1:1 slot. Students go through
- * the request_individual_booking DB function, which re-checks the 72h
- * cutoff and availability window server-side and can only create PENDING
- * requests. Admins write directly and are auto-confirmed.
+ * Student (or admin) books a 1:1 slot. Students go through the
+ * request_individual_booking DB function, which re-checks the availability
+ * window server-side and decides the status: confirmed if the session is at
+ * least 72 hours away, pending approval if sooner. Admins write directly and
+ * are always confirmed.
  */
-export async function requestBooking(startIso: string, endIso: string): Promise<ActionResult> {
+export async function requestBooking(
+  startIso: string,
+  endIso: string,
+): Promise<ActionResult & { pending?: boolean }> {
   const { supabase, profile } = await requireProfile();
 
   if (profile.role === "admin") {
@@ -113,11 +117,16 @@ export async function requestBooking(startIso: string, endIso: string): Promise<
     });
     if (result.error) return result;
   } else {
-    const { error } = await supabase.rpc("request_individual_booking", {
+    const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
       p_start: startIso,
       p_end: endIso,
     });
     if (error) return { error: friendlyDbError(error) };
+
+    const { data: booking } = await supabase.from("bookings").select("status").eq("id", bookingId).single();
+    revalidatePath("/dashboard");
+    revalidatePath("/admin/bookings");
+    return { error: null, pending: booking?.status === "PENDING" };
   }
 
   revalidatePath("/dashboard");

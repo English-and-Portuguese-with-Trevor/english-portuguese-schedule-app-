@@ -25,6 +25,8 @@ declare
   v_admin   uuid := gen_random_uuid();
   v_sat     date;
   v_booking uuid;
+  v_pending uuid;
+  v_soon    timestamptz;
   v_count   int;
   v_text    text;
   v_failed  boolean;
@@ -57,7 +59,15 @@ begin
   insert into public.availability_rules (day_of_week, start_time, end_time, slot_duration_minutes, timezone, created_by)
   values (6, '10:00', '12:00', 60, 'America/Denver', v_admin);
 
-  -- The first Saturday at least 5 days out, so it's past the 72-hour cutoff.
+  -- A window tomorrow (or the day after, if tomorrow is Saturday): less than
+  -- 72 hours away, so requests there need approval.
+  v_sat := (now() at time zone 'America/Denver')::date + 1;
+  if extract(dow from v_sat) = 6 then v_sat := v_sat + 1; end if;
+  insert into public.availability_rules (day_of_week, start_time, end_time, slot_duration_minutes, timezone, created_by)
+  values (extract(dow from v_sat)::int, '00:00', '23:00', 60, 'America/Denver', v_admin);
+  v_soon := (v_sat + time '12:00') at time zone 'America/Denver';
+
+  -- The first Saturday at least 5 days out, so it's more than 72 hours away.
   v_sat := (now() at time zone 'America/Denver')::date + 5;
   v_sat := v_sat + ((6 - extract(dow from v_sat)::int + 7) % 7);
   v_10   := (v_sat + time '10:00') at time zone 'America/Denver';
@@ -74,12 +84,18 @@ begin
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', v_student, 'role', 'authenticated')::text, true);
 
-  -- Booking a valid slot creates a pending, non-override request.
+  -- 72 hours or more away: confirmed right away (not as an admin override).
   v_booking := public.request_individual_booking(v_10, v_11);
   select status || '/' || is_admin_override::text || '/' || (student_id = v_student)::text
     into v_text from public.bookings where id = v_booking;
-  if v_text is distinct from 'PENDING/false/true' then
-    raise exception 'FAIL: a student request is PENDING, not an override, and theirs (got %)', v_text;
+  if v_text is distinct from 'CONFIRMED/false/true' then
+    raise exception 'FAIL: a booking 72+ hours out is confirmed, not an override, and theirs (got %)', v_text;
+  end if;
+
+  -- Less than 72 hours away: allowed, but pending approval.
+  v_pending := public.request_individual_booking(v_soon, v_soon + interval '1 hour');
+  if (select status from public.bookings where id = v_pending) <> 'PENDING' then
+    raise exception 'FAIL: a booking under 72 hours out is pending approval';
   end if;
 
   -- Overlapping an existing session is refused.
@@ -125,14 +141,14 @@ begin
     raise exception 'FAIL: a session of the wrong length is refused (%)', v_msg;
   end if;
 
-  -- Anything inside 72 hours is refused.
+  -- A time that has already started is refused.
   v_failed := false;
   begin
-    perform public.request_individual_booking(now() + interval '1 day', now() + interval '1 day 1 hour');
+    perform public.request_individual_booking(v_soon - interval '7 days', v_soon - interval '7 days' + interval '1 hour');
   exception when others then v_failed := true; v_msg := sqlerrm;
   end;
-  if not v_failed or v_msg not like '%72 hours%' then
-    raise exception 'FAIL: requests inside 72 hours are refused (%)', v_msg;
+  if not v_failed or v_msg not like '%already passed%' then
+    raise exception 'FAIL: past times are refused (%)', v_msg;
   end if;
 
   -- Students cannot write slots, bookings, or availability directly.
@@ -160,9 +176,9 @@ begin
   end;
   if not v_failed then raise exception 'FAIL: students cannot add availability'; end if;
 
-  -- Students cannot confirm their own request.
-  update public.bookings set status = 'CONFIRMED' where id = v_booking;
-  if (select status from public.bookings where id = v_booking) <> 'PENDING' then
+  -- Students cannot approve their own pending request.
+  update public.bookings set status = 'CONFIRMED' where id = v_pending;
+  if (select status from public.bookings where id = v_pending) <> 'PENDING' then
     raise exception 'FAIL: students cannot confirm their own booking';
   end if;
 
@@ -201,19 +217,16 @@ begin
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
 
-  select id into v_booking from public.bookings
-  where student_id = v_other and status = 'PENDING'
-  limit 1;
-  update public.bookings set status = 'CONFIRMED' where id = v_booking;
-  if (select status from public.bookings where id = v_booking) <> 'CONFIRMED' then
-    raise exception 'FAIL: admins can confirm a booking';
+  update public.bookings set status = 'CONFIRMED' where id = v_pending;
+  if (select status from public.bookings where id = v_pending) <> 'CONFIRMED' then
+    raise exception 'FAIL: admins can approve a pending booking';
   end if;
 
   -- A session holds one student: even an admin can't add a second booking.
   v_failed := false;
   begin
     insert into public.bookings (session_slot_id, student_id, status, is_admin_override)
-    values ((select session_slot_id from public.bookings where id = v_booking), v_admin, 'CONFIRMED', true);
+    values ((select session_slot_id from public.bookings where id = v_pending), v_admin, 'CONFIRMED', true);
   exception when others then v_failed := true; v_msg := sqlstate;
   end;
   if not v_failed or v_msg <> '23505' then

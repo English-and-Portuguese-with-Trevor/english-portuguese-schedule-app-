@@ -55,9 +55,8 @@ export default async function DashboardPage() {
     for (const b of activeBookings ?? []) studentBySlot.set(b.session_slot_id, displayNames[b.student_id]);
   }
 
-  // All candidate start times within active windows, unfiltered by booking
-  // status — the calendar needs to render open, cutoff-blocked, AND booked
-  // cells, not just what's currently bookable.
+  // All candidate start times within active windows, including ones that
+  // overlap a booking — the picker shows those struck through.
   const candidates = generateUpcomingSlots((rules ?? []) as AvailabilityRule[], {
     now,
     days: LOOKAHEAD_DAYS,
@@ -77,7 +76,7 @@ export default async function DashboardPage() {
       candidates={candidates.map((c) => ({
         start: c.start.toISOString(),
         end: c.end.toISOString(),
-        bookable: c.bookable,
+        needsApproval: c.needsApproval,
       }))}
       busySlots={busySlots}
       myBookings={(myBookings ?? []) as (Booking & {

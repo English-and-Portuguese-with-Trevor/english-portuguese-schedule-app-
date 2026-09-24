@@ -30,7 +30,7 @@ const SCHEDULE = [
   rule(4, "15:00:00", "17:00:00"),
 ];
 
-// Thursday Sep 24, 3 PM MT. The 72h cutoff lands on Sunday 3 PM.
+// Thursday Sep 24, 3 PM MT. Bookings are auto-confirmed from Sunday 3 PM (72h out).
 const NOW = new Date("2026-09-24T21:00:00Z");
 // Monday Sep 28, 2:30–3:30 PM MT.
 const MONDAY_BOOKING: BusySlotDTO = {
@@ -43,7 +43,7 @@ function renderPicker(role: Role, onBook = vi.fn(async () => null as string | nu
   const candidates = generateUpcomingSlots(SCHEDULE, { now: NOW, days: 14 }).map((c) => ({
     start: c.start.toISOString(),
     end: c.end.toISOString(),
-    bookable: c.bookable,
+    needsApproval: c.needsApproval,
   }));
   render(<SlotPicker role={role} candidates={candidates} busySlots={[MONDAY_BOOKING]} onBook={onBook} />);
   return { onBook, user: userEvent.setup() };
@@ -68,12 +68,12 @@ describe("SlotPicker", () => {
     expect(screen.queryByRole("button", { name: /^Thursday, October 8,/ })).not.toBeInTheDocument();
   });
 
-  it("opens students on the first day they can actually book", () => {
+  it("opens on the first day with open times, which can be today", () => {
     renderPicker("student");
-    // Thursday and Friday are inside the 72h cutoff; Sunday 3 PM is exactly 72h out.
-    expect(screen.getByRole("heading", { name: "Sunday, September 27" })).toBeInTheDocument();
-    expect(dayChip("Sunday, September 27")).toHaveAccessibleName("Sunday, September 27, 1 open");
-    expect(dayChip("Sunday, September 27")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { name: "Thursday, September 24" })).toBeInTheDocument();
+    // 3:00–4:00 PM starts are left in today's 3–5 PM window.
+    expect(dayChip("Thursday, September 24")).toHaveAccessibleName("Thursday, September 24, 5 open");
+    expect(dayChip("Thursday, September 24")).toHaveAttribute("aria-pressed", "true");
   });
 
   it("marks days without availability", () => {
@@ -100,29 +100,43 @@ describe("SlotPicker", () => {
     expect(screen.getByText(/Booked \(Trevor L\. 1\)/)).toBeInTheDocument();
   });
 
-  it("disables times inside the 72-hour cutoff for students but not for admins", async () => {
-    const student = renderPicker("student");
-    await student.user.click(dayChip("Thursday, September 24"));
-    expect(screen.getByRole("button", { name: "3:30 PM" })).toBeDisabled();
-    expect(screen.getByText("Times within 72 hours can't be requested online.")).toBeInTheDocument();
+  it("lets students request times within 72 hours, marked as needing approval", async () => {
+    const { user, onBook } = renderPicker("student");
+    const soon = screen.getByRole("button", { name: "3:30 PM, needs approval" }); // today
+    expect(soon).toBeEnabled();
+    expect(soon).toHaveClass("border-dashed");
+    expect(screen.getByText(/Dashed times are less than 72 hours away/)).toBeInTheDocument();
+
+    await user.click(soon);
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Request this session?")).toBeInTheDocument();
+    expect(within(dialog).getByText(/stays pending until Trevor approves it/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Request" }));
+    expect(onBook).toHaveBeenCalledWith("2026-09-24T21:30:00.000Z", "2026-09-24T22:30:00.000Z");
   });
 
-  it("lets admins book inside the cutoff", async () => {
-    const admin = renderPicker("admin");
-    await admin.user.click(dayChip("Thursday, September 24"));
-    expect(screen.getByRole("button", { name: "3:30 PM" })).toBeEnabled();
+  it("doesn't mark times as needing approval for admins, whose bookings are always confirmed", async () => {
+    const { user } = renderPicker("admin");
+    const soon = screen.getByRole("button", { name: "3:30 PM" });
+    expect(soon).not.toHaveClass("border-dashed");
+    expect(screen.queryByText(/Dashed times/)).not.toBeInTheDocument();
+
+    await user.click(soon);
+    expect(within(screen.getByRole("dialog")).getByText("Book this session?")).toBeInTheDocument();
   });
 
   it("asks for confirmation, then books the exact hour picked", async () => {
     const { user, onBook } = renderPicker("student");
-    await user.click(screen.getByRole("button", { name: "3:00 PM" })); // Sunday
+    await user.click(dayChip("Sunday, September 27"));
+    await user.click(screen.getByRole("button", { name: "3:00 PM" })); // exactly 72 hours out
 
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Request this session?")).toBeInTheDocument();
+    expect(within(dialog).getByText("Book this session?")).toBeInTheDocument();
     expect(within(dialog).getByText(/Sunday, September 27 · 3:00 – 4:00 PM/)).toBeInTheDocument();
+    expect(within(dialog).getByText("It's confirmed as soon as you book.")).toBeInTheDocument();
     expect(onBook).not.toHaveBeenCalled();
 
-    await user.click(within(dialog).getByRole("button", { name: "Request" }));
+    await user.click(within(dialog).getByRole("button", { name: "Book" }));
     expect(onBook).toHaveBeenCalledWith("2026-09-27T21:00:00.000Z", "2026-09-27T22:00:00.000Z");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -130,8 +144,9 @@ describe("SlotPicker", () => {
   it("keeps the dialog open and shows the error inside it when booking fails", async () => {
     const onBook = vi.fn(async () => "That time was just taken. Please pick another.");
     const { user } = renderPicker("student", onBook);
+    await user.click(dayChip("Sunday, September 27"));
     await user.click(screen.getByRole("button", { name: "3:00 PM" }));
-    await user.click(screen.getByRole("button", { name: "Request" }));
+    await user.click(screen.getByRole("button", { name: "Book" }));
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("That time was just taken. Please pick another.")).toBeInTheDocument();
@@ -139,6 +154,7 @@ describe("SlotPicker", () => {
 
   it("does nothing when the student backs out", async () => {
     const { user, onBook } = renderPicker("student");
+    await user.click(dayChip("Sunday, September 27"));
     await user.click(screen.getByRole("button", { name: "3:00 PM" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(onBook).not.toHaveBeenCalled();

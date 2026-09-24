@@ -1,7 +1,7 @@
 import { addDays, addMinutes, format, getDay, isBefore, parseISO } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 
-import { BOOKING_CUTOFF_HOURS, type AvailabilityRule, type SessionSlot } from "@/lib/types";
+import { APPROVAL_WINDOW_HOURS, type AvailabilityRule, type SessionSlot } from "@/lib/types";
 
 /** Students can request an individual session starting on any 15-minute mark. */
 export const BOOKING_START_STEP_MINUTES = 15;
@@ -10,8 +10,8 @@ export interface CandidateSlot {
   start: Date;
   end: Date;
   ruleId: string;
-  /** false if the slot starts within the 72h student booking cutoff */
-  bookable: boolean;
+  /** true if the slot starts within 72 hours, so a student's request needs approval */
+  needsApproval: boolean;
 }
 
 /**
@@ -26,7 +26,7 @@ export function generateCandidateSlots(
   opts: { fromDate: string; days: number; now?: Date },
 ): CandidateSlot[] {
   const now = opts.now ?? new Date();
-  const cutoffInstant = addMinutes(now, BOOKING_CUTOFF_HOURS * 60);
+  const autoConfirmFrom = addMinutes(now, APPROVAL_WINDOW_HOURS * 60);
   const rangeStart = parseISO(opts.fromDate);
   const candidates: CandidateSlot[] = [];
 
@@ -48,7 +48,7 @@ export function generateCandidateSlots(
             start: cursor,
             end: slotEnd,
             ruleId: rule.id,
-            bookable: !isBefore(cursor, cutoffInstant),
+            needsApproval: isBefore(cursor, autoConfirmFrom),
           });
         }
         cursor = addMinutes(cursor, BOOKING_START_STEP_MINUTES);

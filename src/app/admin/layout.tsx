@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { Nav } from "@/components/nav";
+import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -12,16 +12,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role, full_name, email")
     .eq("id", user.id)
     .single();
 
   if (!profile || profile.role !== "admin") redirect("/dashboard");
 
   return (
-    <div className="flex min-h-svh flex-col">
-      <Nav role="admin" fullName={profile.full_name} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
-    </div>
+    <AppShell role={"admin"} fullName={profile.full_name} email={profile.email}>
+      {children}
+    </AppShell>
   );
 }

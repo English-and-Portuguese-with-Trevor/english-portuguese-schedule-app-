@@ -31,11 +31,13 @@ npm run test:watch   # rerun on save
 ```
 
 - `src/lib/slots.test.ts`: the slot engine. Covers 15-minute starts, the
-  end-of-window cutoff, the 72-hour rule, daylight saving, and overlap
+  end-of-window cutoff, the 72-hour approval rule, daylight saving, and overlap
   blocking. Runs in UTC, like the server on Vercel.
 - `src/lib/display-names.test.ts`: "First L." names and duplicate numbering.
 - `src/components/slot-picker.test.tsx`: the booking picker as a student and
   as an admin, in a Mountain Time browser.
+- `src/components/app-shell.test.tsx`: the header, admin navigation, and
+  settings menu.
 
 ### Database tests
 

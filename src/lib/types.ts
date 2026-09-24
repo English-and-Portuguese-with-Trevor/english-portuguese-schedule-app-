@@ -19,4 +19,5 @@ export const DAY_NAMES = [
   "Saturday",
 ] as const;
 
-export const BOOKING_CUTOFF_HOURS = 72;
+/** Student requests starting sooner than this need admin approval; later ones are confirmed automatically. */
+export const APPROVAL_WINDOW_HOURS = 72;

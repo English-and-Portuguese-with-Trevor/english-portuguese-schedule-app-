@@ -102,16 +102,18 @@ describe("generateCandidateSlots", () => {
     expect(startsOn("2026-09-28", SCHEDULE, now)).toEqual(["2:30 PM", "2:45 PM", "3:00 PM"]);
   });
 
-  it("marks starts inside the 72-hour cutoff as not bookable", () => {
-    const now = new Date("2026-09-24T21:00:00Z"); // Thursday 3 PM MT → cutoff Sunday 3 PM MT
+  it("flags starts within 72 hours as needing approval", () => {
+    const now = new Date("2026-09-24T21:00:00Z"); // Thursday 3 PM MT → auto-confirm from Sunday 3 PM MT
     const sunday = generateCandidateSlots(SCHEDULE, { fromDate: "2026-09-27", days: 1, now });
-    const bookable = Object.fromEntries(sunday.map((s) => [formatInTimeZone(s.start, TZ, "h:mm a"), s.bookable]));
-    expect(bookable).toEqual({
-      "2:00 PM": false,
-      "2:15 PM": false,
-      "2:30 PM": false,
-      "2:45 PM": false,
-      "3:00 PM": true, // exactly 72 hours out
+    const needsApproval = Object.fromEntries(
+      sunday.map((s) => [formatInTimeZone(s.start, TZ, "h:mm a"), s.needsApproval]),
+    );
+    expect(needsApproval).toEqual({
+      "2:00 PM": true,
+      "2:15 PM": true,
+      "2:30 PM": true,
+      "2:45 PM": true,
+      "3:00 PM": false, // exactly 72 hours out
     });
   });
 });

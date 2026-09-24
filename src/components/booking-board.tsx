@@ -72,7 +72,7 @@ export function BookingBoard({
     if (result.error) return result.error;
     setNotice({
       kind: "success",
-      text: role === "admin" ? "Session booked." : "Request sent — it's pending confirmation.",
+      text: result.pending ? "Request sent — Trevor needs to approve it." : "Session booked.",
     });
     return null;
   }
@@ -138,6 +138,8 @@ export function BookingBoard({
           role="status"
           className={cn(
             "fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-md border px-4 py-3 text-sm shadow-lg",
+            // Clear the admin's bottom tab bar on phones.
+            role === "admin" && "bottom-20 sm:bottom-4",
             notice.kind === "success"
               ? "border-emerald-300 bg-emerald-50 text-emerald-900"
               : "border-destructive/40 bg-background text-destructive",

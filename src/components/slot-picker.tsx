@@ -18,7 +18,7 @@ import type { Role } from "@/lib/types";
 export interface CandidateSlotDTO {
   start: string;
   end: string;
-  bookable: boolean;
+  needsApproval: boolean;
 }
 
 export interface BusySlotDTO {
@@ -30,12 +30,12 @@ export interface BusySlotDTO {
 const DAYS_SHOWN = 14;
 const STEP_MS = 15 * 60 * 1000;
 
-type SlotState = "open" | "cutoff" | "blocked";
-
 interface DaySlot {
   start: Date;
   end: Date;
-  state: SlotState;
+  /** Overlaps an existing booking. */
+  blocked: boolean;
+  needsApproval: boolean;
 }
 
 interface Busy {
@@ -88,9 +88,8 @@ export function SlotPicker({
         .map((c) => {
           const start = new Date(c.start);
           const end = new Date(c.end);
-          const overlapsBooking = busy.some((b) => start < b.end && end > b.start);
-          const state: SlotState = overlapsBooking ? "blocked" : c.bookable ? "open" : "cutoff";
-          return { start, end, state };
+          const blocked = busy.some((b) => start < b.end && end > b.start);
+          return { start, end, blocked, needsApproval: c.needsApproval };
         })
         .sort((a, b) => a.start.getTime() - b.start.getTime());
 
@@ -106,11 +105,11 @@ export function SlotPicker({
       map.set(format(day, "yyyy-MM-dd"), {
         blocks,
         busy: busy.filter((b) => isSameDay(b.start, day)).sort((a, b) => a.start.getTime() - b.start.getTime()),
-        selectableCount: slots.filter((s) => s.state === "open" || (isAdmin && s.state === "cutoff")).length,
+        selectableCount: slots.filter((s) => !s.blocked).length,
       });
     }
     return map;
-  }, [candidates, busySlots, days, isAdmin]);
+  }, [candidates, busySlots, days]);
 
   const firstDayWithOpenings = days.find((d) => (byDay.get(format(d, "yyyy-MM-dd"))?.selectableCount ?? 0) > 0);
   const [selectedKey, setSelectedKey] = useState(() => format(firstDayWithOpenings ?? today, "yyyy-MM-dd"));
@@ -132,7 +131,10 @@ export function SlotPicker({
     });
   }
 
-  const hasCutoffSlots = info?.blocks.some((b) => b.some((s) => s.state === "cutoff")) ?? false;
+  // Admin bookings are always confirmed, so only students see the approval marker.
+  const showsApproval = (slot: DaySlot) => !isAdmin && slot.needsApproval && !slot.blocked;
+  const hasApprovalSlots = info?.blocks.some((b) => b.some(showsApproval)) ?? false;
+  const pendingNeedsApproval = pendingSlot !== null && !isAdmin && pendingSlot.needsApproval;
 
   return (
     <div className="flex flex-col gap-4">
@@ -193,32 +195,31 @@ export function SlotPicker({
                   {format(block[0].start, "h:mm a")} – {format(block[block.length - 1].end, "h:mm a")}
                 </p>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                  {block.map((slot) => {
-                    const selectable = slot.state === "open" || (isAdmin && slot.state === "cutoff");
-                    return (
-                      <Button
-                        key={slot.start.toISOString()}
-                        variant="outline"
-                        size="sm"
-                        disabled={!selectable}
-                        onClick={() => {
-                          setDialogError(null);
-                          setPendingSlot(slot);
-                        }}
-                        className={cn(slot.state === "blocked" && "line-through")}
-                      >
-                        {format(slot.start, "h:mm a")}
-                      </Button>
-                    );
-                  })}
+                  {block.map((slot) => (
+                    <Button
+                      key={slot.start.toISOString()}
+                      variant="outline"
+                      size="sm"
+                      disabled={slot.blocked}
+                      aria-label={
+                        showsApproval(slot) ? `${format(slot.start, "h:mm a")}, needs approval` : undefined
+                      }
+                      onClick={() => {
+                        setDialogError(null);
+                        setPendingSlot(slot);
+                      }}
+                      className={cn(slot.blocked && "line-through", showsApproval(slot) && "border-dashed border-muted-foreground/60")}
+                    >
+                      {format(slot.start, "h:mm a")}
+                    </Button>
+                  ))}
                 </div>
               </div>
             ))}
-            {hasCutoffSlots && (
+            {hasApprovalSlots && (
               <p className="text-xs text-muted-foreground">
-                {isAdmin
-                  ? "Times within 72 hours are closed to students, but you can still book them."
-                  : "Times within 72 hours can't be requested online."}
+                Dashed times are less than 72 hours away. You can still request them, but Trevor needs
+                to approve them first.
               </p>
             )}
           </div>
@@ -228,7 +229,7 @@ export function SlotPicker({
       <Dialog open={pendingSlot !== null} onOpenChange={(open) => !open && !isPending && setPendingSlot(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{isAdmin ? "Book this session?" : "Request this session?"}</DialogTitle>
+            <DialogTitle>{pendingNeedsApproval ? "Request this session?" : "Book this session?"}</DialogTitle>
             <DialogDescription>
               {pendingSlot &&
                 `${format(pendingSlot.start, "EEEE, MMMM d")} · ${format(pendingSlot.start, "h:mm")} – ${format(
@@ -239,7 +240,9 @@ export function SlotPicker({
           </DialogHeader>
           {!isAdmin && (
             <p className="text-sm text-muted-foreground">
-              Your request stays pending until it&apos;s confirmed.
+              {pendingNeedsApproval
+                ? "It's less than 72 hours away, so it stays pending until Trevor approves it."
+                : "It's confirmed as soon as you book."}
             </p>
           )}
           {dialogError && (
@@ -252,7 +255,7 @@ export function SlotPicker({
               Back
             </Button>
             <Button disabled={isPending} onClick={confirm}>
-              {isPending ? "Sending…" : isAdmin ? "Book" : "Request"}
+              {isPending ? "Sending…" : pendingNeedsApproval ? "Request" : "Book"}
             </Button>
           </DialogFooter>
         </DialogContent>
