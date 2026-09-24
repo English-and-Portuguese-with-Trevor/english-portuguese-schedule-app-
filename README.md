@@ -13,6 +13,16 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
+## Database
+
+`supabase/migrations/` holds every change made to the scheduling tables, in
+order, named to match the migration history in Supabase. To change the
+database, add a new file there (never edit an old one) and apply it to the
+project, then run the database tests below.
+
+The Supabase project is shared with the flashcards app. The `profiles` table
+comes from that app's migrations; these files only add to it.
+
 ## Tests
 
 ```bash
@@ -37,4 +47,4 @@ against the live database.
 
 Run it by pasting the file into the Supabase SQL editor. A pass ends with
 `ALL DATABASE TESTS PASSED`; a failure stops with an error naming the check.
-Run it after any change to database policies or functions.
+Run it after any change to the database.

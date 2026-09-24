@@ -8,7 +8,7 @@ export default async function AdminBookingsPage() {
   const [{ data: bookings }, { data: students }, displayNames] = await Promise.all([
     supabase
       .from("bookings")
-      .select("*, session_slots(start_time, end_time, type, recurring_groups(title))")
+      .select("*, session_slots(start_time, end_time)")
       .neq("status", "CANCELLED")
       .order("created_at", { ascending: false })
       .limit(100),

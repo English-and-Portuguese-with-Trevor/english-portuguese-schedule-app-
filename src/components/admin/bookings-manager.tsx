@@ -27,8 +27,6 @@ interface BookingRow {
   session_slots: {
     start_time: string;
     end_time: string;
-    type: string;
-    recurring_groups: { title: string } | null;
   } | null;
 }
 
@@ -186,7 +184,6 @@ export function BookingsManager({
               <div>
                 <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
                 <p className="text-sm text-muted-foreground">
-                  {b.session_slots?.recurring_groups?.title ?? "1:1"} ·{" "}
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
                 </p>
               </div>
@@ -211,7 +208,6 @@ export function BookingsManager({
               <div>
                 <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
                 <p className="text-sm text-muted-foreground">
-                  {b.session_slots?.recurring_groups?.title ?? "1:1"} ·{" "}
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
                 </p>
               </div>

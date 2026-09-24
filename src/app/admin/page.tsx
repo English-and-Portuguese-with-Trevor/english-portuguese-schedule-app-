@@ -28,7 +28,7 @@ export default async function AdminOverviewPage() {
     <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-2xl font-semibold">Admin overview</h1>
-        <p className="text-sm text-muted-foreground">Manage availability, classes, and bookings.</p>
+        <p className="text-sm text-muted-foreground">Manage availability and bookings.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => (

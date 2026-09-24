@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 
-import { cancelBooking, requestBooking, requestClassBooking } from "@/lib/actions/bookings";
+import { cancelBooking, requestBooking } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,21 +13,10 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Booking, Role } from "@/lib/types";
 
-interface OpenClass {
-  id: string;
-  startTime: string;
-  endTime: string;
-  maxCapacity: number;
-  bookedCount: number;
-  title: string;
-}
-
 type BookingRow = Booking & {
   session_slots: {
     start_time: string;
     end_time: string;
-    type: string;
-    recurring_groups: { title: string } | null;
   } | null;
 };
 
@@ -39,13 +28,11 @@ export function BookingBoard({
   role,
   candidates,
   busySlots,
-  openClasses,
   myBookings,
 }: {
   role: Role;
   candidates: CandidateSlotDTO[];
   busySlots: BusySlotDTO[];
-  openClasses: OpenClass[];
   myBookings: BookingRow[];
 }) {
   const router = useRouter();
@@ -90,15 +77,6 @@ export function BookingBoard({
     return null;
   }
 
-  function handleBookClass(cls: OpenClass) {
-    setBusyKey(cls.id);
-    startTransition(async () => {
-      const result = await requestClassBooking(cls.id);
-      setNotice(result.error ? { kind: "error", text: result.error } : { kind: "success", text: "Class requested." });
-      setBusyKey(null);
-    });
-  }
-
   function handleCancel(bookingId: string) {
     setBusyKey(bookingId);
     startTransition(async () => {
@@ -124,7 +102,7 @@ export function BookingBoard({
               <Card key={b.id}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
-                    {b.session_slots?.recurring_groups?.title ?? "1:1 Session"}
+                    1:1 Session
                   </CardTitle>
                   <CardDescription>
                     {b.session_slots &&
@@ -149,35 +127,6 @@ export function BookingBoard({
           </div>
         )}
       </section>
-
-      {openClasses.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">Group classes</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {openClasses.map((cls) => (
-              <Card key={cls.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{cls.title}</CardTitle>
-                  <CardDescription>
-                    {format(new Date(cls.startTime), "EEE, MMM d 'at' h:mm a")} ·{" "}
-                    {cls.maxCapacity - cls.bookedCount} spot
-                    {cls.maxCapacity - cls.bookedCount === 1 ? "" : "s"} left
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <Button
-                    size="sm"
-                    disabled={isPending && busyKey === cls.id}
-                    onClick={() => handleBookClass(cls)}
-                  >
-                    Join class
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Book a 1:1 session</h2>

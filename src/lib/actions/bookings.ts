@@ -48,7 +48,6 @@ async function bookIndividualSlot(
   const { data: overlapping } = await supabase
     .from("session_slots")
     .select("id, bookings!inner(status)")
-    .eq("type", "INDIVIDUAL")
     .eq("status", "OPEN")
     .lt("start_time", end.toISOString())
     .gt("end_time", start.toISOString())
@@ -64,18 +63,13 @@ async function bookIndividualSlot(
     .insert({
       start_time: start.toISOString(),
       end_time: end.toISOString(),
-      type: "INDIVIDUAL",
-      max_capacity: 1,
       status: "OPEN",
       created_by: createdBy,
     })
     .select("id")
     .single();
 
-  if (slotErr) {
-    const message = slotErr.code === "23P01" ? "That time was just taken. Please pick another." : slotErr.message;
-    return { error: message };
-  }
+  if (slotErr) return { error: friendlyDbError(slotErr) };
 
   const { error: bookingErr } = await supabase.from("bookings").insert({
     session_slot_id: slot.id,
@@ -85,16 +79,17 @@ async function bookIndividualSlot(
   });
 
   if (bookingErr) {
-    return { error: bookingErr.message };
+    // Don't leave an empty slot behind blocking the time.
+    await supabase.from("session_slots").delete().eq("id", slot.id);
+    return { error: friendlyDbError(bookingErr) };
   }
 
   return { error: null };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
-  if (error.code === "23P01") return "That time was just taken. Please pick another.";
-  if (error.code === "23505") return "You're already booked into this.";
-  if (error.message.includes("capacity")) return "That class just filled up.";
+  // 23P01: overlaps another session; 23505: the slot already has a booking.
+  if (error.code === "23P01" || error.code === "23505") return "That time was just taken. Please pick another.";
   return error.message;
 }
 
@@ -124,27 +119,6 @@ export async function requestBooking(startIso: string, endIso: string): Promise<
     });
     if (error) return { error: friendlyDbError(error) };
   }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/admin/bookings");
-  return { error: null };
-}
-
-/** Join a recurring class instance (session_slot already exists, capacity > 1). */
-export async function requestClassBooking(sessionSlotId: string): Promise<ActionResult> {
-  const { supabase, profile } = await requireProfile();
-
-  const { error } =
-    profile.role === "admin"
-      ? await supabase.from("bookings").insert({
-          session_slot_id: sessionSlotId,
-          student_id: profile.id,
-          status: "CONFIRMED",
-          is_admin_override: true,
-        })
-      : await supabase.rpc("request_class_booking", { p_slot_id: sessionSlotId });
-
-  if (error) return { error: friendlyDbError(error) };
 
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");

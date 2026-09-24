@@ -93,9 +93,7 @@ export function markOpenSlots(
   const bookedRanges = existingSlots
     .filter(
       (s) =>
-        s.type === "INDIVIDUAL" &&
-        s.status === "OPEN" &&
-        (activeBookingCountBySlotId[s.id] ?? 0) >= s.max_capacity,
+        s.status === "OPEN" && (activeBookingCountBySlotId[s.id] ?? 0) > 0,
     )
     .map((s) => ({
       start: new Date(s.start_time).getTime(),

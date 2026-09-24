@@ -16,7 +16,6 @@ export function Nav({ role, fullName }: { role: Role; fullName: string | null })
       ? [
           { href: "/admin", label: "Overview" },
           { href: "/admin/availability", label: "Availability" },
-          { href: "/admin/classes", label: "Classes" },
           { href: "/admin/bookings", label: "Bookings" },
           { href: "/admin/users", label: "Users" },
           { href: "/dashboard", label: "Student view" },

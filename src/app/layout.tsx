@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "English & Portuguese with Trevor — Scheduling",
-  description: "Book and manage 1:1 lessons and classes.",
+  description: "Book and manage 1:1 lessons.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

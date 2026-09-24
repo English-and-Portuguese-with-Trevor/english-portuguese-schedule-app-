@@ -249,98 +249,33 @@ export type Database = {
         }
         Relationships: []
       }
-      recurring_groups: {
-        Row: {
-          created_at: string
-          created_by: string
-          day_of_week: number
-          description: string | null
-          duration_minutes: number
-          ends_on: string | null
-          id: string
-          is_active: boolean
-          max_capacity: number
-          start_time: string
-          starts_on: string
-          timezone: string
-          title: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          day_of_week: number
-          description?: string | null
-          duration_minutes: number
-          ends_on?: string | null
-          id?: string
-          is_active?: boolean
-          max_capacity?: number
-          start_time: string
-          starts_on: string
-          timezone?: string
-          title: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          day_of_week?: number
-          description?: string | null
-          duration_minutes?: number
-          ends_on?: string | null
-          id?: string
-          is_active?: boolean
-          max_capacity?: number
-          start_time?: string
-          starts_on?: string
-          timezone?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recurring_groups_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       session_slots: {
         Row: {
           created_at: string
           created_by: string | null
           end_time: string
           id: string
-          max_capacity: number
           notes: string | null
-          recurring_group_id: string | null
           start_time: string
           status: string
-          type: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           end_time: string
           id?: string
-          max_capacity?: number
           notes?: string | null
-          recurring_group_id?: string | null
           start_time: string
           status?: string
-          type: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
           end_time?: string
           id?: string
-          max_capacity?: number
           notes?: string | null
-          recurring_group_id?: string | null
           start_time?: string
           status?: string
-          type?: string
         }
         Relationships: [
           {
@@ -348,13 +283,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "session_slots_recurring_group_id_fkey"
-            columns: ["recurring_group_id"]
-            isOneToOne: false
-            referencedRelation: "recurring_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -366,7 +294,6 @@ export type Database = {
     Functions: {
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
-      request_class_booking: { Args: { p_slot_id: string }; Returns: string }
       request_individual_booking: { Args: { p_end: string; p_start: string }; Returns: string }
     }
     Enums: {

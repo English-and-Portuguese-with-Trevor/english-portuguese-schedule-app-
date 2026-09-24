@@ -1,8 +1,8 @@
 -- Database security and booking-rule tests.
 --
 -- These check the rules that actually protect the data: row-level security,
--- the booking functions (request_individual_booking, request_class_booking,
--- cancel_my_booking), and the overlap/capacity constraints. The app's own
+-- the booking functions (request_individual_booking, cancel_my_booking),
+-- and the overlap and one-booking-per-slot constraints. The app's own
 -- checks can be bypassed by calling the API directly, so these are the ones
 -- that matter.
 --
@@ -25,9 +25,6 @@ declare
   v_admin   uuid := gen_random_uuid();
   v_sat     date;
   v_booking uuid;
-  v_group   uuid;
-  v_class   uuid;
-  v_near_class uuid;
   v_count   int;
   v_text    text;
   v_failed  boolean;
@@ -70,17 +67,6 @@ begin
   v_1115 := (v_sat + time '11:15') at time zone 'America/Denver';
   v_12   := (v_sat + time '12:00') at time zone 'America/Denver';
   v_1215 := (v_sat + time '12:15') at time zone 'America/Denver';
-
-  insert into public.recurring_groups (title, day_of_week, start_time, duration_minutes, starts_on, ends_on, max_capacity, created_by)
-  values ('DB test class', 6, '14:00', 60, v_sat, v_sat, 1, v_admin)
-  returning id into v_group;
-  insert into public.session_slots (start_time, end_time, type, max_capacity, recurring_group_id, status)
-  values ((v_sat + time '14:00') at time zone 'America/Denver', (v_sat + time '15:00') at time zone 'America/Denver',
-          'RECURRING_CLASS', 1, v_group, 'OPEN')
-  returning id into v_class;
-  insert into public.session_slots (start_time, end_time, type, max_capacity, recurring_group_id, status)
-  values (now() + interval '1 day', now() + interval '1 day 1 hour', 'RECURRING_CLASS', 5, v_group, 'OPEN')
-  returning id into v_near_class;
 
   ---------------------------------------------------------------------------
   -- As a student
@@ -152,8 +138,8 @@ begin
   -- Students cannot write slots, bookings, or availability directly.
   v_failed := false;
   begin
-    insert into public.session_slots (start_time, end_time, type, max_capacity, status)
-    values (v_10 + interval '7 days', v_11 + interval '7 days', 'INDIVIDUAL', 1, 'OPEN');
+    insert into public.session_slots (start_time, end_time, status)
+    values (v_10 + interval '7 days', v_11 + interval '7 days', 'OPEN');
   exception when others then v_failed := true;
   end;
   if not v_failed then raise exception 'FAIL: students cannot insert session slots directly'; end if;
@@ -161,7 +147,7 @@ begin
   v_failed := false;
   begin
     insert into public.bookings (session_slot_id, student_id, status, is_admin_override)
-    values (v_class, v_student, 'CONFIRMED', true);
+    values ((select session_slot_id from public.bookings where id = v_booking), v_student, 'CONFIRMED', true);
   exception when others then v_failed := true;
   end;
   if not v_failed then raise exception 'FAIL: students cannot insert bookings directly'; end if;
@@ -186,19 +172,6 @@ begin
     raise exception 'FAIL: students cannot make themselves admin';
   end if;
 
-  -- Class requests respect the 72-hour cutoff.
-  v_failed := false;
-  begin
-    perform public.request_class_booking(v_near_class);
-  exception when others then v_failed := true; v_msg := sqlerrm;
-  end;
-  if not v_failed or v_msg not like '%72 hours%' then
-    raise exception 'FAIL: class requests inside 72 hours are refused (%)', v_msg;
-  end if;
-
-  -- Joining a class with room works.
-  perform public.request_class_booking(v_class);
-
   ---------------------------------------------------------------------------
   -- As a different student
   ---------------------------------------------------------------------------
@@ -213,16 +186,6 @@ begin
   exception when others then v_failed := true;
   end;
   if not v_failed then raise exception 'FAIL: students cannot cancel someone else''s booking'; end if;
-
-  -- A full class (capacity 1, already joined) refuses another student.
-  v_failed := false;
-  begin
-    perform public.request_class_booking(v_class);
-  exception when others then v_failed := true; v_msg := sqlerrm;
-  end;
-  if not v_failed or v_msg not like '%capacity%' then
-    raise exception 'FAIL: a full class refuses more students (%)', v_msg;
-  end if;
 
   ---------------------------------------------------------------------------
   -- Back as the first student: cancelling frees the time
@@ -239,11 +202,22 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
 
   select id into v_booking from public.bookings
-  where student_id = v_other and status = 'PENDING' and session_slot_id in (select id from public.session_slots where type = 'INDIVIDUAL')
+  where student_id = v_other and status = 'PENDING'
   limit 1;
   update public.bookings set status = 'CONFIRMED' where id = v_booking;
   if (select status from public.bookings where id = v_booking) <> 'CONFIRMED' then
     raise exception 'FAIL: admins can confirm a booking';
+  end if;
+
+  -- A session holds one student: even an admin can't add a second booking.
+  v_failed := false;
+  begin
+    insert into public.bookings (session_slot_id, student_id, status, is_admin_override)
+    values ((select session_slot_id from public.bookings where id = v_booking), v_admin, 'CONFIRMED', true);
+  exception when others then v_failed := true; v_msg := sqlstate;
+  end;
+  if not v_failed or v_msg <> '23505' then
+    raise exception 'FAIL: a session can only hold one active booking (sqlstate %)', v_msg;
   end if;
 
   select count(*) into v_count from public.bookings where student_id in (v_student, v_other);
