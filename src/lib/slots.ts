@@ -3,6 +3,9 @@ import { fromZonedTime } from "date-fns-tz";
 
 import { BOOKING_CUTOFF_HOURS, type AvailabilityRule, type SessionSlot } from "@/lib/types";
 
+/** Students can request an individual session starting on any 15-minute mark. */
+export const BOOKING_START_STEP_MINUTES = 15;
+
 export interface CandidateSlot {
   start: Date;
   end: Date;
@@ -13,7 +16,9 @@ export interface CandidateSlot {
 
 /**
  * Expands an admin's recurring weekly availability windows into concrete
- * candidate start/end instants over a date range. Does not know about
+ * candidate start/end instants over a date range, stepping every 15 minutes.
+ * A candidate is only produced if the full session fits before the window's
+ * end time — the end time itself is never a valid start. Does not know about
  * existing bookings yet — see `markOpenSlots`.
  */
 export function generateCandidateSlots(
@@ -46,7 +51,7 @@ export function generateCandidateSlots(
             bookable: !isBefore(cursor, cutoffInstant),
           });
         }
-        cursor = slotEnd;
+        cursor = addMinutes(cursor, BOOKING_START_STEP_MINUTES);
       }
     }
   }
@@ -54,37 +59,34 @@ export function generateCandidateSlots(
   return candidates.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
-export interface OpenSlot extends CandidateSlot {
-  /** Set once a student (or admin) has actually reserved this start time */
-  existingSlotId: string | null;
-}
+export type OpenSlot = CandidateSlot;
 
 /**
- * Cross-references candidate slots against already-materialized SessionSlot
- * rows + their active booking counts, dropping any that are full.
+ * Drops any candidate that time-overlaps an already-booked individual
+ * session. Candidates are generated every 15 minutes, so a booked 2:00-3:00
+ * session must also block overlapping candidates like 1:45 or 2:15, not just
+ * an exact 2:00 match.
  */
 export function markOpenSlots(
   candidates: CandidateSlot[],
   existingSlots: SessionSlot[],
   activeBookingCountBySlotId: Record<string, number>,
 ): OpenSlot[] {
-  const byStart = new Map(
-    existingSlots
-      .filter((s) => s.type === "INDIVIDUAL" && s.status === "OPEN")
-      .map((s) => [new Date(s.start_time).getTime(), s]),
-  );
+  const bookedRanges = existingSlots
+    .filter(
+      (s) =>
+        s.type === "INDIVIDUAL" &&
+        s.status === "OPEN" &&
+        (activeBookingCountBySlotId[s.id] ?? 0) >= s.max_capacity,
+    )
+    .map((s) => ({
+      start: new Date(s.start_time).getTime(),
+      end: new Date(s.end_time).getTime(),
+    }));
 
-  const openSlots: OpenSlot[] = [];
-
-  for (const candidate of candidates) {
-    const existing = byStart.get(candidate.start.getTime());
-    const bookedCount = existing ? (activeBookingCountBySlotId[existing.id] ?? 0) : 0;
-    const isFull = existing ? bookedCount >= existing.max_capacity : false;
-
-    if (isFull) continue;
-
-    openSlots.push({ ...candidate, existingSlotId: existing?.id ?? null });
-  }
-
-  return openSlots;
+  return candidates.filter((candidate) => {
+    const start = candidate.start.getTime();
+    const end = candidate.end.getTime();
+    return !bookedRanges.some((r) => start < r.end && end > r.start);
+  });
 }

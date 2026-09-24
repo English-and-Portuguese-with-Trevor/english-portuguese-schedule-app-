@@ -27,6 +27,74 @@ async function requireProfile() {
 }
 
 /**
+ * Creates a new individual session slot and books it in one go. Always
+ * inserts a fresh session_slots row — individual sessions never share a
+ * slot — and relies on the DB's overlap exclusion constraint as the final
+ * race-condition guard (two overlapping 15-minute-aligned start times, e.g.
+ * 2:00 and 2:15, could otherwise both slip through a naive check-then-insert).
+ */
+async function bookIndividualSlot(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  params: {
+    start: Date;
+    end: Date;
+    studentId: string;
+    status: "PENDING" | "CONFIRMED";
+    isAdminOverride: boolean;
+    createdBy: string | null;
+  },
+): Promise<ActionResult> {
+  const { start, end, studentId, status, isAdminOverride, createdBy } = params;
+
+  // Soft pre-check for a friendly message; the exclusion constraint below is
+  // the actual guarantee against a concurrent conflicting request.
+  const { data: overlapping } = await supabase
+    .from("session_slots")
+    .select("id, bookings!inner(status)")
+    .eq("type", "INDIVIDUAL")
+    .eq("status", "OPEN")
+    .lt("start_time", end.toISOString())
+    .gt("end_time", start.toISOString())
+    .neq("bookings.status", "CANCELLED")
+    .limit(1);
+
+  if (overlapping && overlapping.length > 0) {
+    return { error: "That time overlaps an existing session. Please pick another time." };
+  }
+
+  const { data: slot, error: slotErr } = await supabase
+    .from("session_slots")
+    .insert({
+      start_time: start.toISOString(),
+      end_time: end.toISOString(),
+      type: "INDIVIDUAL",
+      max_capacity: 1,
+      status: "OPEN",
+      created_by: createdBy,
+    })
+    .select("id")
+    .single();
+
+  if (slotErr) {
+    const message = slotErr.code === "23P01" ? "That time was just taken. Please pick another." : slotErr.message;
+    return { error: message };
+  }
+
+  const { error: bookingErr } = await supabase.from("bookings").insert({
+    session_slot_id: slot.id,
+    student_id: studentId,
+    status,
+    is_admin_override: isAdminOverride,
+  });
+
+  if (bookingErr) {
+    return { error: bookingErr.message };
+  }
+
+  return { error: null };
+}
+
+/**
  * Student (or admin) requests an individual 1:1 slot. Enforces the 72h
  * cutoff for students; admins bypass it and are auto-confirmed.
  */
@@ -69,59 +137,16 @@ export async function requestBooking(startIso: string, endIso: string): Promise<
     }
   }
 
-  let slotId: string;
-  const { data: existingSlot } = await supabase
-    .from("session_slots")
-    .select("id")
-    .eq("start_time", start.toISOString())
-    .eq("type", "INDIVIDUAL")
-    .maybeSingle();
-
-  if (existingSlot) {
-    slotId = existingSlot.id;
-  } else {
-    const { data: created, error: createErr } = await supabase
-      .from("session_slots")
-      .insert({
-        start_time: start.toISOString(),
-        end_time: end.toISOString(),
-        type: "INDIVIDUAL",
-        max_capacity: 1,
-        status: "OPEN",
-        created_by: isAdmin ? profile.id : null,
-      })
-      .select("id")
-      .single();
-
-    if (createErr) {
-      const { data: raceSlot } = await supabase
-        .from("session_slots")
-        .select("id")
-        .eq("start_time", start.toISOString())
-        .eq("type", "INDIVIDUAL")
-        .maybeSingle();
-      if (!raceSlot) return { error: "Could not reserve that slot. Please try again." };
-      slotId = raceSlot.id;
-    } else {
-      slotId = created.id;
-    }
-  }
-
-  const { error: bookingErr } = await supabase.from("bookings").insert({
-    session_slot_id: slotId,
-    student_id: profile.id,
+  const result = await bookIndividualSlot(supabase, {
+    start,
+    end,
+    studentId: profile.id,
     status: isAdmin ? "CONFIRMED" : "PENDING",
-    is_admin_override: isAdmin,
+    isAdminOverride: isAdmin,
+    createdBy: isAdmin ? profile.id : null,
   });
 
-  if (bookingErr) {
-    const message = bookingErr.message.includes("capacity")
-      ? "That slot was just booked by someone else."
-      : bookingErr.message.includes("duplicate")
-        ? "You've already requested this slot."
-        : bookingErr.message;
-    return { error: message };
-  }
+  if (result.error) return result;
 
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
@@ -184,49 +209,16 @@ export async function adminBookStudent(
   const start = new Date(startIso);
   const end = new Date(endIso);
 
-  let slotId: string;
-  const { data: existingSlot } = await supabase
-    .from("session_slots")
-    .select("id")
-    .eq("start_time", start.toISOString())
-    .eq("type", "INDIVIDUAL")
-    .maybeSingle();
-
-  if (existingSlot) {
-    slotId = existingSlot.id;
-  } else {
-    const { data: created, error: createErr } = await supabase
-      .from("session_slots")
-      .insert({
-        start_time: start.toISOString(),
-        end_time: end.toISOString(),
-        type: "INDIVIDUAL",
-        max_capacity: 1,
-        status: "OPEN",
-        created_by: profile.id,
-      })
-      .select("id")
-      .single();
-
-    if (createErr) return { error: createErr.message };
-    slotId = created.id;
-  }
-
-  const { error } = await supabase.from("bookings").insert({
-    session_slot_id: slotId,
-    student_id: studentId,
+  const result = await bookIndividualSlot(supabase, {
+    start,
+    end,
+    studentId,
     status: "CONFIRMED",
-    is_admin_override: true,
+    isAdminOverride: true,
+    createdBy: profile.id,
   });
 
-  if (error) {
-    const message = error.message.includes("capacity")
-      ? "That slot is already taken."
-      : error.message.includes("duplicate")
-        ? "That student is already booked into this slot."
-        : error.message;
-    return { error: message };
-  }
+  if (result.error) return result;
 
   revalidatePath("/admin/bookings");
   revalidatePath("/dashboard");
