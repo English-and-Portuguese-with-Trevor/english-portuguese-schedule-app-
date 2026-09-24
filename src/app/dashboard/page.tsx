@@ -32,12 +32,13 @@ export default async function DashboardPage() {
       .eq("status", "OPEN")
       .gt("end_time", now.toISOString()) // include a session already in progress
       .lte("start_time", rangeEnd.toISOString()),
+    // Upcoming only: a session that's over can't be cancelled.
     supabase
       .from("bookings")
-      .select("*, session_slots(start_time, end_time)")
+      .select("*, session_slots!inner(start_time, end_time)")
       .eq("student_id", profile!.id)
       .neq("status", "CANCELLED")
-      .order("created_at", { ascending: false }),
+      .gt("session_slots.end_time", now.toISOString()),
   ]);
 
   // Only admins see who booked a slot; students can't read other students'
@@ -79,9 +80,9 @@ export default async function DashboardPage() {
         needsApproval: c.needsApproval,
       }))}
       busySlots={busySlots}
-      myBookings={(myBookings ?? []) as (Booking & {
-        session_slots: { start_time: string; end_time: string } | null;
-      })[]}
+      myBookings={(myBookings ?? []).sort((a, b) =>
+        a.session_slots.start_time.localeCompare(b.session_slots.start_time),
+      ) as (Booking & { session_slots: { start_time: string; end_time: string } })[]}
     />
   );
 }

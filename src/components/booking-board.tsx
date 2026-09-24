@@ -2,12 +2,13 @@
 
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { cancelBooking, requestBooking } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CancelBookingDialog, type CancellableBooking } from "@/components/cancel-booking-dialog";
 import { SlotPicker, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -36,8 +37,7 @@ export function BookingBoard({
   myBookings: BookingRow[];
 }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<CancellableBooking | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   // Every time here is shown in the viewer's timezone, which the server
@@ -77,13 +77,11 @@ export function BookingBoard({
     return null;
   }
 
-  function handleCancel(bookingId: string) {
-    setBusyKey(bookingId);
-    startTransition(async () => {
-      const result = await cancelBooking(bookingId);
-      setNotice(result.error ? { kind: "error", text: result.error } : { kind: "success", text: "Booking cancelled." });
-      setBusyKey(null);
-    });
+  async function handleCancel(bookingId: string) {
+    const result = await cancelBooking(bookingId);
+    if (result.error) return result.error;
+    setNotice({ kind: "success", text: "Booking cancelled." });
+    return null;
   }
 
   if (!isClient) {
@@ -116,8 +114,10 @@ export function BookingBoard({
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={isPending && busyKey === b.id}
-                    onClick={() => handleCancel(b.id)}
+                    onClick={() =>
+                      b.session_slots &&
+                      setCancelling({ id: b.id, startTime: b.session_slots.start_time, status: b.status })
+                    }
                   >
                     Cancel
                   </Button>
@@ -132,6 +132,8 @@ export function BookingBoard({
         <h2 className="mb-3 text-lg font-semibold">Book a 1:1 session</h2>
         <SlotPicker role={role} candidates={candidates} busySlots={busySlots} onBook={handleBookSlot} />
       </section>
+
+      <CancelBookingDialog booking={cancelling} onClose={() => setCancelling(null)} onCancel={handleCancel} />
 
       {notice && (
         <div

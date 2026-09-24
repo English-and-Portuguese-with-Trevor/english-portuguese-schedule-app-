@@ -36,6 +36,8 @@ npm run test:watch   # rerun on save
 - `src/lib/display-names.test.ts`: "First L." names and duplicate numbering.
 - `src/components/slot-picker.test.tsx`: the booking picker as a student and
   as an admin, in a Mountain Time browser.
+- `src/components/cancel-booking-dialog.test.tsx`: cancelling, and the warning
+  that a confirmed session cancelled less than 24 hours ahead still counts.
 - `src/components/app-shell.test.tsx`: the header, admin navigation, and
   settings menu.
 
