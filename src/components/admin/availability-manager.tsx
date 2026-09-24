@@ -29,8 +29,8 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
     dayOfWeek: "1",
     startTime: "09:00",
     endTime: "17:00",
-    slotDurationMinutes: "45",
-    timezone: "America/Los_Angeles",
+    slotDurationMinutes: "60",
+    timezone: "America/Denver",
   });
 
   function handleCreate() {

@@ -1,6 +1,7 @@
 import { addDays, format } from "date-fns";
 
 import { BookingBoard } from "@/components/booking-board";
+import { getDisplayNames } from "@/lib/display-names";
 import { generateCandidateSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
 import type { AvailabilityRule, Booking, Role, SessionSlot } from "@/lib/types";
@@ -50,36 +51,23 @@ export default async function DashboardPage() {
     ]);
 
   const allSlotIds = [...(individualSlots ?? []), ...(classSlots ?? [])].map((s) => s.id);
-  const [{ data: activeBookings }, { data: individualBookingDetails }] = await Promise.all([
+  const [{ data: activeBookings }, displayNames] = await Promise.all([
     allSlotIds.length
       ? supabase
           .from("bookings")
-          .select("session_slot_id")
+          .select("session_slot_id, student_id")
           .in("session_slot_id", allSlotIds)
           .neq("status", "CANCELLED")
-      : Promise.resolve({ data: [] as { session_slot_id: string }[] }),
-    // Only admins need to see who booked a given 1:1 slot.
-    isAdmin && individualSlots?.length
-      ? supabase
-          .from("bookings")
-          .select("session_slot_id, profiles!bookings_student_id_fkey(full_name, email)")
-          .in(
-            "session_slot_id",
-            individualSlots.map((s) => s.id),
-          )
-          .neq("status", "CANCELLED")
-      : Promise.resolve({ data: [] as { session_slot_id: string; profiles: { full_name: string | null; email: string | null } | null }[] }),
+      : Promise.resolve({ data: [] as { session_slot_id: string; student_id: string }[] }),
+    // Only admins see who booked a given 1:1 slot.
+    isAdmin ? getDisplayNames(supabase) : Promise.resolve({} as Record<string, string>),
   ]);
 
   const bookingCountBySlot: Record<string, number> = {};
+  const studentNameBySlot: Record<string, string> = {};
   for (const b of activeBookings ?? []) {
     bookingCountBySlot[b.session_slot_id] = (bookingCountBySlot[b.session_slot_id] ?? 0) + 1;
-  }
-
-  const studentNameBySlot: Record<string, string> = {};
-  for (const b of individualBookingDetails ?? []) {
-    const name = b.profiles?.full_name ?? b.profiles?.email ?? "Booked";
-    studentNameBySlot[b.session_slot_id] = name;
+    if (displayNames[b.student_id]) studentNameBySlot[b.session_slot_id] = displayNames[b.student_id];
   }
 
   // All candidate start times within active windows, unfiltered by booking

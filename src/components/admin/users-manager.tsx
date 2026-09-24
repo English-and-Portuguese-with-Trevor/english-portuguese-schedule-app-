@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Profile, Role } from "@/lib/types";
 
-export function UsersManager({ initialUsers }: { initialUsers: Profile[] }) {
+export function UsersManager({
+  initialUsers,
+  displayNames,
+}: {
+  initialUsers: Profile[];
+  displayNames: Record<string, string>;
+}) {
   const [users, setUsers] = useState(initialUsers);
   const [query, setQuery] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -46,7 +52,7 @@ export function UsersManager({ initialUsers }: { initialUsers: Profile[] }) {
         {users.map((user) => (
           <div key={user.id} className="flex items-center justify-between rounded-md border px-4 py-3">
             <div>
-              <p className="text-sm font-medium">{user.full_name ?? "Unnamed"}</p>
+              <p className="text-sm font-medium">{displayNames[user.id] ?? "Unknown"}</p>
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
             <div className="flex items-center gap-2">

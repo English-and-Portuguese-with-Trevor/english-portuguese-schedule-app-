@@ -48,7 +48,7 @@ export function ClassesManager({
       dayOfWeek: "2",
       startTime: "16:00",
       durationMinutes: "60",
-      timezone: "America/Los_Angeles",
+      timezone: "America/Denver",
       startsOn: format(now, "yyyy-MM-dd"),
       endsOn: format(addDays(now, 56), "yyyy-MM-dd"),
       maxCapacity: "6",

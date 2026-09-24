@@ -21,9 +21,9 @@ import {
 
 interface BookingRow {
   id: string;
+  student_id: string;
   status: string;
   is_admin_override: boolean;
-  profiles: { full_name: string | null; email: string | null } | null;
   session_slots: {
     start_time: string;
     end_time: string;
@@ -34,16 +34,17 @@ interface BookingRow {
 
 interface Student {
   id: string;
-  full_name: string | null;
-  email: string | null;
+  name: string;
 }
 
 export function BookingsManager({
   initialBookings,
   students,
+  displayNames,
 }: {
   initialBookings: BookingRow[];
   students: Student[];
+  displayNames: Record<string, string>;
 }) {
   const router = useRouter();
   const [prevInitialBookings, setPrevInitialBookings] = useState(initialBookings);
@@ -54,7 +55,7 @@ export function BookingsManager({
     studentId: students[0]?.id ?? "",
     date: format(new Date(), "yyyy-MM-dd"),
     time: "10:00",
-    durationMinutes: "45",
+    durationMinutes: "60",
   });
 
   if (initialBookings !== prevInitialBookings) {
@@ -138,7 +139,7 @@ export function BookingsManager({
               <SelectContent>
                 {students.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.full_name ?? s.email ?? s.id}
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -183,7 +184,7 @@ export function BookingsManager({
           {pending.map((b) => (
             <div key={b.id} className="flex items-center justify-between rounded-md border px-4 py-3">
               <div>
-                <p className="text-sm font-medium">{b.profiles?.full_name ?? b.profiles?.email}</p>
+                <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
                 <p className="text-sm text-muted-foreground">
                   {b.session_slots?.recurring_groups?.title ?? "1:1"} ·{" "}
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
@@ -208,7 +209,7 @@ export function BookingsManager({
           {confirmed.map((b) => (
             <div key={b.id} className="flex items-center justify-between rounded-md border px-4 py-3">
               <div>
-                <p className="text-sm font-medium">{b.profiles?.full_name ?? b.profiles?.email}</p>
+                <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
                 <p className="text-sm text-muted-foreground">
                   {b.session_slots?.recurring_groups?.title ?? "1:1"} ·{" "}
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
