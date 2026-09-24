@@ -8,14 +8,9 @@ import { cancelBooking, requestBooking, requestClassBooking } from "@/lib/action
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { WeekCalendar, type BusySlotDTO, type CandidateSlotDTO } from "@/components/week-calendar";
 import { createClient } from "@/lib/supabase/client";
 import type { Booking, Role } from "@/lib/types";
-
-interface OpenSlot {
-  start: string;
-  end: string;
-  bookable: boolean;
-}
 
 interface OpenClass {
   id: string;
@@ -37,12 +32,14 @@ type BookingRow = Booking & {
 
 export function BookingBoard({
   role,
-  openSlots,
+  candidates,
+  busySlots,
   openClasses,
   myBookings,
 }: {
   role: Role;
-  openSlots: OpenSlot[];
+  candidates: CandidateSlotDTO[];
+  busySlots: BusySlotDTO[];
   openClasses: OpenClass[];
   myBookings: BookingRow[];
 }) {
@@ -68,17 +65,11 @@ export function BookingBoard({
     };
   }, [router]);
 
-  const grouped = openSlots.reduce<Record<string, OpenSlot[]>>((acc, slot) => {
-    const day = format(new Date(slot.start), "EEEE, MMM d");
-    (acc[day] ??= []).push(slot);
-    return acc;
-  }, {});
-
-  function handleBookSlot(slot: OpenSlot) {
+  function handleBookSlot(start: string, end: string) {
     setError(null);
-    setBusyKey(slot.start);
+    setBusyKey(start);
     startTransition(async () => {
-      const result = await requestBooking(slot.start, slot.end);
+      const result = await requestBooking(start, end);
       if (result.error) setError(result.error);
       setBusyKey(null);
     });
@@ -178,38 +169,15 @@ export function BookingBoard({
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Available 1:1 sessions</h2>
-        {Object.keys(grouped).length === 0 ? (
-          <p className="text-sm text-muted-foreground">No open sessions in the next few weeks.</p>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {Object.entries(grouped).map(([day, slots]) => (
-              <div key={day}>
-                <h3 className="mb-2 text-sm font-medium text-muted-foreground">{day}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {slots.map((slot) => (
-                    <Button
-                      key={slot.start}
-                      variant={slot.bookable || role === "admin" ? "outline" : "ghost"}
-                      size="sm"
-                      disabled={
-                        (!slot.bookable && role !== "admin") || (isPending && busyKey === slot.start)
-                      }
-                      onClick={() => handleBookSlot(slot)}
-                      title={
-                        !slot.bookable && role !== "admin"
-                          ? "Sessions must be requested at least 72 hours in advance"
-                          : undefined
-                      }
-                    >
-                      {format(new Date(slot.start), "h:mm a")}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <h2 className="mb-3 text-lg font-semibold">1:1 session availability</h2>
+        <WeekCalendar
+          role={role}
+          candidates={candidates}
+          busySlots={busySlots}
+          onBookSlot={handleBookSlot}
+          isPending={isPending}
+          busyKey={busyKey}
+        />
       </section>
     </div>
   );
