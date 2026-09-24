@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
+import { LateCancellations, type LateCancellationRow } from "@/components/admin/late-cancellations";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,10 +38,12 @@ interface Student {
 
 export function BookingsManager({
   initialBookings,
+  lateCancellations,
   students,
   displayNames,
 }: {
   initialBookings: BookingRow[];
+  lateCancellations: LateCancellationRow[];
   students: Student[];
   displayNames: Record<string, string>;
 }) {
@@ -115,8 +118,8 @@ export function BookingsManager({
       <div>
         <h1 className="text-2xl font-semibold">Bookings</h1>
         <p className="text-sm text-muted-foreground">
-          Confirm requests, cancel sessions, or manually place a student into a slot — this
-          bypasses the 72-hour student cutoff.
+          Approve requests, cancel sessions, or place a student into any time. Sessions you book are
+          confirmed right away.
         </p>
       </div>
 
@@ -221,6 +224,8 @@ export function BookingsManager({
           ))}
         </div>
       </section>
+
+      <LateCancellations rows={lateCancellations} displayNames={displayNames} />
     </div>
   );
 }

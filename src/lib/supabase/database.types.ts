@@ -63,6 +63,7 @@ export type Database = {
           created_at: string
           id: string
           is_admin_override: boolean
+          late_cancellation: boolean
           notes: string | null
           session_slot_id: string
           status: string
@@ -74,6 +75,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_admin_override?: boolean
+          late_cancellation?: boolean
           notes?: string | null
           session_slot_id: string
           status?: string
@@ -85,6 +87,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_admin_override?: boolean
+          late_cancellation?: boolean
           notes?: string | null
           session_slot_id?: string
           status?: string

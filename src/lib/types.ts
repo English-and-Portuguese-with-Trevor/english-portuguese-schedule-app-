@@ -24,3 +24,6 @@ export const APPROVAL_WINDOW_HOURS = 72;
 
 /** A confirmed session cancelled with less than this much notice still counts as a class. */
 export const LATE_CANCEL_HOURS = 24;
+
+/** Late cancellations stay on the admin's Bookings page for this long. */
+export const LATE_CANCEL_LIST_DAYS = 7;

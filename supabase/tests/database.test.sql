@@ -26,6 +26,7 @@ declare
   v_sat     date;
   v_booking uuid;
   v_pending uuid;
+  v_late    uuid;
   v_soon    timestamptz;
   v_count   int;
   v_text    text;
@@ -77,6 +78,13 @@ begin
   v_1115 := (v_sat + time '11:15') at time zone 'America/Denver';
   v_12   := (v_sat + time '12:00') at time zone 'America/Denver';
   v_1215 := (v_sat + time '12:15') at time zone 'America/Denver';
+
+  -- A confirmed session starting in 2 hours, for the late-cancellation check.
+  insert into public.session_slots (start_time, end_time, status)
+  values (now() + interval '2 hours', now() + interval '3 hours', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+  values ((select id from public.session_slots where start_time = now() + interval '2 hours'), v_student, 'CONFIRMED')
+  returning id into v_late;
 
   ---------------------------------------------------------------------------
   -- As a student
@@ -208,6 +216,15 @@ begin
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_student, 'role', 'authenticated')::text, true);
   perform public.cancel_my_booking(v_booking);
+  if (select late_cancellation from public.bookings where id = v_booking) then
+    raise exception 'FAIL: cancelling with 24+ hours notice is not a late cancellation';
+  end if;
+
+  -- Cancelling a confirmed session under 24 hours out is flagged as late.
+  perform public.cancel_my_booking(v_late);
+  if not (select late_cancellation from public.bookings where id = v_late) then
+    raise exception 'FAIL: cancelling under 24 hours before a confirmed session is a late cancellation';
+  end if;
 
   perform set_config('request.jwt.claims', json_build_object('sub', v_other, 'role', 'authenticated')::text, true);
   perform public.request_individual_booking(v_10, v_11);
@@ -231,6 +248,12 @@ begin
   end;
   if not v_failed or v_msg <> '23505' then
     raise exception 'FAIL: a session can only hold one active booking (sqlstate %)', v_msg;
+  end if;
+
+  -- An admin cancelling never marks it as the student's late cancellation.
+  update public.bookings set status = 'CANCELLED', cancelled_at = now() where id = v_pending;
+  if (select late_cancellation from public.bookings where id = v_pending) then
+    raise exception 'FAIL: admin cancellations are not late cancellations';
   end if;
 
   select count(*) into v_count from public.bookings where student_id in (v_student, v_other);

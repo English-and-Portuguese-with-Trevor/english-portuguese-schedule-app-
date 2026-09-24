@@ -38,6 +38,8 @@ npm run test:watch   # rerun on save
   as an admin, in a Mountain Time browser.
 - `src/components/cancel-booking-dialog.test.tsx`: cancelling, and the warning
   that a confirmed session cancelled less than 24 hours ahead still counts.
+- `src/components/admin/late-cancellations.test.tsx`: the admin's late
+  cancellations list.
 - `src/components/app-shell.test.tsx`: the header, admin navigation, and
   settings menu.
 
