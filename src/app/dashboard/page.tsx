@@ -1,8 +1,8 @@
-import { addDays, format } from "date-fns";
+import { addDays } from "date-fns";
 
 import { BookingBoard } from "@/components/booking-board";
 import { getDisplayNames } from "@/lib/display-names";
-import { generateCandidateSlots } from "@/lib/slots";
+import { generateUpcomingSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
 import type { AvailabilityRule, Booking, Role, SessionSlot } from "@/lib/types";
 
@@ -73,10 +73,9 @@ export default async function DashboardPage() {
   // All candidate start times within active windows, unfiltered by booking
   // status — the calendar needs to render open, cutoff-blocked, AND booked
   // cells, not just what's currently bookable.
-  const candidates = generateCandidateSlots((rules ?? []) as AvailabilityRule[], {
-    fromDate: format(now, "yyyy-MM-dd"),
-    days: LOOKAHEAD_DAYS,
+  const candidates = generateUpcomingSlots((rules ?? []) as AvailabilityRule[], {
     now,
+    days: LOOKAHEAD_DAYS,
   });
 
   const busySlots = (individualSlots as SessionSlot[] | null ?? [])

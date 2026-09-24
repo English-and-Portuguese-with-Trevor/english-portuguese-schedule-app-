@@ -147,6 +147,8 @@ export function SlotPicker({
             <button
               key={key}
               type="button"
+              aria-pressed={selected}
+              aria-label={`${format(day, "EEEE, MMMM d")}, ${count > 0 ? `${count} open` : "no availability"}`}
               onClick={() => setSelectedKey(key)}
               className={cn(
                 "flex w-16 shrink-0 snap-start flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-colors",

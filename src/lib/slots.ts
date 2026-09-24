@@ -59,6 +59,24 @@ export function generateCandidateSlots(
   return candidates.sort((a, b) => a.start.getTime() - b.start.getTime());
 }
 
+/**
+ * Candidates from `now` through the next `days` days. Starts one calendar
+ * day early because `now`'s date is read in the server's timezone (UTC on
+ * Vercel): after 6 PM Mountain, UTC is already "tomorrow", and starting there
+ * would silently drop the rest of today's evening windows. Past starts are
+ * filtered out by generateCandidateSlots anyway.
+ */
+export function generateUpcomingSlots(
+  rules: AvailabilityRule[],
+  opts: { now: Date; days: number },
+): CandidateSlot[] {
+  return generateCandidateSlots(rules, {
+    fromDate: format(addDays(opts.now, -1), "yyyy-MM-dd"),
+    days: opts.days + 1,
+    now: opts.now,
+  });
+}
+
 export type OpenSlot = CandidateSlot;
 
 /**

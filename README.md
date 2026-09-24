@@ -1,36 +1,40 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EPT Scheduling
 
-## Getting Started
+Booking app for English & Portuguese with Trevor, live at
+[schedule.englishandportuguesewithtrevor.com](https://schedule.englishandportuguesewithtrevor.com).
+Next.js on Vercel, with Supabase for auth (Google, shared with the flashcards
+app) and the database.
 
-First, run the development server:
+## Running locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local   # fill in the Supabase URL and anon key
+npm install
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tests
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test             # run once
+npm run test:watch   # rerun on save
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `src/lib/slots.test.ts`: the slot engine. Covers 15-minute starts, the
+  end-of-window cutoff, the 72-hour rule, daylight saving, and overlap
+  blocking. Runs in UTC, like the server on Vercel.
+- `src/lib/display-names.test.ts`: "First L." names and duplicate numbering.
+- `src/components/slot-picker.test.tsx`: the booking picker as a student and
+  as an admin, in a Mountain Time browser.
 
-## Learn More
+### Database tests
 
-To learn more about Next.js, take a look at the following resources:
+`supabase/tests/database.test.sql` checks the rules that actually protect the
+data: students can't make themselves admin, can't confirm their own bookings,
+can't write slots directly, and the booking functions refuse bad requests.
+It runs in a single transaction that's rolled back at the end, so it's safe
+against the live database.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run it by pasting the file into the Supabase SQL editor. A pass ends with
+`ALL DATABASE TESTS PASSED`; a failure stops with an error naming the check.
+Run it after any change to database policies or functions.
