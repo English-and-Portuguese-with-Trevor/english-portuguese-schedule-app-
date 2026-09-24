@@ -1,6 +1,6 @@
 "use client";
 
-import { addDays, format, isSameDay, startOfDay, startOfWeek } from "date-fns";
+import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
@@ -49,7 +49,9 @@ export function WeekCalendar({
   busyKey: string | null;
 }) {
   const today = useMemo(() => startOfDay(new Date()), []);
-  const weekStart = useMemo(() => startOfWeek(today), [today]);
+  // Start from today rather than the calendar week's Sunday — already-passed
+  // days are never bookable, so showing them first would just waste the view.
+  const weekStart = today;
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
 
   const weekCandidates = useMemo(
