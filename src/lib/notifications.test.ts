@@ -197,3 +197,15 @@ describe("failure handling", () => {
     expect(sentTo()).toEqual(["ana@example.com"]);
   });
 });
+
+describe("booking questions", () => {
+  it("shows the student's answers in the admin's email, not the student's", async () => {
+    await afterStudentBooking(supabase, { ...lesson, language: "PORTUGUESE", whatsapp: "+1 540 623 8596" }, false);
+    const admin = sentEmails().find((e) => e.to === "trevor@example.com")!;
+    const student = sentEmails().find((e) => e.to === "ana@example.com")!;
+    expect(admin.text).toContain("Are you looking for English or Portuguese lessons?\nPortuguese");
+    expect(admin.text).toContain("WhatsApp number\n+1 540 623 8596");
+    expect(admin.html).toContain("Questions");
+    expect(student.text).not.toContain("WhatsApp");
+  });
+});

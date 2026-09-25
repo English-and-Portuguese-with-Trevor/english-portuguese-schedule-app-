@@ -27,3 +27,14 @@ export const LATE_CANCEL_HOURS = 24;
 
 /** Late cancellations stay on the admin's Bookings page for this long. */
 export const LATE_CANCEL_LIST_DAYS = 7;
+
+export type LessonLanguage = "ENGLISH" | "PORTUGUESE";
+
+/** Answers to the booking questions a student fills in when booking. */
+export interface BookingAnswers {
+  language: LessonLanguage;
+  whatsapp: string;
+}
+
+/** Loose shape check; the database has the final say. */
+export const WHATSAPP_PATTERN = /^\+?[0-9 ()./-]{6,25}$/;

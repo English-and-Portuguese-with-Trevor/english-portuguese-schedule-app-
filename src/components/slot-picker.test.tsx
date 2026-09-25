@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SlotPicker, type BusySlotDTO } from "@/components/slot-picker";
 import { generateUpcomingSlots } from "@/lib/slots";
-import type { AvailabilityRule, Role } from "@/lib/types";
+import type { AvailabilityRule, BookingAnswers, Role } from "@/lib/types";
 
 function rule(day: number, start: string, end: string): AvailabilityRule {
   return {
@@ -39,14 +39,26 @@ const MONDAY_BOOKING: BusySlotDTO = {
   studentName: "Trevor L. 1",
 };
 
-function renderPicker(role: Role, onBook = vi.fn(async () => null as string | null)) {
+type OnBook = (start: string, end: string, answers?: BookingAnswers) => Promise<string | null>;
+
+function renderPicker(
+  role: Role,
+  onBook = vi.fn<OnBook>(async () => null),
+  previousAnswers?: Partial<BookingAnswers>,
+) {
   const candidates = generateUpcomingSlots(SCHEDULE, { now: NOW, days: 14 }).map((c) => ({
     start: c.start.toISOString(),
     end: c.end.toISOString(),
     needsApproval: c.needsApproval,
   }));
-  render(<SlotPicker role={role} candidates={candidates} busySlots={[MONDAY_BOOKING]} onBook={onBook} />);
+  render(<SlotPicker role={role} candidates={candidates} busySlots={[MONDAY_BOOKING]} onBook={onBook} previousAnswers={previousAnswers} />);
   return { onBook, user: userEvent.setup() };
+}
+
+async function answerQuestions(user: ReturnType<typeof userEvent.setup>) {
+  const dialog = screen.getByRole("dialog");
+  await user.click(within(dialog).getByRole("radio", { name: "Portuguese" }));
+  await user.type(within(dialog).getByLabelText("WhatsApp number"), "+1 540 623 8596");
 }
 
 function dayChip(label: string) {
@@ -111,8 +123,12 @@ describe("SlotPicker", () => {
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Request this session?")).toBeInTheDocument();
     expect(within(dialog).getByText(/stays pending until Trevor approves it/)).toBeInTheDocument();
+    await answerQuestions(user);
     await user.click(within(dialog).getByRole("button", { name: "Request" }));
-    expect(onBook).toHaveBeenCalledWith("2026-09-24T21:30:00.000Z", "2026-09-24T22:30:00.000Z");
+    expect(onBook).toHaveBeenCalledWith("2026-09-24T21:30:00.000Z", "2026-09-24T22:30:00.000Z", {
+      language: "PORTUGUESE",
+      whatsapp: "+1 540 623 8596",
+    });
   });
 
   it("doesn't mark times as needing approval for admins, whose bookings are always confirmed", async () => {
@@ -136,16 +152,21 @@ describe("SlotPicker", () => {
     expect(within(dialog).getByText("It's confirmed as soon as you book.")).toBeInTheDocument();
     expect(onBook).not.toHaveBeenCalled();
 
+    await answerQuestions(user);
     await user.click(within(dialog).getByRole("button", { name: "Book" }));
-    expect(onBook).toHaveBeenCalledWith("2026-09-27T21:00:00.000Z", "2026-09-27T22:00:00.000Z");
+    expect(onBook).toHaveBeenCalledWith("2026-09-27T21:00:00.000Z", "2026-09-27T22:00:00.000Z", {
+      language: "PORTUGUESE",
+      whatsapp: "+1 540 623 8596",
+    });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("keeps the dialog open and shows the error inside it when booking fails", async () => {
-    const onBook = vi.fn(async () => "That time was just taken. Please pick another.");
+    const onBook = vi.fn<OnBook>(async () => "That time was just taken. Please pick another.");
     const { user } = renderPicker("student", onBook);
     await user.click(dayChip("Sunday, September 27"));
     await user.click(screen.getByRole("button", { name: "3:00 PM" }));
+    await answerQuestions(user);
     await user.click(screen.getByRole("button", { name: "Book" }));
 
     const dialog = screen.getByRole("dialog");
@@ -159,5 +180,45 @@ describe("SlotPicker", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(onBook).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("won't book until the student answers both questions", async () => {
+    const { user } = renderPicker("student");
+    await user.click(dayChip("Sunday, September 27"));
+    await user.click(screen.getByRole("button", { name: "3:00 PM" }));
+    const dialog = screen.getByRole("dialog");
+    const book = within(dialog).getByRole("button", { name: "Book" });
+
+    expect(book).toBeDisabled();
+    await user.click(within(dialog).getByRole("radio", { name: "English" }));
+    expect(book).toBeDisabled();
+    await user.type(within(dialog).getByLabelText("WhatsApp number"), "not a number");
+    expect(book).toBeDisabled();
+    await user.clear(within(dialog).getByLabelText("WhatsApp number"));
+    await user.type(within(dialog).getByLabelText("WhatsApp number"), "+55 11 91234-5678");
+    expect(book).toBeEnabled();
+  });
+
+  it("prefills the student's last answers", async () => {
+    const { user, onBook } = renderPicker("student", undefined, { language: "ENGLISH", whatsapp: "+55 11 91234-5678" });
+    await user.click(dayChip("Sunday, September 27"));
+    await user.click(screen.getByRole("button", { name: "3:00 PM" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByRole("radio", { name: "English" })).toBeChecked();
+    expect(within(dialog).getByLabelText("WhatsApp number")).toHaveValue("+55 11 91234-5678");
+
+    await user.click(within(dialog).getByRole("button", { name: "Book" }));
+    expect(onBook).toHaveBeenCalledWith(expect.any(String), expect.any(String), {
+      language: "ENGLISH",
+      whatsapp: "+55 11 91234-5678",
+    });
+  });
+
+  it("doesn't ask admins the booking questions", async () => {
+    const { user } = renderPicker("admin");
+    await user.click(screen.getByRole("button", { name: "3:30 PM" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).queryByLabelText("WhatsApp number")).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Book" })).toBeEnabled();
   });
 });

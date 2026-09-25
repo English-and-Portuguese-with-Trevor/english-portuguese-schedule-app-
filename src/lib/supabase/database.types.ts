@@ -65,12 +65,14 @@ export type Database = {
           id: string
           is_admin_override: boolean
           late_cancellation: boolean
+          lesson_language: string | null
           meet_link: string | null
           notes: string | null
           session_slot_id: string
           status: string
           student_id: string
           student_timezone: string | null
+          whatsapp: string | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -80,12 +82,14 @@ export type Database = {
           id?: string
           is_admin_override?: boolean
           late_cancellation?: boolean
+          lesson_language?: string | null
           meet_link?: string | null
           notes?: string | null
           session_slot_id: string
           status?: string
           student_id: string
           student_timezone?: string | null
+          whatsapp?: string | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -95,12 +99,14 @@ export type Database = {
           id?: string
           is_admin_override?: boolean
           late_cancellation?: boolean
+          lesson_language?: string | null
           meet_link?: string | null
           notes?: string | null
           session_slot_id?: string
           status?: string
           student_id?: string
           student_timezone?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {
@@ -307,7 +313,7 @@ export type Database = {
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       request_individual_booking: {
-        Args: { p_end: string; p_start: string; p_timezone?: string }
+        Args: { p_end: string; p_language?: string; p_start: string; p_timezone?: string; p_whatsapp?: string }
         Returns: string
       }
       set_booking_meeting: {

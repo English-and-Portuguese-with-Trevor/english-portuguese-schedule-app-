@@ -4,7 +4,7 @@ import { BookingBoard } from "@/components/booking-board";
 import { getDisplayNames } from "@/lib/display-names";
 import { generateUpcomingSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
-import type { AvailabilityRule, Booking, Role } from "@/lib/types";
+import type { AvailabilityRule, Booking, LessonLanguage, Role } from "@/lib/types";
 
 const LOOKAHEAD_DAYS = 21;
 
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   const now = new Date();
   const rangeEnd = addDays(now, LOOKAHEAD_DAYS);
 
-  const [{ data: rules }, { data: slots }, { data: myBookings }] = await Promise.all([
+  const [{ data: rules }, { data: slots }, { data: myBookings }, { data: lastAnswers }] = await Promise.all([
     supabase.from("availability_rules").select("*").eq("is_active", true),
     supabase
       .from("session_slots")
@@ -39,6 +39,15 @@ export default async function DashboardPage() {
       .eq("student_id", profile!.id)
       .neq("status", "CANCELLED")
       .gt("session_slots.end_time", now.toISOString()),
+    // Prefill the booking questions with the student's last answers.
+    supabase
+      .from("bookings")
+      .select("lesson_language, whatsapp")
+      .eq("student_id", profile!.id)
+      .not("lesson_language", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   // Only admins see who booked a slot; students can't read other students'
@@ -80,6 +89,10 @@ export default async function DashboardPage() {
         needsApproval: c.needsApproval,
       }))}
       busySlots={busySlots}
+      previousAnswers={{
+        language: (lastAnswers?.lesson_language as LessonLanguage | null) ?? undefined,
+        whatsapp: lastAnswers?.whatsapp ?? undefined,
+      }}
       myBookings={(myBookings ?? []).sort((a, b) =>
         a.session_slots.start_time.localeCompare(b.session_slots.start_time),
       ) as (Booking & { session_slots: { start_time: string; end_time: string } })[]}

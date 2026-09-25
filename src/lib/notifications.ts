@@ -24,6 +24,9 @@ export interface Lesson {
   studentEmail: string | null;
   /** The student's browser time zone when they booked; unknown for older bookings. */
   studentTimezone?: string | null;
+  /** Booking question answers; absent on bookings made before the questions existed. */
+  language?: string | null;
+  whatsapp?: string | null;
 }
 
 export interface Email {
@@ -92,11 +95,30 @@ export function adminEmail() {
   return process.env.ADMIN_NOTIFY_EMAIL || null;
 }
 
+const LANGUAGE_LABELS: Record<string, string> = { ENGLISH: "English", PORTUGUESE: "Portuguese" };
+
+/** The student's booking answers, shown in the admin's emails. */
+function questions(lesson: Lesson): [string, string][] {
+  const answers: [string, string][] = [];
+  if (lesson.language) {
+    answers.push([
+      "Are you looking for English or Portuguese lessons?",
+      LANGUAGE_LABELS[lesson.language] ?? lesson.language,
+    ]);
+  }
+  if (lesson.whatsapp) answers.push(["WhatsApp number", lesson.whatsapp]);
+  return answers;
+}
+
 function toAdmin(lesson: Lesson, subject: string, content: EmailContent): Email | null {
   const to = adminEmail();
   if (!to) return null;
   const who = lesson.studentName ?? "A student";
-  return { to, subject: `${subject}: ${who}, ${shortTime(lesson.start, LESSON_TIMEZONE)}`, ...renderEmail(content) };
+  return {
+    to,
+    subject: `${subject}: ${who}, ${shortTime(lesson.start, LESSON_TIMEZONE)}`,
+    ...renderEmail({ ...content, questions: questions(lesson) }),
+  };
 }
 
 const meet = (meetLink: string | null) =>

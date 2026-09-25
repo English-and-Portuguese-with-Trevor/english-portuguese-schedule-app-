@@ -26,6 +26,8 @@ interface BookingRow {
   status: string;
   is_admin_override: boolean;
   meet_link: string | null;
+  lesson_language: string | null;
+  whatsapp: string | null;
   session_slots: {
     start_time: string;
     end_time: string;
@@ -190,6 +192,7 @@ export function BookingsManager({
                 <p className="text-sm text-muted-foreground">
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
                 </p>
+                <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => handleConfirm(b.id)}>
@@ -214,6 +217,7 @@ export function BookingsManager({
                 <p className="text-sm text-muted-foreground">
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
                 </p>
+                <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
               </div>
               <div className="flex items-center gap-2">
                 {b.meet_link && (
@@ -238,5 +242,26 @@ export function BookingsManager({
 
       <LateCancellations rows={lateCancellations} displayNames={displayNames} />
     </div>
+  );
+}
+
+/** The student's booking answers: lesson language and a tap-to-chat WhatsApp link. */
+function BookingAnswersLine({ language, whatsapp }: { language: string | null; whatsapp: string | null }) {
+  if (!language && !whatsapp) return null;
+  return (
+    <p className="text-sm text-muted-foreground">
+      {language && (language === "PORTUGUESE" ? "Portuguese" : "English")}
+      {language && whatsapp && " · "}
+      {whatsapp && (
+        <a
+          href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-4"
+        >
+          WhatsApp {whatsapp}
+        </a>
+      )}
+    </p>
   );
 }

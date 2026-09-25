@@ -93,7 +93,10 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_student, 'role', 'authenticated')::text, true);
 
   -- 72 hours or more away: confirmed right away (not as an admin override).
-  v_booking := public.request_individual_booking(v_10, v_11, 'America/Sao_Paulo');
+  v_booking := public.request_individual_booking(v_10, v_11, 'America/Sao_Paulo', 'PORTUGUESE', '+1 540 623 8596');
+  if (select lesson_language || ' ' || whatsapp from public.bookings where id = v_booking) is distinct from 'PORTUGUESE +1 540 623 8596' then
+    raise exception 'FAIL: booking question answers are saved';
+  end if;
   if (select student_timezone from public.bookings where id = v_booking) is distinct from 'America/Sao_Paulo' then
     raise exception 'FAIL: the student''s time zone is saved with the booking';
   end if;
@@ -142,6 +145,24 @@ begin
   end;
   if not v_failed or v_msg not like '%no longer available%' then
     raise exception 'FAIL: a session running past the window end is refused (%)', v_msg;
+  end if;
+
+  -- Booking answers are checked.
+  v_failed := false;
+  begin
+    perform public.request_individual_booking(v_10 + interval '7 days', v_11 + interval '7 days', null, 'SPANISH', null);
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%English or Portuguese%' then
+    raise exception 'FAIL: only English or Portuguese lessons can be requested (%)', v_msg;
+  end if;
+  v_failed := false;
+  begin
+    perform public.request_individual_booking(v_10 + interval '7 days', v_11 + interval '7 days', null, 'ENGLISH', 'call me maybe');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%WhatsApp%' then
+    raise exception 'FAIL: a WhatsApp number must look like a phone number (%)', v_msg;
   end if;
 
   -- A start off the 15-minute grid is refused.

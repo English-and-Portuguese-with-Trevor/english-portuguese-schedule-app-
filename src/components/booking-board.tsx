@@ -12,7 +12,7 @@ import { CancelBookingDialog, type CancellableBooking } from "@/components/cance
 import { SlotPicker, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import type { Booking, Role } from "@/lib/types";
+import type { Booking, BookingAnswers, Role } from "@/lib/types";
 
 type BookingRow = Booking & {
   session_slots: {
@@ -30,11 +30,13 @@ export function BookingBoard({
   candidates,
   busySlots,
   myBookings,
+  previousAnswers,
 }: {
   role: Role;
   candidates: CandidateSlotDTO[];
   busySlots: BusySlotDTO[];
   myBookings: BookingRow[];
+  previousAnswers?: Partial<BookingAnswers>;
 }) {
   const router = useRouter();
   const [cancelling, setCancelling] = useState<CancellableBooking | null>(null);
@@ -67,8 +69,8 @@ export function BookingBoard({
     return () => clearTimeout(timer);
   }, [notice]);
 
-  async function handleBookSlot(start: string, end: string) {
-    const result = await requestBooking(start, end, Intl.DateTimeFormat().resolvedOptions().timeZone);
+  async function handleBookSlot(start: string, end: string, answers?: BookingAnswers) {
+    const result = await requestBooking(start, end, Intl.DateTimeFormat().resolvedOptions().timeZone, answers);
     if (result.error) return result.error;
     setNotice({
       kind: "success",
@@ -139,7 +141,10 @@ export function BookingBoard({
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Book a 1:1 session</h2>
-        <SlotPicker role={role} candidates={candidates} busySlots={busySlots} onBook={handleBookSlot} />
+        <SlotPicker
+          role={role} candidates={candidates} busySlots={busySlots} onBook={handleBookSlot}
+          previousAnswers={previousAnswers}
+        />
       </section>
 
       <CancelBookingDialog booking={cancelling} onClose={() => setCancelling(null)} onCancel={handleCancel} />

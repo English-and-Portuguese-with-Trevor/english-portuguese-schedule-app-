@@ -11,6 +11,7 @@ import {
   type Lesson,
 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
+import { WHATSAPP_PATTERN, type BookingAnswers } from "@/lib/types";
 
 type ActionResult = { error: string | null };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -105,7 +106,7 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, status, late_cancellation, google_event_id, student_timezone, session_slots(start_time, end_time), profiles(full_name, email)",
+      "id, status, late_cancellation, google_event_id, student_timezone, lesson_language, whatsapp, session_slots(start_time, end_time), profiles(full_name, email)",
     )
     .eq("id", bookingId)
     .single();
@@ -118,6 +119,8 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
     studentName: data.profiles?.full_name ?? null,
     studentEmail: data.profiles?.email ?? null,
     studentTimezone: data.student_timezone,
+    language: data.lesson_language,
+    whatsapp: data.whatsapp,
   };
   return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id };
 }
@@ -140,6 +143,7 @@ export async function requestBooking(
   endIso: string,
   /** The student's browser time zone, e.g. "America/Sao_Paulo", for their emails. */
   timezone?: string,
+  answers?: BookingAnswers,
 ): Promise<ActionResult & { pending?: boolean }> {
   const { supabase, profile } = await requireProfile();
 
@@ -159,10 +163,15 @@ export async function requestBooking(
       if (booking) await afterAdminBooking(supabase, booking.lesson);
     });
   } else {
+    if (!answers?.language) return { error: "Please choose English or Portuguese." };
+    if (!WHATSAPP_PATTERN.test(answers.whatsapp.trim())) return { error: "Please enter a valid WhatsApp number." };
+
     const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
       p_start: startIso,
       p_end: endIso,
       p_timezone: timezone,
+      p_language: answers.language,
+      p_whatsapp: answers.whatsapp.trim(),
     });
     if (error) return { error: friendlyDbError(error) };
 

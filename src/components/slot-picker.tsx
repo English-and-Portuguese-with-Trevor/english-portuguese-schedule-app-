@@ -4,6 +4,8 @@ import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { Role } from "@/lib/types";
+import { WHATSAPP_PATTERN, type BookingAnswers, type LessonLanguage, type Role } from "@/lib/types";
 
 export interface CandidateSlotDTO {
   start: string;
@@ -63,12 +65,15 @@ export function SlotPicker({
   candidates,
   busySlots,
   onBook,
+  previousAnswers,
 }: {
   role: Role;
   candidates: CandidateSlotDTO[];
   busySlots: BusySlotDTO[];
-  /** Resolves to an error message, or null on success. */
-  onBook: (start: string, end: string) => Promise<string | null>;
+  /** Resolves to an error message, or null on success. Students always send answers. */
+  onBook: (start: string, end: string, answers?: BookingAnswers) => Promise<string | null>;
+  /** The student's answers from their last booking, to prefill the questions. */
+  previousAnswers?: Partial<BookingAnswers>;
 }) {
   const isAdmin = role === "admin";
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -117,6 +122,9 @@ export function SlotPicker({
   const info = byDay.get(selectedKey);
 
   const [pendingSlot, setPendingSlot] = useState<DaySlot | null>(null);
+  const [language, setLanguage] = useState<LessonLanguage | null>(previousAnswers?.language ?? null);
+  const [whatsapp, setWhatsapp] = useState(previousAnswers?.whatsapp ?? "");
+  const answersValid = isAdmin || (language !== null && WHATSAPP_PATTERN.test(whatsapp.trim()));
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const tzLabel = useMemo(() => timeZoneLabel(), []);
@@ -125,7 +133,8 @@ export function SlotPicker({
     if (!pendingSlot) return;
     setDialogError(null);
     startTransition(async () => {
-      const error = await onBook(pendingSlot.start.toISOString(), pendingSlot.end.toISOString());
+      const answers = isAdmin || !language ? undefined : { language, whatsapp: whatsapp.trim() };
+      const error = await onBook(pendingSlot.start.toISOString(), pendingSlot.end.toISOString(), answers);
       if (error) setDialogError(error);
       else setPendingSlot(null);
     });
@@ -245,6 +254,52 @@ export function SlotPicker({
                 : "It's confirmed as soon as you book."}
             </p>
           )}
+          {!isAdmin && (
+            <div className="flex flex-col gap-4">
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-2 text-sm font-medium">Are you looking for English or Portuguese lessons?</legend>
+                <div className="flex gap-2">
+                  {(
+                    [
+                      ["ENGLISH", "English"],
+                      ["PORTUGUESE", "Portuguese"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <label
+                      key={value}
+                      className={cn(
+                        "flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                        language === value && "border-primary bg-primary text-primary-foreground",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="lesson-language"
+                        value={value}
+                        checked={language === value}
+                        onChange={() => setLanguage(value)}
+                        className="sr-only"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="whatsapp">WhatsApp number</Label>
+                <Input
+                  id="whatsapp"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="+55 11 91234-5678"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Include your country code.</p>
+              </div>
+            </div>
+          )}
           {dialogError && (
             <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dialogError}
@@ -254,7 +309,7 @@ export function SlotPicker({
             <Button variant="outline" disabled={isPending} onClick={() => setPendingSlot(null)}>
               Back
             </Button>
-            <Button disabled={isPending} onClick={confirm}>
+            <Button disabled={isPending || !answersValid} onClick={confirm}>
               {isPending ? "Sending…" : pendingNeedsApproval ? "Request" : "Book"}
             </Button>
           </DialogFooter>
