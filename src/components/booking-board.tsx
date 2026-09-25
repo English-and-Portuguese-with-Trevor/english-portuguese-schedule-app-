@@ -111,16 +111,25 @@ export function BookingBoard({
                   <Badge variant={b.status === "CONFIRMED" ? "success" : "secondary"}>
                     {b.status === "CONFIRMED" ? "Confirmed" : "Pending"}
                   </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      b.session_slots &&
-                      setCancelling({ id: b.id, startTime: b.session_slots.start_time, status: b.status })
-                    }
-                  >
-                    Cancel
-                  </Button>
+                  <div className="flex gap-2">
+                    {b.meet_link && (
+                      <Button size="sm" asChild>
+                        <a href={b.meet_link} target="_blank" rel="noopener noreferrer">
+                          Join Meet
+                        </a>
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        b.session_slots &&
+                        setCancelling({ id: b.id, startTime: b.session_slots.start_time, status: b.status })
+                      }
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

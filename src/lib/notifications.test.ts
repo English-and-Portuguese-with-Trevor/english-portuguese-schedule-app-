@@ -1,0 +1,155 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const google = vi.hoisted(() => ({
+  isGoogleConfigured: vi.fn(() => true),
+  createLessonEvent: vi.fn(async () => ({ eventId: "evt1", meetLink: "https://meet.google.com/abc-defg-hij" })),
+  deleteLessonEvent: vi.fn(async () => {}),
+  sendEmail: vi.fn<(email: { to: string; subject: string; text: string }) => Promise<void>>(async () => {}),
+}));
+vi.mock("@/lib/google", () => ({ ...google, LESSON_TIMEZONE: "America/Denver" }));
+
+import {
+  afterAdminBooking,
+  afterApproval,
+  afterCancellation,
+  afterStudentBooking,
+  lessonTime,
+  type Lesson,
+} from "@/lib/notifications";
+import type { createClient } from "@/lib/supabase/server";
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+const lesson: Lesson = {
+  bookingId: "b1",
+  start: "2026-09-28T20:30:00Z", // Mon 2:30 PM MT
+  end: "2026-09-28T21:30:00Z",
+  studentName: "Ana Pereira",
+  studentEmail: "ana@example.com",
+};
+
+const rpc = vi.fn(async () => ({ error: null }));
+const supabase = { rpc } as unknown as Supabase;
+
+const sentEmails = () => google.sendEmail.mock.calls.map(([email]) => email);
+const sentTo = () => sentEmails().map((email) => email.to);
+const subjects = () => sentEmails().map((email) => email.subject);
+
+beforeEach(() => {
+  vi.stubEnv("ADMIN_NOTIFY_EMAIL", "trevor@example.com");
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+  vi.restoreAllMocks();
+});
+
+describe("lessonTime", () => {
+  it("reads in Mountain Time, whatever the server's timezone", () => {
+    expect(lessonTime(lesson.start)).toBe("Monday, September 28 at 2:30 PM (Mountain Time)");
+  });
+});
+
+describe("a student booking", () => {
+  it("72+ hours out: creates the Meet event, records it, and tells the admin", async () => {
+    await afterStudentBooking(supabase, lesson, false);
+
+    expect(google.createLessonEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ bookingId: "b1", studentEmail: "ana@example.com", start: lesson.start }),
+    );
+    expect(rpc).toHaveBeenCalledWith("set_booking_meeting", {
+      p_booking_id: "b1",
+      p_event_id: "evt1",
+      p_meet_link: "https://meet.google.com/abc-defg-hij",
+    });
+    expect(sentTo()).toEqual(["trevor@example.com"]);
+    expect(subjects()).toEqual(["New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+  });
+
+  it("under 72 hours: no meeting yet; the student hears it's pending and the admin is asked to approve", async () => {
+    await afterStudentBooking(supabase, lesson, true);
+
+    expect(google.createLessonEvent).not.toHaveBeenCalled();
+    expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toContain("Approval needed: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    const studentEmail = sentEmails().find((e) => e.to === "ana@example.com")!;
+    expect(studentEmail.text).toMatch(/^Hi Ana,/);
+    expect(studentEmail.text).toContain("I need to approve it first");
+  });
+});
+
+describe("approval", () => {
+  it("creates the Meet event and emails the student the link", async () => {
+    await afterApproval(supabase, lesson);
+
+    expect(google.createLessonEvent).toHaveBeenCalledOnce();
+    expect(sentTo()).toEqual(["ana@example.com"]);
+    const [email] = sentEmails();
+    expect(email.subject).toBe("Lesson confirmed: Mon, Sep 28, 2:30 PM");
+    expect(email.text).toContain("https://meet.google.com/abc-defg-hij");
+  });
+});
+
+describe("admin booking a student in", () => {
+  it("creates the event; the calendar invitation is the only notice", async () => {
+    await afterAdminBooking(supabase, lesson);
+    expect(google.createLessonEvent).toHaveBeenCalledOnce();
+    expect(google.sendEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("cancellation", () => {
+  it("by a student, late: removes the event and flags it to the admin", async () => {
+    await afterCancellation(lesson, { by: "student", wasPending: false, late: true, eventId: "evt1" });
+
+    expect(google.deleteLessonEvent).toHaveBeenCalledWith("evt1");
+    expect(subjects()).toEqual(["Late cancellation: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+    const [email] = sentEmails();
+    expect(email.text).toContain("still counts as a class");
+  });
+
+  it("by a student withdrawing a request: says so, with no event to remove", async () => {
+    await afterCancellation(lesson, { by: "student", wasPending: true, late: false, eventId: null });
+
+    expect(google.deleteLessonEvent).not.toHaveBeenCalled();
+    expect(subjects()).toEqual(["Request withdrawn: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+  });
+
+  it("by the admin declining a request: tells the student", async () => {
+    await afterCancellation(lesson, { by: "admin", wasPending: true, late: false, eventId: null });
+    expect(sentTo()).toEqual(["ana@example.com"]);
+    expect(subjects()).toEqual(["Lesson request not available: Mon, Sep 28, 2:30 PM"]);
+  });
+
+  it("by the admin cancelling a confirmed lesson: removes the event and tells the student", async () => {
+    await afterCancellation(lesson, { by: "admin", wasPending: false, late: false, eventId: "evt1" });
+    expect(google.deleteLessonEvent).toHaveBeenCalledWith("evt1");
+    expect(subjects()).toEqual(["Lesson cancelled: Mon, Sep 28, 2:30 PM"]);
+  });
+});
+
+describe("failure handling", () => {
+  it("does nothing until Google is configured", async () => {
+    google.isGoogleConfigured.mockReturnValueOnce(false);
+    await afterStudentBooking(supabase, lesson, false);
+    expect(google.createLessonEvent).not.toHaveBeenCalled();
+    expect(google.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("still emails if the calendar event fails, and never throws", async () => {
+    google.createLessonEvent.mockRejectedValueOnce(new Error("Google is down"));
+    await expect(afterApproval(supabase, lesson)).resolves.toBeUndefined();
+    expect(rpc).not.toHaveBeenCalled();
+    expect(sentTo()).toEqual(["ana@example.com"]);
+    expect(console.error).toHaveBeenCalled();
+  });
+
+  it("skips admin emails when no admin address is set", async () => {
+    vi.stubEnv("ADMIN_NOTIFY_EMAIL", "");
+    await afterStudentBooking(supabase, lesson, false);
+    expect(google.sendEmail).not.toHaveBeenCalled();
+  });
+});

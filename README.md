@@ -23,6 +23,32 @@ project, then run the database tests below.
 The Supabase project is shared with the flashcards app. The `profiles` table
 comes from that app's migrations; these files only add to it.
 
+## Google Meet links and emails
+
+Confirmed lessons become events on the englishportuguesewithtrevor@gmail.com
+calendar with a Google Meet link, and the student is invited, so Google sends
+them the invitation, changes, cancellations, and reminders. Other
+notifications go out through that account's Gmail (see
+`src/lib/notifications.ts` for the full list).
+
+This needs four environment variables in Vercel (see `.env.example`). Without
+the three `GOOGLE_*` ones, bookings still work; nothing is sent.
+
+To get a new refresh token (for example if Google revokes the old one):
+
+1. In the Google Cloud project that owns the OAuth client, the app must be
+   published ("Em produção"), not in testing; test-mode tokens expire after
+   7 days.
+2. Open developers.google.com/oauthplayground, click the gear, check "Use your
+   own OAuth credentials", and enter the client ID and secret.
+3. Authorize these scopes, signed in as englishportuguesewithtrevor@gmail.com:
+   `https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.send`
+4. Exchange the code for tokens, copy the refresh token into
+   `GOOGLE_REFRESH_TOKEN` in Vercel, and redeploy.
+
+A Google error never blocks a booking; it's logged in Vercel's function logs
+with a `[notifications]` prefix.
+
 ## Tests
 
 ```bash
@@ -40,6 +66,8 @@ npm run test:watch   # rerun on save
   that a confirmed session cancelled less than 24 hours ahead still counts.
 - `src/components/admin/late-cancellations.test.tsx`: the admin's late
   cancellations list.
+- `src/lib/notifications.test.ts` and `src/lib/google.test.ts`: which emails
+  and calendar events each booking change produces (Google is stubbed out).
 - `src/components/app-shell.test.tsx`: the header, admin navigation, and
   settings menu.
 

@@ -61,9 +61,11 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           created_at: string
+          google_event_id: string | null
           id: string
           is_admin_override: boolean
           late_cancellation: boolean
+          meet_link: string | null
           notes: string | null
           session_slot_id: string
           status: string
@@ -73,9 +75,11 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          google_event_id?: string | null
           id?: string
           is_admin_override?: boolean
           late_cancellation?: boolean
+          meet_link?: string | null
           notes?: string | null
           session_slot_id: string
           status?: string
@@ -85,9 +89,11 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          google_event_id?: string | null
           id?: string
           is_admin_override?: boolean
           late_cancellation?: boolean
+          meet_link?: string | null
           notes?: string | null
           session_slot_id?: string
           status?: string
@@ -298,6 +304,10 @@ export type Database = {
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       request_individual_booking: { Args: { p_end: string; p_start: string }; Returns: string }
+      set_booking_meeting: {
+        Args: { p_booking_id: string; p_event_id: string; p_meet_link: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

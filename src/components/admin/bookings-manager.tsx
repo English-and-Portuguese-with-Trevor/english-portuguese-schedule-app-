@@ -25,6 +25,7 @@ interface BookingRow {
   student_id: string;
   status: string;
   is_admin_override: boolean;
+  meet_link: string | null;
   session_slots: {
     start_time: string;
     end_time: string;
@@ -215,6 +216,16 @@ export function BookingsManager({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {b.meet_link && (
+                  <a
+                    href={b.meet_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium underline underline-offset-4"
+                  >
+                    Meet
+                  </a>
+                )}
                 {b.is_admin_override && <Badge variant="secondary">Override</Badge>}
                 <Button variant="outline" size="sm" onClick={() => handleCancel(b.id)}>
                   Cancel

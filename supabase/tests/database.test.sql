@@ -100,6 +100,14 @@ begin
     raise exception 'FAIL: a booking 72+ hours out is confirmed, not an override, and theirs (got %)', v_text;
   end if;
 
+  -- The server records the lesson's Meet link once; it can't be overwritten.
+  perform public.set_booking_meeting(v_booking, 'evt-1', 'https://meet.google.com/aaa');
+  perform public.set_booking_meeting(v_booking, 'evt-2', 'https://evil.example');
+  select google_event_id || ' ' || meet_link into v_text from public.bookings where id = v_booking;
+  if v_text is distinct from 'evt-1 https://meet.google.com/aaa' then
+    raise exception 'FAIL: a booking''s meeting is recorded once and never overwritten (got %)', v_text;
+  end if;
+
   -- Less than 72 hours away: allowed, but pending approval.
   v_pending := public.request_individual_booking(v_soon, v_soon + interval '1 hour');
   if (select status from public.bookings where id = v_pending) <> 'PENDING' then
@@ -210,6 +218,13 @@ begin
   exception when others then v_failed := true;
   end;
   if not v_failed then raise exception 'FAIL: students cannot cancel someone else''s booking'; end if;
+
+  perform public.set_booking_meeting(v_pending, 'evt-x', 'https://evil.example');
+  reset role;
+  if (select meet_link from public.bookings where id = v_pending) is not null then
+    raise exception 'FAIL: students cannot set a meeting link on someone else''s booking';
+  end if;
+  set local role authenticated;
 
   ---------------------------------------------------------------------------
   -- Back as the first student: cancelling frees the time

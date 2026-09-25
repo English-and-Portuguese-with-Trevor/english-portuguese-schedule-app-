@@ -1,10 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
+import {
+  afterAdminBooking,
+  afterApproval,
+  afterCancellation,
+  afterStudentBooking,
+  type Lesson,
+} from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
 
 type ActionResult = { error: string | null };
+type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 async function requireProfile() {
   const supabase = await createClient();
@@ -31,7 +40,7 @@ async function requireProfile() {
  * 2:00 and 2:15, could otherwise both slip through a naive check-then-insert).
  */
 async function bookIndividualSlot(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Supabase,
   params: {
     start: Date;
     end: Date;
@@ -40,7 +49,7 @@ async function bookIndividualSlot(
     isAdminOverride: boolean;
     createdBy: string | null;
   },
-): Promise<ActionResult> {
+): Promise<ActionResult & { bookingId?: string }> {
   const { start, end, studentId, status, isAdminOverride, createdBy } = params;
 
   // Soft pre-check for a friendly message; the exclusion constraint below is
@@ -71,12 +80,16 @@ async function bookIndividualSlot(
 
   if (slotErr) return { error: friendlyDbError(slotErr) };
 
-  const { error: bookingErr } = await supabase.from("bookings").insert({
-    session_slot_id: slot.id,
-    student_id: studentId,
-    status,
-    is_admin_override: isAdminOverride,
-  });
+  const { data: booking, error: bookingErr } = await supabase
+    .from("bookings")
+    .insert({
+      session_slot_id: slot.id,
+      student_id: studentId,
+      status,
+      is_admin_override: isAdminOverride,
+    })
+    .select("id")
+    .single();
 
   if (bookingErr) {
     // Don't leave an empty slot behind blocking the time.
@@ -84,7 +97,26 @@ async function bookIndividualSlot(
     return { error: friendlyDbError(bookingErr) };
   }
 
-  return { error: null };
+  return { error: null, bookingId: booking.id };
+}
+
+/** Everything the notifications need about one booking. */
+async function loadBooking(supabase: Supabase, bookingId: string) {
+  const { data } = await supabase
+    .from("bookings")
+    .select("id, status, late_cancellation, google_event_id, session_slots(start_time, end_time), profiles(full_name, email)")
+    .eq("id", bookingId)
+    .single();
+  if (!data?.session_slots) return null;
+
+  const lesson: Lesson = {
+    bookingId: data.id,
+    start: data.session_slots.start_time,
+    end: data.session_slots.end_time,
+    studentName: data.profiles?.full_name ?? null,
+    studentEmail: data.profiles?.email ?? null,
+  };
+  return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -116,6 +148,11 @@ export async function requestBooking(
       createdBy: profile.id,
     });
     if (result.error) return result;
+    const bookingId = result.bookingId!;
+    after(async () => {
+      const booking = await loadBooking(supabase, bookingId);
+      if (booking) await afterAdminBooking(supabase, booking.lesson);
+    });
   } else {
     const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
       p_start: startIso,
@@ -123,10 +160,13 @@ export async function requestBooking(
     });
     if (error) return { error: friendlyDbError(error) };
 
-    const { data: booking } = await supabase.from("bookings").select("status").eq("id", bookingId).single();
+    const booking = await loadBooking(supabase, bookingId);
+    const pending = booking?.status === "PENDING";
+    if (booking) after(() => afterStudentBooking(supabase, booking.lesson, pending));
+
     revalidatePath("/dashboard");
     revalidatePath("/admin/bookings");
-    return { error: null, pending: booking?.status === "PENDING" };
+    return { error: null, pending };
   }
 
   revalidatePath("/dashboard");
@@ -156,6 +196,11 @@ export async function adminBookStudent(
   });
 
   if (result.error) return result;
+  const bookingId = result.bookingId!;
+  after(async () => {
+    const booking = await loadBooking(supabase, bookingId);
+    if (booking) await afterAdminBooking(supabase, booking.lesson);
+  });
 
   revalidatePath("/admin/bookings");
   revalidatePath("/dashboard");
@@ -164,6 +209,7 @@ export async function adminBookStudent(
 
 export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
+  const before = await loadBooking(supabase, bookingId);
 
   const { error } =
     profile.role === "admin"
@@ -179,6 +225,20 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 
   if (error) return { error: friendlyDbError(error) };
 
+  if (before && before.status !== "CANCELLED") {
+    const by = profile.role === "admin" ? "admin" : "student";
+    after(async () => {
+      // Read back the late flag the database just set.
+      const late = by === "student" ? ((await loadBooking(supabase, bookingId))?.late ?? false) : false;
+      await afterCancellation(before.lesson, {
+        by,
+        wasPending: before.status === "PENDING",
+        late,
+        eventId: before.eventId,
+      });
+    });
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
   return { error: null };
@@ -189,12 +249,21 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
   if (profile.role !== "admin") return { error: "Admin only." };
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("bookings")
     .update({ status: "CONFIRMED" })
-    .eq("id", bookingId);
+    .eq("id", bookingId)
+    .eq("status", "PENDING")
+    .select("id");
 
   if (error) return { error: error.message };
+
+  if (updated.length > 0) {
+    after(async () => {
+      const booking = await loadBooking(supabase, bookingId);
+      if (booking) await afterApproval(supabase, booking.lesson);
+    });
+  }
 
   revalidatePath("/admin/bookings");
   return { error: null };
