@@ -20,9 +20,20 @@ const dmSerifDisplay = DM_Serif_Display({
   subsets: ["latin"],
 });
 
+const description = "Book your English or Portuguese lesson with Trevor.";
+
 export const metadata: Metadata = {
+  // Link previews (WhatsApp, iMessage…) need absolute URLs for the image.
+  metadataBase: new URL("https://schedule.englishandportuguesewithtrevor.com"),
   title: "English & Portuguese with Trevor — Scheduling",
-  description: "Book and manage 1:1 lessons.",
+  description,
+  openGraph: {
+    title: "English & Portuguese with Trevor",
+    description,
+    siteName: "English & Portuguese with Trevor",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
