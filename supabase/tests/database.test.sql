@@ -93,7 +93,10 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_student, 'role', 'authenticated')::text, true);
 
   -- 72 hours or more away: confirmed right away (not as an admin override).
-  v_booking := public.request_individual_booking(v_10, v_11);
+  v_booking := public.request_individual_booking(v_10, v_11, 'America/Sao_Paulo');
+  if (select student_timezone from public.bookings where id = v_booking) is distinct from 'America/Sao_Paulo' then
+    raise exception 'FAIL: the student''s time zone is saved with the booking';
+  end if;
   select status || '/' || is_admin_override::text || '/' || (student_id = v_student)::text
     into v_text from public.bookings where id = v_booking;
   if v_text is distinct from 'CONFIRMED/false/true' then
@@ -124,8 +127,12 @@ begin
     raise exception 'FAIL: a request overlapping another session is refused (sqlstate %)', v_msg;
   end if;
 
-  -- Back-to-back with an existing session is fine.
-  perform public.request_individual_booking(v_11, v_12);
+  -- Back-to-back with an existing session is fine. An unknown time zone is dropped.
+  perform public.request_individual_booking(v_11, v_12, 'Not/AZone');
+  if (select student_timezone from public.bookings b join public.session_slots s on s.id = b.session_slot_id
+      where s.start_time = v_11 and b.status <> 'CANCELLED') is not null then
+    raise exception 'FAIL: an unrecognized time zone is not saved';
+  end if;
 
   -- A session that would run past the window's end is refused.
   v_failed := false;

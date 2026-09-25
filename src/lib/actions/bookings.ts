@@ -104,7 +104,9 @@ async function bookIndividualSlot(
 async function loadBooking(supabase: Supabase, bookingId: string) {
   const { data } = await supabase
     .from("bookings")
-    .select("id, status, late_cancellation, google_event_id, session_slots(start_time, end_time), profiles(full_name, email)")
+    .select(
+      "id, status, late_cancellation, google_event_id, student_timezone, session_slots(start_time, end_time), profiles(full_name, email)",
+    )
     .eq("id", bookingId)
     .single();
   if (!data?.session_slots) return null;
@@ -115,6 +117,7 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
     end: data.session_slots.end_time,
     studentName: data.profiles?.full_name ?? null,
     studentEmail: data.profiles?.email ?? null,
+    studentTimezone: data.student_timezone,
   };
   return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id };
 }
@@ -135,6 +138,8 @@ function friendlyDbError(error: { code?: string; message: string }): string {
 export async function requestBooking(
   startIso: string,
   endIso: string,
+  /** The student's browser time zone, e.g. "America/Sao_Paulo", for their emails. */
+  timezone?: string,
 ): Promise<ActionResult & { pending?: boolean }> {
   const { supabase, profile } = await requireProfile();
 
@@ -157,6 +162,7 @@ export async function requestBooking(
     const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
       p_start: startIso,
       p_end: endIso,
+      p_timezone: timezone,
     });
     if (error) return { error: friendlyDbError(error) };
 

@@ -70,6 +70,7 @@ export type Database = {
           session_slot_id: string
           status: string
           student_id: string
+          student_timezone: string | null
         }
         Insert: {
           cancellation_reason?: string | null
@@ -84,6 +85,7 @@ export type Database = {
           session_slot_id: string
           status?: string
           student_id: string
+          student_timezone?: string | null
         }
         Update: {
           cancellation_reason?: string | null
@@ -98,6 +100,7 @@ export type Database = {
           session_slot_id?: string
           status?: string
           student_id?: string
+          student_timezone?: string | null
         }
         Relationships: [
           {
@@ -303,7 +306,10 @@ export type Database = {
     Functions: {
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
-      request_individual_booking: { Args: { p_end: string; p_start: string }; Returns: string }
+      request_individual_booking: {
+        Args: { p_end: string; p_start: string; p_timezone?: string }
+        Returns: string
+      }
       set_booking_meeting: {
         Args: { p_booking_id: string; p_event_id: string; p_meet_link: string }
         Returns: undefined

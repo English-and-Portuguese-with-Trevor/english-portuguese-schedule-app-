@@ -68,7 +68,7 @@ export function BookingBoard({
   }, [notice]);
 
   async function handleBookSlot(start: string, end: string) {
-    const result = await requestBooking(start, end);
+    const result = await requestBooking(start, end, Intl.DateTimeFormat().resolvedOptions().timeZone);
     if (result.error) return result.error;
     setNotice({
       kind: "success",

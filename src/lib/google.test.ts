@@ -9,6 +9,20 @@ function decode(raw: string) {
 }
 
 describe("buildRawEmail", () => {
+  it("sends HTML with a plain-text fallback", () => {
+    const message = Buffer.from(
+      buildRawEmail({ to: "ana@example.com", subject: "Hi", text: "Plain hello", html: "<p>Olá</p>" }),
+      "base64url",
+    ).toString();
+    expect(message).toMatch(/Content-Type: multipart\/alternative; boundary="ept-/);
+    const parts = message.split(/--ept-[^\r\n]*/).slice(1, 3);
+    const decodePart = (p: string) => Buffer.from(p.split("\r\n\r\n")[1], "base64").toString();
+    expect(parts[0]).toContain("text/plain");
+    expect(decodePart(parts[0])).toBe("Plain hello");
+    expect(parts[1]).toContain("text/html");
+    expect(decodePart(parts[1])).toBe("<p>Olá</p>");
+  });
+
   it("sends from the business account", () => {
     const { headers } = decode(buildRawEmail({ to: "ana@example.com", subject: "Hi", text: "Hello" }));
     expect(headers).toContain("From: English & Portuguese with Trevor <englishportuguesewithtrevor@gmail.com>");

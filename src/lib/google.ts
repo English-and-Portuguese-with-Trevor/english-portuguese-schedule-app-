@@ -65,8 +65,11 @@ export async function createLessonEvent(lesson: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      summary: `Lesson: ${lesson.studentName} & Trevor`,
-      description: "1:1 lesson with English & Portuguese with Trevor.\nManage your lessons: https://schedule.englishandportuguesewithtrevor.com",
+      summary: `English / Portuguese Lesson: ${lesson.studentName} & Trevor`,
+      description:
+        "You are one step closer to learning/improving another language! Let's go :)\n" +
+        "Você está a um passo de aprender/aprimorar outro idioma! Vamos lá :)\n\n" +
+        "Manage your lessons: https://schedule.englishandportuguesewithtrevor.com",
       start: { dateTime: lesson.start, timeZone: LESSON_TIMEZONE },
       end: { dateTime: lesson.end, timeZone: LESSON_TIMEZONE },
       attendees: lesson.studentEmail ? [{ email: lesson.studentEmail }] : [],
@@ -99,21 +102,46 @@ function encodeHeader(value: string) {
   return /^[\x20-\x7e]*$/.test(value) ? value : `=?UTF-8?B?${Buffer.from(value).toString("base64")}?=`;
 }
 
-export function buildRawEmail(email: { to: string; subject: string; text: string }) {
-  const message = [
+interface OutgoingEmail {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}
+
+function part(contentType: string, body: string) {
+  // Base64 lines kept under the 998-character limit for mail servers.
+  const encoded = Buffer.from(body).toString("base64").replace(/.{76}/g, "$&\r\n");
+  return [`Content-Type: ${contentType}; charset=UTF-8`, "Content-Transfer-Encoding: base64", "", encoded];
+}
+
+/** A plain-text email, or HTML with a plain-text fallback. */
+export function buildRawEmail(email: OutgoingEmail) {
+  const headers = [
     `From: ${encodeHeader(SENDER_NAME)} <${SENDER_EMAIL}>`,
     `To: ${email.to}`,
     `Subject: ${encodeHeader(email.subject)}`,
     "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    Buffer.from(email.text).toString("base64"),
-  ].join("\r\n");
-  return Buffer.from(message).toString("base64url");
+  ];
+  let body: string[];
+  if (email.html) {
+    const boundary = `ept-${crypto.randomUUID()}`;
+    body = [
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      ...part("text/plain", email.text),
+      `--${boundary}`,
+      ...part("text/html", email.html),
+      `--${boundary}--`,
+    ];
+  } else {
+    body = part("text/plain", email.text);
+  }
+  return Buffer.from([...headers, ...body].join("\r\n")).toString("base64url");
 }
 
-export async function sendEmail(email: { to: string; subject: string; text: string }) {
+export async function sendEmail(email: OutgoingEmail) {
   await googleFetch(GMAIL_SEND_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

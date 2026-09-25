@@ -4,7 +4,7 @@ const google = vi.hoisted(() => ({
   isGoogleConfigured: vi.fn(() => true),
   createLessonEvent: vi.fn(async () => ({ eventId: "evt1", meetLink: "https://meet.google.com/abc-defg-hij" })),
   deleteLessonEvent: vi.fn(async () => {}),
-  sendEmail: vi.fn<(email: { to: string; subject: string; text: string }) => Promise<void>>(async () => {}),
+  sendEmail: vi.fn<(email: { to: string; subject: string; text: string; html?: string }) => Promise<void>>(async () => {}),
 }));
 vi.mock("@/lib/google", () => ({ ...google, LESSON_TIMEZONE: "America/Denver" }));
 
@@ -13,7 +13,7 @@ import {
   afterApproval,
   afterCancellation,
   afterStudentBooking,
-  lessonTime,
+  lessonWhen,
   type Lesson,
 } from "@/lib/notifications";
 import type { createClient } from "@/lib/supabase/server";
@@ -47,9 +47,52 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("lessonTime", () => {
-  it("reads in Mountain Time, whatever the server's timezone", () => {
-    expect(lessonTime(lesson.start)).toBe("Monday, September 28 at 2:30 PM (Mountain Time)");
+describe("lessonWhen", () => {
+  it("shows the start, end, date, and time zone name", () => {
+    expect(lessonWhen(lesson, "America/Denver")).toBe(
+      "2:30 PM – 3:30 PM, Monday, September 28, 2026 (Mountain Daylight Time)",
+    );
+    expect(lessonWhen(lesson, "America/Sao_Paulo")).toBe(
+      "5:30 PM – 6:30 PM, Monday, September 28, 2026 (Brasilia Standard Time)",
+    );
+  });
+});
+
+describe("time zones", () => {
+  const abroad = { ...lesson, studentTimezone: "America/Sao_Paulo" };
+
+  it("shows the student only their own time", async () => {
+    await afterApproval(supabase, abroad);
+    const [email] = sentEmails();
+    expect(email.subject).toBe("Lesson confirmed: Mon, Sep 28, 5:30 PM");
+    expect(email.text).toContain("Date/time: 5:30 PM – 6:30 PM, Monday, September 28, 2026 (Brasilia Standard Time)");
+    expect(email.text).not.toContain("Mountain");
+  });
+
+  it("shows the admin both their time and the student's", async () => {
+    await afterStudentBooking(supabase, abroad, true);
+    const email = sentEmails().find((e) => e.to === "trevor@example.com")!;
+    expect(email.subject).toBe("Approval needed: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    expect(email.text).toContain("Your time: 2:30 PM – 3:30 PM, Monday, September 28, 2026 (Mountain Daylight Time)");
+    expect(email.text).toContain("Student's time: 5:30 PM – 6:30 PM, Monday, September 28, 2026 (Brasilia Standard Time)");
+  });
+
+  it("shows one time when the student is in Mountain Time too", async () => {
+    await afterStudentBooking(supabase, { ...lesson, studentTimezone: "America/Denver" }, true);
+    const email = sentEmails().find((e) => e.to === "trevor@example.com")!;
+    expect(email.text).not.toContain("Student's time");
+  });
+});
+
+describe("the email template", () => {
+  it("names the lesson, carries the taglines, and escapes names in the HTML", async () => {
+    await afterApproval(supabase, { ...lesson, studentName: "Ana <b>Pereira</b>" });
+    const [email] = sentEmails();
+    expect(email.text).toContain("Lesson: English / Portuguese Lesson (60 min)");
+    expect(email.text).toContain("Let's go :)");
+    expect(email.text).toContain("Vamos lá :)");
+    expect(email.html).toContain('href="https://meet.google.com/abc-defg-hij"');
+    expect(email.html).not.toContain("<b>Pereira</b>");
   });
 });
 
@@ -65,8 +108,9 @@ describe("a student booking", () => {
       p_event_id: "evt1",
       p_meet_link: "https://meet.google.com/abc-defg-hij",
     });
-    expect(sentTo()).toEqual(["trevor@example.com"]);
-    expect(subjects()).toEqual(["New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+    expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toContain("New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    expect(subjects()).toContain("Lesson confirmed: Mon, Sep 28, 2:30 PM");
   });
 
   it("under 72 hours: no meeting yet; the student hears it's pending and the admin is asked to approve", async () => {
@@ -76,8 +120,8 @@ describe("a student booking", () => {
     expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(subjects()).toContain("Approval needed: Ana Pereira, Mon, Sep 28, 2:30 PM");
     const studentEmail = sentEmails().find((e) => e.to === "ana@example.com")!;
-    expect(studentEmail.text).toMatch(/^Hi Ana,/);
-    expect(studentEmail.text).toContain("I need to approve it first");
+    expect(studentEmail.text).toContain("Hi Ana,");
+    expect(studentEmail.text).toContain("needs to approve it first");
   });
 });
 
@@ -150,6 +194,6 @@ describe("failure handling", () => {
   it("skips admin emails when no admin address is set", async () => {
     vi.stubEnv("ADMIN_NOTIFY_EMAIL", "");
     await afterStudentBooking(supabase, lesson, false);
-    expect(google.sendEmail).not.toHaveBeenCalled();
+    expect(sentTo()).toEqual(["ana@example.com"]);
   });
 });
