@@ -164,14 +164,15 @@ export async function requestBooking(
     });
   } else {
     if (!answers?.language) return { error: "Please choose English or Portuguese." };
-    if (!WHATSAPP_PATTERN.test(answers.whatsapp.trim())) return { error: "Please enter a valid WhatsApp number." };
+    const whatsapp = answers.whatsapp.trim();
+    if (whatsapp && !WHATSAPP_PATTERN.test(whatsapp)) return { error: "Please enter a valid WhatsApp number." };
 
     const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
       p_start: startIso,
       p_end: endIso,
       p_timezone: timezone,
       p_language: answers.language,
-      p_whatsapp: answers.whatsapp.trim(),
+      p_whatsapp: whatsapp || undefined,
     });
     if (error) return { error: friendlyDbError(error) };
 

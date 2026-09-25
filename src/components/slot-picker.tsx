@@ -124,7 +124,9 @@ export function SlotPicker({
   const [pendingSlot, setPendingSlot] = useState<DaySlot | null>(null);
   const [language, setLanguage] = useState<LessonLanguage | null>(previousAnswers?.language ?? null);
   const [whatsapp, setWhatsapp] = useState(previousAnswers?.whatsapp ?? "");
-  const answersValid = isAdmin || (language !== null && WHATSAPP_PATTERN.test(whatsapp.trim()));
+  // WhatsApp is optional, but if given it has to look like a phone number.
+  const whatsappValid = whatsapp.trim() === "" || WHATSAPP_PATTERN.test(whatsapp.trim());
+  const answersValid = isAdmin || (language !== null && whatsappValid);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const tzLabel = useMemo(() => timeZoneLabel(), []);
@@ -286,7 +288,9 @@ export function SlotPicker({
                 </div>
               </fieldset>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="whatsapp">WhatsApp number</Label>
+                <Label htmlFor="whatsapp">
+                  WhatsApp number <span className="font-normal text-muted-foreground">(optional)</span>
+                </Label>
                 <Input
                   id="whatsapp"
                   type="tel"
@@ -296,7 +300,9 @@ export function SlotPicker({
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Include your country code.</p>
+                <p className="text-xs text-muted-foreground">
+                  {whatsappValid ? "Include your country code." : "That doesn't look like a phone number."}
+                </p>
               </div>
             </div>
           )}

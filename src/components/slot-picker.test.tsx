@@ -58,7 +58,7 @@ function renderPicker(
 async function answerQuestions(user: ReturnType<typeof userEvent.setup>) {
   const dialog = screen.getByRole("dialog");
   await user.click(within(dialog).getByRole("radio", { name: "Portuguese" }));
-  await user.type(within(dialog).getByLabelText("WhatsApp number"), "+1 540 623 8596");
+  await user.type(within(dialog).getByLabelText(/WhatsApp number/), "+1 540 623 8596");
 }
 
 function dayChip(label: string) {
@@ -182,7 +182,7 @@ describe("SlotPicker", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("won't book until the student answers both questions", async () => {
+  it("requires the language; WhatsApp is optional but must look like a number", async () => {
     const { user } = renderPicker("student");
     await user.click(dayChip("Sunday, September 27"));
     await user.click(screen.getByRole("button", { name: "3:00 PM" }));
@@ -191,11 +191,12 @@ describe("SlotPicker", () => {
 
     expect(book).toBeDisabled();
     await user.click(within(dialog).getByRole("radio", { name: "English" }));
+    expect(book).toBeEnabled(); // no WhatsApp is fine
+    await user.type(within(dialog).getByLabelText(/WhatsApp number/), "not a number");
     expect(book).toBeDisabled();
-    await user.type(within(dialog).getByLabelText("WhatsApp number"), "not a number");
-    expect(book).toBeDisabled();
-    await user.clear(within(dialog).getByLabelText("WhatsApp number"));
-    await user.type(within(dialog).getByLabelText("WhatsApp number"), "+55 11 91234-5678");
+    expect(within(dialog).getByText("That doesn't look like a phone number.")).toBeInTheDocument();
+    await user.clear(within(dialog).getByLabelText(/WhatsApp number/));
+    await user.type(within(dialog).getByLabelText(/WhatsApp number/), "+55 11 91234-5678");
     expect(book).toBeEnabled();
   });
 
@@ -205,7 +206,7 @@ describe("SlotPicker", () => {
     await user.click(screen.getByRole("button", { name: "3:00 PM" }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByRole("radio", { name: "English" })).toBeChecked();
-    expect(within(dialog).getByLabelText("WhatsApp number")).toHaveValue("+55 11 91234-5678");
+    expect(within(dialog).getByLabelText(/WhatsApp number/)).toHaveValue("+55 11 91234-5678");
 
     await user.click(within(dialog).getByRole("button", { name: "Book" }));
     expect(onBook).toHaveBeenCalledWith(expect.any(String), expect.any(String), {

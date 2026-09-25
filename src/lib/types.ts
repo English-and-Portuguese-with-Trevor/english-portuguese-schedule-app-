@@ -33,6 +33,7 @@ export type LessonLanguage = "ENGLISH" | "PORTUGUESE";
 /** Answers to the booking questions a student fills in when booking. */
 export interface BookingAnswers {
   language: LessonLanguage;
+  /** Optional; empty when the student leaves it blank. */
   whatsapp: string;
 }
 
