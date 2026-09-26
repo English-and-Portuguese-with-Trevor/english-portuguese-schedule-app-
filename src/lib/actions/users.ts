@@ -47,3 +47,16 @@ export async function updateUserRole(userId: string, role: Role): Promise<Action
   revalidatePath("/admin/users");
   return { error: null };
 }
+
+export async function setLessonAccess(userId: string, granted: boolean): Promise<ActionResult> {
+  const supabase = await requireAdmin();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ lesson_access: granted ? "granted" : "none" })
+    .eq("id", userId)
+    .neq("lesson_access", "subscriber");
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/users");
+  return { error: null };
+}

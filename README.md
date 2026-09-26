@@ -23,6 +23,13 @@ project, then run the database tests below.
 The Supabase project is shared with the flashcards app. The `profiles` table
 comes from that app's migrations; these files only add to it.
 
+## Backups
+
+The nightly database backup runs from the private **flashcards-app** repo
+(`.github/workflows/database-backup.yml`, setup and restore steps in its
+README). It must not live here: this repo is public, and anyone can download
+Actions artifacts from a public repo.
+
 ## Google Meet links and emails
 
 Confirmed lessons become events on the englishportuguesewithtrevor@gmail.com

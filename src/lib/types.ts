@@ -1,10 +1,15 @@
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type Role = "admin" | "student";
+/** "granted" is set by Trevor by hand; "subscriber" will come from Stripe. */
+export type LessonAccess = "none" | "granted" | "subscriber";
 export type SlotStatus = "OPEN" | "CANCELLED";
 export type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
-export type Profile = Omit<Tables<"profiles">, "role"> & { role: Role };
+export type Profile = Omit<Tables<"profiles">, "role" | "lesson_access"> & {
+  role: Role;
+  lesson_access: LessonAccess;
+};
 export type AvailabilityRule = Tables<"availability_rules">;
 export type SessionSlot = Omit<Tables<"session_slots">, "status"> & { status: SlotStatus };
 export type Booking = Omit<Tables<"bookings">, "status"> & { status: BookingStatus };
