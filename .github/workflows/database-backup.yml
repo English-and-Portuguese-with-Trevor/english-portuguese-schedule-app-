@@ -1,0 +1,52 @@
+name: Database backup
+
+# Nightly copy of the shared Supabase database (schedule, flashcards and lessons
+# data, plus the login accounts), kept as a downloadable artifact for 90 days.
+# Restore steps are in README.md under "Backups".
+on:
+  schedule:
+    - cron: "17 9 * * *" # every day, 09:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+    steps:
+      - name: Check the database connection string is set
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Add the SUPABASE_DB_URL repository secret (Supabase > Connect > Session pooler). See README.md > Backups."
+            exit 1
+          fi
+
+      - name: Dump the database
+        run: |
+          mkdir backup
+          docker run --rm -e PGURL="$SUPABASE_DB_URL" -v "$PWD/backup:/backup" postgres:17 sh -euc '
+            # Tables, functions, policies and data for the app schemas.
+            pg_dump "$PGURL" --no-owner --no-privileges --schema=public --schema=private \
+              --file=/backup/app.sql
+            # Login accounts, so restored profiles still match a user.
+            pg_dump "$PGURL" --data-only --table=auth.users --table=auth.identities \
+              --file=/backup/auth-users.sql
+          '
+          # A dump that is missing the core tables is not a backup.
+          for table in profiles decks bookings lesson_content; do
+            grep -q "CREATE TABLE public.$table " backup/app.sql || {
+              echo "::error::public.$table is missing from the dump"
+              exit 1
+            }
+          done
+          ls -lh backup
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: database-backup-${{ github.run_number }}
+          path: backup/
+          retention-days: 90
+          if-no-files-found: error

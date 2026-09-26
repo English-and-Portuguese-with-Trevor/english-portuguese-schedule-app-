@@ -262,6 +262,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          lesson_access: string
           phone: string | null
           role: string
           timezone: string
@@ -271,6 +272,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          lesson_access?: string
           phone?: string | null
           role?: string
           timezone?: string
@@ -280,6 +282,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          lesson_access?: string
           phone?: string | null
           role?: string
           timezone?: string
