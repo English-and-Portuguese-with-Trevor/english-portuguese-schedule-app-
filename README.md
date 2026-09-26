@@ -25,36 +25,10 @@ comes from that app's migrations; these files only add to it.
 
 ## Backups
 
-`.github/workflows/database-backup.yml` copies the whole shared database
-(schedule, flashcards and lessons tables, plus login accounts) every night and
-keeps each copy for 90 days under **Actions → Database backup → a run →
-Artifacts**. Only people with access to this private repo can download them;
-they contain student names, emails and phone numbers, so keep downloaded copies
-somewhere private too.
-
-**Setup (once):** in Supabase, click **Connect**, copy the **Session pooler**
-connection string (GitHub's servers can't reach the direct one), put your
-database password into it, and save it as the repository secret
-`SUPABASE_DB_URL` (**Settings → Secrets and variables → Actions**). Then run
-the workflow once by hand (**Actions → Database backup → Run workflow**) and
-check it finishes green.
-
-**Restoring** (into a new Supabase project, or the same one after a mistake):
-
-1. Download and unzip the backup you want.
-2. In the target project, create the extension the booking tables need:
-   `create extension if not exists btree_gist;`
-3. Restore login accounts first, then the app data, with the target's
-   connection string:
-   ```
-   psql "$TARGET_DB_URL" -f auth-users.sql
-   psql "$TARGET_DB_URL" -f app.sql
-   ```
-   Restoring into the same project means the tables already exist: drop or
-   rename the broken ones first, or ask Claude to restore just the rows you need.
-
-Secrets in Supabase Vault (the Google integration keys) are not in the backup;
-re-add them from their original source if you ever move to a new project.
+The nightly database backup runs from the private **flashcards-app** repo
+(`.github/workflows/database-backup.yml`, setup and restore steps in its
+README). It must not live here: this repo is public, and anyone can download
+Actions artifacts from a public repo.
 
 ## Google Meet links and emails
 
