@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
       </a>
       <h1 className="mt-8 text-2xl font-semibold">Privacy Policy</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Last updated September 25, 2026</p>
+      <p className="mt-1 text-sm text-muted-foreground">Last updated September 26, 2026</p>
 
       <div className="mt-8 flex flex-col gap-6 text-sm leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_ul]:list-disc [&_ul]:pl-5">
         <p>
@@ -29,6 +29,11 @@ export default function PrivacyPage() {
               account.
             </li>
             <li>The lessons you book, request, or cancel, and when.</li>
+            <li>
+              What you tell us when booking: whether you want English or Portuguese lessons, and your
+              WhatsApp number if you choose to give it.
+            </li>
+            <li>Your time zone, from your browser, so lesson times are shown and emailed in your local time.</li>
           </ul>
         </section>
 
@@ -41,6 +46,7 @@ export default function PrivacyPage() {
               Meet link for each lesson. These come from {CONTACT_EMAIL}.
             </li>
             <li>To let your teacher see and manage the schedule.</li>
+            <li>If you give your WhatsApp number, so your teacher can contact you about your lessons.</li>
           </ul>
           <p>
             Your information is never sold, shared for advertising, or used for anything other than your
