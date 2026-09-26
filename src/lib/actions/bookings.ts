@@ -116,12 +116,19 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
   const { data: adminTimezone } = await supabase.rpc("admin_timezone");
 
   // A reschedule request carries the original lesson it would replace.
-  let original: { id: string; start: string; end: string; eventId: string | null; meetLink: string | null } | null =
-    null;
+  let original: {
+    id: string;
+    start: string;
+    end: string;
+    eventId: string | null;
+    meetLink: string | null;
+    /** The student cancelled the original while the request was pending. */
+    cancelled: boolean;
+  } | null = null;
   if (data.reschedule_of) {
     const { data: o } = await supabase
       .from("bookings")
-      .select("id, google_event_id, meet_link, session_slots(start_time, end_time)")
+      .select("id, status, google_event_id, meet_link, session_slots(start_time, end_time)")
       .eq("id", data.reschedule_of)
       .single();
     if (o?.session_slots) {
@@ -131,6 +138,7 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
         end: o.session_slots.end_time,
         eventId: o.google_event_id,
         meetLink: o.meet_link,
+        cancelled: o.status === "CANCELLED",
       };
     }
   }
@@ -302,7 +310,11 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   if (updated.length > 0) {
     const booking = await loadBooking(supabase, bookingId);
     const original = booking?.original;
-    if (original) {
+    if (original?.cancelled) {
+      // The original lesson was cancelled while this request waited, and its
+      // calendar event with it: approving books the new time as a fresh lesson.
+      after(() => afterApproval(supabase, booking!.lesson));
+    } else if (original) {
       // Approving a reschedule replaces the original lesson. Its calendar
       // event moves to the new time rather than being cancelled.
       const { error: cancelError } = await supabase

@@ -388,8 +388,9 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
   perform public.cancel_my_booking(v_b);
   reset role;
-  if (select status from public.bookings where id = v_r) <> 'CANCELLED' then raise exception 'FAIL: cancelling the lesson withdraws its reschedule request'; end if;
-  if (select s.status from public.session_slots s join public.bookings b on b.session_slot_id = s.id where b.id = v_r) <> 'CANCELLED' then raise exception 'FAIL: the withdrawn request frees its time'; end if;
+  -- Pending requests are only resolved by the admin, even if the lesson is cancelled.
+  if (select status from public.bookings where id = v_r) <> 'PENDING' then raise exception 'FAIL: cancelling the lesson leaves its reschedule request for the admin'; end if;
+  if (select s.status from public.session_slots s join public.bookings b on b.session_slot_id = s.id where b.id = v_r) <> 'OPEN' then raise exception 'FAIL: the pending request keeps its time'; end if;
   if (select timezone from public.profiles where id = v_s) <> 'Europe/Lisbon' then raise exception 'FAIL: set_my_timezone'; end if;
 end $$;
 

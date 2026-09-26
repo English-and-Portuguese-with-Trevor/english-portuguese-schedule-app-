@@ -203,8 +203,9 @@ export function BookingsManager({
                 {b.reschedule_of && (
                   <p className="text-sm font-medium text-brand">
                     Reschedule
-                    {startById.get(b.reschedule_of) &&
-                      ` from ${format(new Date(startById.get(b.reschedule_of)!), "EEE, MMM d 'at' h:mm a")}`}
+                    {startById.get(b.reschedule_of)
+                      ? ` from ${format(new Date(startById.get(b.reschedule_of)!), "EEE, MMM d 'at' h:mm a")}`
+                      : " (the original lesson was cancelled; approving books this time as a new lesson)"}
                   </p>
                 )}
                 <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
