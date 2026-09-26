@@ -2,9 +2,9 @@
 
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { cancelBooking, requestBooking } from "@/lib/actions/bookings";
+import { cancelBooking, requestBooking, requestReschedule } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,6 +79,34 @@ export function BookingBoard({
     return null;
   }
 
+  // Rescheduling: the picker below chooses a new time for this lesson.
+  const [rescheduling, setRescheduling] = useState<{ id: string; start: string } | null>(null);
+  const pickerRef = useRef<HTMLElement>(null);
+  const startById = new Map(myBookings.map((b) => [b.id, b.session_slots?.start_time ?? null]));
+  const hasPendingReschedule = new Set(
+    myBookings.filter((b) => b.status === "PENDING" && b.reschedule_of).map((b) => b.reschedule_of),
+  );
+
+  function startRescheduling(booking: BookingRow) {
+    if (!booking.session_slots) return;
+    setRescheduling({ id: booking.id, start: booking.session_slots.start_time });
+    pickerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function handleReschedule(start: string, end: string) {
+    if (!rescheduling) return "Pick the lesson to move first.";
+    const result = await requestReschedule(
+      rescheduling.id,
+      start,
+      end,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
+    if (result.error) return result.error;
+    setRescheduling(null);
+    setNotice({ kind: "success", text: "Reschedule request sent — Trevor needs to approve it." });
+    return null;
+  }
+
   async function handleCancel(bookingId: string) {
     const result = await cancelBooking(bookingId);
     if (result.error) return result.error;
@@ -102,11 +130,23 @@ export function BookingBoard({
               <Card key={b.id}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
-                    1:1 Session
+                    {b.reschedule_of ? "Reschedule request" : "English / Portuguese Lesson"}
                   </CardTitle>
                   <CardDescription>
                     {b.session_slots &&
                       format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
+                    {b.reschedule_of && startById.get(b.reschedule_of) && (
+                      <>
+                        <br />
+                        Moving from {format(new Date(startById.get(b.reschedule_of)!), "EEE, MMM d 'at' h:mm a")}
+                      </>
+                    )}
+                    {hasPendingReschedule.has(b.id) && (
+                      <>
+                        <br />
+                        Reschedule requested
+                      </>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex items-center justify-between pt-0">
@@ -119,6 +159,11 @@ export function BookingBoard({
                         <a href={b.meet_link} target="_blank" rel="noopener noreferrer">
                           Join Meet
                         </a>
+                      </Button>
+                    )}
+                    {b.status === "CONFIRMED" && !hasPendingReschedule.has(b.id) && (
+                      <Button variant="outline" size="sm" onClick={() => startRescheduling(b)}>
+                        Reschedule
                       </Button>
                     )}
                     <Button
@@ -139,11 +184,26 @@ export function BookingBoard({
         )}
       </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Book a 1:1 session</h2>
+      <section ref={pickerRef} className="scroll-mt-4">
+        <h2 className="mb-3 text-lg font-semibold">{rescheduling ? "Pick a new time" : "Book a lesson"}</h2>
+        {rescheduling && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-secondary px-4 py-3 text-sm">
+            <span>
+              Moving your lesson on {format(new Date(rescheduling.start), "EEE, MMM d 'at' h:mm a")}. It stays
+              booked until Trevor approves the new time.
+            </span>
+            <Button variant="outline" size="sm" onClick={() => setRescheduling(null)}>
+              Stop
+            </Button>
+          </div>
+        )}
         <SlotPicker
-          role={role} candidates={candidates} busySlots={busySlots} onBook={handleBookSlot}
+          role={role}
+          candidates={candidates}
+          busySlots={busySlots}
+          onBook={rescheduling ? handleReschedule : handleBookSlot}
           previousAnswers={previousAnswers}
+          rescheduleFrom={rescheduling?.start}
         />
       </section>
 

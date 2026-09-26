@@ -4,15 +4,21 @@ const google = vi.hoisted(() => ({
   isGoogleConfigured: vi.fn(() => true),
   createLessonEvent: vi.fn(async () => ({ eventId: "evt1", meetLink: "https://meet.google.com/abc-defg-hij" })),
   deleteLessonEvent: vi.fn(async () => {}),
+  moveLessonEvent: vi.fn(async () => ({ meetLink: "https://meet.google.com/abc-defg-hij" })),
   sendEmail: vi.fn<(email: { to: string; subject: string; text: string; html?: string }) => Promise<void>>(async () => {}),
 }));
 vi.mock("@/lib/google", () => ({ ...google, LESSON_TIMEZONE: "America/Denver" }));
+const recordGoogleStatus = vi.hoisted(() => vi.fn(async () => {}));
+vi.mock("@/lib/integration-status", () => ({ recordGoogleStatus }));
 
 import {
   afterAdminBooking,
   afterApproval,
   afterCancellation,
+  afterRescheduleApproval,
+  afterRescheduleRequest,
   afterStudentBooking,
+  emails,
   lessonWhen,
   type Lesson,
 } from "@/lib/notifications";
@@ -29,7 +35,9 @@ const lesson: Lesson = {
 };
 
 const rpc = vi.fn(async () => ({ error: null }));
-const supabase = { rpc } as unknown as Supabase;
+const updateEq = vi.fn(async () => ({ error: null }));
+const update = vi.fn(() => ({ eq: updateEq }));
+const supabase = { rpc, from: vi.fn(() => ({ update })) } as unknown as Supabase;
 
 const sentEmails = () => google.sendEmail.mock.calls.map(([email]) => email);
 const sentTo = () => sentEmails().map((email) => email.to);
@@ -209,3 +217,97 @@ describe("booking questions", () => {
     expect(student.text).not.toContain("WhatsApp");
   });
 });
+
+describe("the admin's own time zone", () => {
+  it("shows the admin's time where they are, e.g. while travelling", async () => {
+    await afterStudentBooking(supabase, { ...lesson, adminTimezone: "Europe/Lisbon" }, true);
+    const admin = sentEmails().find((e) => e.to === "trevor@example.com")!;
+    expect(admin.subject).toBe("Approval needed: Ana Pereira, Mon, Sep 28, 9:30 PM");
+    expect(admin.text).toContain("Your time: 9:30 PM – 10:30 PM, Monday, September 28, 2026 (Western European Summer Time)");
+  });
+});
+
+describe("failure tracking", () => {
+  it("flags a failed Google call for the admin Overview", async () => {
+    google.createLessonEvent.mockRejectedValueOnce(new Error("invalid_grant"));
+    await afterApproval(supabase, lesson);
+    expect(recordGoogleStatus).toHaveBeenCalledWith(false, expect.stringContaining("invalid_grant"));
+  });
+});
+
+describe("reschedules", () => {
+  const request: Lesson = {
+    ...lesson,
+    bookingId: "b2",
+    start: "2026-09-30T21:00:00Z", // Wed 3 PM MT
+    end: "2026-09-30T22:00:00Z",
+    rescheduledFrom: { start: lesson.start, end: lesson.end },
+  };
+
+  it("a request tells the student it's pending and shows the admin both times", async () => {
+    await afterRescheduleRequest(request);
+    const student = sentEmails().find((e) => e.to === "ana@example.com")!;
+    const admin = sentEmails().find((e) => e.to === "trevor@example.com")!;
+    expect(student.subject).toBe("Reschedule request received: Wed, Sep 30, 3:00 PM");
+    expect(student.text).toContain("Current time: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
+    expect(admin.subject).toBe("Reschedule requested: Ana Pereira, Wed, Sep 30, 3:00 PM");
+    expect(admin.text).toContain("Current time: 2:30 PM");
+    expect(google.createLessonEvent).not.toHaveBeenCalled();
+  });
+
+  it("approval moves the original calendar event, keeping its Meet link", async () => {
+    await afterRescheduleApproval(supabase, request, { eventId: "evt-old", meetLink: "https://meet.google.com/old" });
+    expect(google.moveLessonEvent).toHaveBeenCalledWith("evt-old", request.start, request.end);
+    expect(google.createLessonEvent).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith({ google_event_id: "evt-old", meet_link: "https://meet.google.com/abc-defg-hij" });
+    expect(updateEq).toHaveBeenCalledWith("id", "b2");
+    const [email] = sentEmails();
+    expect(email.subject).toBe("Lesson moved: Wed, Sep 30, 3:00 PM");
+    expect(email.text).toContain("Previously: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
+  });
+
+  it("approval creates a new event if the original never had one", async () => {
+    await afterRescheduleApproval(supabase, request, { eventId: null, meetLink: null });
+    expect(google.createLessonEvent).toHaveBeenCalledOnce();
+  });
+
+  it("declining keeps the original lesson and says so", async () => {
+    await afterCancellation(request, { by: "admin", wasPending: true, late: false, eventId: null });
+    const [email] = sentEmails();
+    expect(email.subject).toBe("Reschedule not available: Wed, Sep 30, 3:00 PM");
+    expect(email.text).toContain("Your lesson stays as it was.");
+    expect(google.deleteLessonEvent).not.toHaveBeenCalled();
+  });
+
+  it("a withdrawn request tells the admin, not as a cancelled lesson", async () => {
+    await afterCancellation(request, { by: "student", wasPending: true, late: false, eventId: null });
+    expect(subjects()).toEqual(["Reschedule withdrawn: Ana Pereira, Wed, Sep 30, 3:00 PM"]);
+  });
+});
+
+describe("daily emails", () => {
+  it("reminds the student in their own time zone", () => {
+    const email = emails.reminder({ ...lesson, studentTimezone: "America/Sao_Paulo" }, "https://meet.google.com/x")!;
+    expect(email.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
+    expect(email.html).toContain('href="https://meet.google.com/x"');
+  });
+
+  it("gives the admin the day's lessons and waiting requests", () => {
+    const email = emails.adminAgenda(
+      [
+        { status: "CONFIRMED", start: lesson.start, end: lesson.end, studentName: "Ana Pereira", studentTimezone: "America/Sao_Paulo", language: "PORTUGUESE", whatsapp: "+55 11 91234-5678", rescheduleFrom: null },
+        { status: "PENDING", start: "2026-09-29T15:00:00Z", end: "2026-09-29T16:00:00Z", studentName: "Bruno S.", studentTimezone: null, language: "ENGLISH", whatsapp: null, rescheduleFrom: "2026-09-30T21:00:00Z" },
+      ],
+      "America/Denver",
+    )!;
+    expect(email.to).toBe("trevor@example.com");
+    expect(email.subject).toBe("Your day: 1 lesson in the next 24 hours, 1 request waiting");
+    expect(email.text).toContain("Lessons\nMon, Sep 28, 2:30 PM: Ana Pereira · Portuguese · WhatsApp +55 11 91234-5678 · their time 5:30 PM");
+    expect(email.text).toContain("Waiting for your approval\nTue, Sep 29, 9:00 AM: Bruno S. · English · reschedule from Wed, Sep 30, 3:00 PM");
+  });
+
+  it("sends no agenda on an empty day", () => {
+    expect(emails.adminAgenda([], "America/Denver")).toBeNull();
+  });
+});
+

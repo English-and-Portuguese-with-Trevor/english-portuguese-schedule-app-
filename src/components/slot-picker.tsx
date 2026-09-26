@@ -52,7 +52,8 @@ interface DayInfo {
   selectableCount: number;
 }
 
-function timeZoneLabel() {
+/** The viewer's time zone as a readable name, e.g. "Mountain Daylight Time". */
+export function timeZoneLabel() {
   return (
     new Intl.DateTimeFormat(undefined, { timeZoneName: "long" })
       .formatToParts(new Date())
@@ -66,6 +67,7 @@ export function SlotPicker({
   busySlots,
   onBook,
   previousAnswers,
+  rescheduleFrom,
 }: {
   role: Role;
   candidates: CandidateSlotDTO[];
@@ -74,6 +76,8 @@ export function SlotPicker({
   onBook: (start: string, end: string, answers?: BookingAnswers) => Promise<string | null>;
   /** The student's answers from their last booking, to prefill the questions. */
   previousAnswers?: Partial<BookingAnswers>;
+  /** Set while a student picks a new time for an existing lesson (ISO start). */
+  rescheduleFrom?: string;
 }) {
   const isAdmin = role === "admin";
   const today = useMemo(() => startOfDay(new Date()), []);
@@ -126,7 +130,9 @@ export function SlotPicker({
   const [whatsapp, setWhatsapp] = useState(previousAnswers?.whatsapp ?? "");
   // WhatsApp is optional, but if given it has to look like a phone number.
   const whatsappValid = whatsapp.trim() === "" || WHATSAPP_PATTERN.test(whatsapp.trim());
-  const answersValid = isAdmin || (language !== null && whatsappValid);
+  // Reschedules keep the original lesson's answers, so nothing to ask.
+  const askQuestions = !isAdmin && !rescheduleFrom;
+  const answersValid = !askQuestions || (language !== null && whatsappValid);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const tzLabel = useMemo(() => timeZoneLabel(), []);
@@ -135,7 +141,7 @@ export function SlotPicker({
     if (!pendingSlot) return;
     setDialogError(null);
     startTransition(async () => {
-      const answers = isAdmin || !language ? undefined : { language, whatsapp: whatsapp.trim() };
+      const answers = !askQuestions || !language ? undefined : { language, whatsapp: whatsapp.trim() };
       const error = await onBook(pendingSlot.start.toISOString(), pendingSlot.end.toISOString(), answers);
       if (error) setDialogError(error);
       else setPendingSlot(null);
@@ -240,7 +246,13 @@ export function SlotPicker({
       <Dialog open={pendingSlot !== null} onOpenChange={(open) => !open && !isPending && setPendingSlot(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{pendingNeedsApproval ? "Request this session?" : "Book this session?"}</DialogTitle>
+            <DialogTitle>
+              {rescheduleFrom
+                ? "Request this new time?"
+                : pendingNeedsApproval
+                  ? "Request this session?"
+                  : "Book this session?"}
+            </DialogTitle>
             <DialogDescription>
               {pendingSlot &&
                 `${format(pendingSlot.start, "EEEE, MMMM d")} · ${format(pendingSlot.start, "h:mm")} – ${format(
@@ -249,14 +261,19 @@ export function SlotPicker({
                 )} (${tzLabel})`}
             </DialogDescription>
           </DialogHeader>
-          {!isAdmin && (
+          {rescheduleFrom ? (
+            <p className="text-sm text-muted-foreground">
+              Your lesson on {format(new Date(rescheduleFrom), "EEEE, MMMM d 'at' h:mm a")} stays booked until
+              Trevor approves the change.
+            </p>
+          ) : !isAdmin && (
             <p className="text-sm text-muted-foreground">
               {pendingNeedsApproval
                 ? "It's less than 72 hours away, so it stays pending until Trevor approves it."
                 : "It's confirmed as soon as you book."}
             </p>
           )}
-          {!isAdmin && (
+          {askQuestions && (
             <div className="flex flex-col gap-4">
               <fieldset className="flex flex-col gap-2">
                 <legend className="mb-2 text-sm font-medium">Are you looking for English or Portuguese lessons?</legend>
@@ -316,7 +333,7 @@ export function SlotPicker({
               Back
             </Button>
             <Button disabled={isPending || !answersValid} onClick={confirm}>
-              {isPending ? "Sending…" : pendingNeedsApproval ? "Request" : "Book"}
+              {isPending ? "Sending…" : pendingNeedsApproval || rescheduleFrom ? "Request" : "Book"}
             </Button>
           </DialogFooter>
         </DialogContent>

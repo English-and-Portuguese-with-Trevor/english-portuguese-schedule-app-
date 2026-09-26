@@ -2,10 +2,11 @@
 
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 
 import { adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
 import { LateCancellations, type LateCancellationRow } from "@/components/admin/late-cancellations";
+import { timeZoneLabel } from "@/components/slot-picker";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ interface BookingRow {
   status: string;
   is_admin_override: boolean;
   meet_link: string | null;
+  reschedule_of: string | null;
   lesson_language: string | null;
   whatsapp: string | null;
   session_slots: {
@@ -39,6 +41,8 @@ interface Student {
   name: string;
 }
 
+const noopSubscribe = () => () => {};
+
 export function BookingsManager({
   initialBookings,
   lateCancellations,
@@ -51,6 +55,8 @@ export function BookingsManager({
   displayNames: Record<string, string>;
 }) {
   const router = useRouter();
+  // Times on this page follow this device's time zone; say which one.
+  const tzLabel = useSyncExternalStore(noopSubscribe, timeZoneLabel, () => null);
   const [prevInitialBookings, setPrevInitialBookings] = useState(initialBookings);
   const [bookings, setBookings] = useState(initialBookings);
   const [isPending, startTransition] = useTransition();
@@ -115,6 +121,7 @@ export function BookingsManager({
 
   const pending = bookings.filter((b) => b.status === "PENDING");
   const confirmed = bookings.filter((b) => b.status === "CONFIRMED");
+  const startById = new Map(bookings.map((b) => [b.id, b.session_slots?.start_time ?? null]));
 
   return (
     <div className="flex flex-col gap-8">
@@ -124,6 +131,7 @@ export function BookingsManager({
           Approve requests, cancel sessions, or place a student into any time. Sessions you book are
           confirmed right away.
         </p>
+        {tzLabel && <p className="text-xs text-muted-foreground">Times shown in {tzLabel}.</p>}
       </div>
 
       <Card>
@@ -158,7 +166,7 @@ export function BookingsManager({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Time</Label>
+            <Label>Time{tzLabel && <span className="font-normal text-muted-foreground"> ({tzLabel})</span>}</Label>
             <Input
               type="time"
               value={overrideForm.time}
@@ -192,11 +200,18 @@ export function BookingsManager({
                 <p className="text-sm text-muted-foreground">
                   {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
                 </p>
+                {b.reschedule_of && (
+                  <p className="text-sm font-medium text-brand">
+                    Reschedule
+                    {startById.get(b.reschedule_of) &&
+                      ` from ${format(new Date(startById.get(b.reschedule_of)!), "EEE, MMM d 'at' h:mm a")}`}
+                  </p>
+                )}
                 <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
               </div>
               <div className="flex gap-2">
                 <Button size="sm" onClick={() => handleConfirm(b.id)}>
-                  Confirm
+                  {b.reschedule_of ? "Approve move" : "Confirm"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handleCancel(b.id)}>
                   Decline

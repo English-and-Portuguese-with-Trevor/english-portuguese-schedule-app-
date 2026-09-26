@@ -45,13 +45,14 @@ function renderPicker(
   role: Role,
   onBook = vi.fn<OnBook>(async () => null),
   previousAnswers?: Partial<BookingAnswers>,
+  rescheduleFrom?: string,
 ) {
   const candidates = generateUpcomingSlots(SCHEDULE, { now: NOW, days: 14 }).map((c) => ({
     start: c.start.toISOString(),
     end: c.end.toISOString(),
     needsApproval: c.needsApproval,
   }));
-  render(<SlotPicker role={role} candidates={candidates} busySlots={[MONDAY_BOOKING]} onBook={onBook} previousAnswers={previousAnswers} />);
+  render(<SlotPicker role={role} candidates={candidates} busySlots={[MONDAY_BOOKING]} onBook={onBook} previousAnswers={previousAnswers} rescheduleFrom={rescheduleFrom} />);
   return { onBook, user: userEvent.setup() };
 }
 
@@ -221,5 +222,18 @@ describe("SlotPicker", () => {
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).queryByLabelText("WhatsApp number")).not.toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Book" })).toBeEnabled();
+  });
+
+  it("in reschedule mode, asks no questions and makes clear the old lesson stays until approved", async () => {
+    const { user, onBook } = renderPicker("student", undefined, undefined, "2026-09-28T20:30:00.000Z");
+    await user.click(dayChip("Sunday, September 27"));
+    await user.click(screen.getByRole("button", { name: "3:00 PM" }));
+    const dialog = screen.getByRole("dialog");
+
+    expect(within(dialog).getByText("Request this new time?")).toBeInTheDocument();
+    expect(within(dialog).getByText(/Monday, September 28 at 2:30 PM stays booked until/)).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText(/WhatsApp number/)).not.toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Request" }));
+    expect(onBook).toHaveBeenCalledWith("2026-09-27T21:00:00.000Z", "2026-09-27T22:00:00.000Z", undefined);
   });
 });

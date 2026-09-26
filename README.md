@@ -49,6 +49,25 @@ To get a new refresh token (for example if Google revokes the old one):
 A Google error never blocks a booking; it's logged in Vercel's function logs
 with a `[notifications]` prefix.
 
+## Daily job: reminders and your agenda
+
+`vercel.json` runs `/api/cron/daily` once a day at 13:00 UTC (7 AM Mountain
+in summer, 6 AM in winter). It:
+
+- checks the Google connection and records the result (shown on the admin
+  Overview);
+- emails each student one reminder for lessons in the next 36 hours;
+- emails the admin the next 24 hours of lessons plus requests waiting for
+  approval.
+
+It is guarded by a shared secret stored in two places that must match:
+`CRON_SECRET` in Vercel, and `private.app_settings` (key `cron_secret`) in
+Supabase. To rotate it, generate a new value and update both:
+
+```sql
+update private.app_settings set value = '<new secret>' where key = 'cron_secret';
+```
+
 ## Tests
 
 ```bash

@@ -14,6 +14,8 @@ export interface EmailContent {
   button?: { label: string; url: string };
   /** The student's answers to the booking questions. */
   questions?: [question: string, answer: string][];
+  /** Titled lists below the details, e.g. the day's lessons in an agenda. */
+  sections?: { title: string; rows: [label: string, value: string][] }[];
   footerNote?: string;
 }
 
@@ -61,6 +63,24 @@ export function renderEmail(content: EmailContent): { html: string; text: string
         .join("")}`
     : "";
 
+  const sections = (content.sections ?? [])
+    .filter((section) => section.rows.length > 0)
+    .map(
+      (section) => `
+      <h2 style="margin:24px 0 8px;font-size:15px;color:${INK}">${escape(section.title)}</h2>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${section.rows
+        .map(
+          ([label, value]) => `
+        <tr>
+          <td style="padding:4px 16px 4px 0;color:${MUTED};font-size:14px;vertical-align:top;white-space:nowrap">${escape(label)}</td>
+          <td style="padding:4px 0;color:${INK};font-size:14px">${escape(value)}</td>
+        </tr>`,
+        )
+        .join("")}
+      </table>`,
+    )
+    .join("");
+
   const button = content.button
     ? `<p style="margin:24px 0 0"><a href="${escape(content.button.url)}" style="display:inline-block;background:${FOREST};color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:10px 18px;border-radius:6px">${escape(content.button.label)}</a></p>`
     : "";
@@ -77,6 +97,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
       <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${rows}${location}
       </table>
       ${questions}
+      ${sections}
       ${button}
       <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e0d5;font-size:13px;line-height:1.5;color:${MUTED}">
         <p style="margin:0">${escape(TAGLINE_EN)}</p>
@@ -94,6 +115,9 @@ export function renderEmail(content: EmailContent): { html: string; text: string
     ...content.details.map(([label, value]) => `${label}: ${value}`),
     ...(content.location ? [`Location: ${content.location.label} ${content.location.url}`] : []),
     ...(content.questions?.length ? ["", "Questions", ...content.questions.flatMap(([q, a]) => [q, a])] : []),
+    ...(content.sections ?? [])
+      .filter((section) => section.rows.length > 0)
+      .flatMap((section) => ["", section.title, ...section.rows.map(([label, value]) => `${label}: ${value}`)]),
     ...(content.button ? ["", `${content.button.label}: ${content.button.url}`] : []),
     "",
     TAGLINE_EN,

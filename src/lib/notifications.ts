@@ -6,9 +6,11 @@ import {
   createLessonEvent,
   deleteLessonEvent,
   isGoogleConfigured,
+  moveLessonEvent,
   LESSON_TIMEZONE,
   sendEmail,
 } from "@/lib/google";
+import { recordGoogleStatus } from "@/lib/integration-status";
 import type { createClient } from "@/lib/supabase/server";
 
 const SITE_URL = "https://schedule.englishandportuguesewithtrevor.com";
@@ -27,6 +29,10 @@ export interface Lesson {
   /** Booking question answers; absent on bookings made before the questions existed. */
   language?: string | null;
   whatsapp?: string | null;
+  /** The admin's own time zone (synced from their browser); Mountain Time if unknown. */
+  adminTimezone?: string | null;
+  /** For a reschedule request: the lesson's current (original) time. */
+  rescheduledFrom?: { start: string; end: string } | null;
 }
 
 export interface Email {
@@ -83,8 +89,9 @@ function adminDetails(lesson: Lesson): [string, string][] {
     ["Student", lesson.studentName ?? "Unknown"],
   ];
   if (lesson.studentEmail) rows.push(["Student email", lesson.studentEmail]);
-  rows.push(["Your time", lessonWhen(lesson, LESSON_TIMEZONE)]);
-  if (lesson.studentTimezone && lesson.studentTimezone !== LESSON_TIMEZONE) {
+  const adminZone = lesson.adminTimezone || LESSON_TIMEZONE;
+  rows.push(["Your time", lessonWhen(lesson, adminZone)]);
+  if (lesson.studentTimezone && lesson.studentTimezone !== adminZone) {
     rows.push(["Student's time", lessonWhen(lesson, lesson.studentTimezone)]);
   }
   return rows;
@@ -116,7 +123,7 @@ function toAdmin(lesson: Lesson, subject: string, content: EmailContent): Email 
   const who = lesson.studentName ?? "A student";
   return {
     to,
-    subject: `${subject}: ${who}, ${shortTime(lesson.start, LESSON_TIMEZONE)}`,
+    subject: `${subject}: ${who}, ${shortTime(lesson.start, lesson.adminTimezone || LESSON_TIMEZONE)}`,
     ...renderEmail({ ...content, questions: questions(lesson) }),
   };
 }
@@ -124,8 +131,135 @@ function toAdmin(lesson: Lesson, subject: string, content: EmailContent): Email 
 const meet = (meetLink: string | null) =>
   meetLink ? { label: "Google Meet: join the lesson", url: meetLink } : undefined;
 
+/** One row of the admin's morning agenda (from the admin_agenda database function). */
+export interface AgendaItem {
+  status: string;
+  start: string;
+  end: string;
+  studentName: string | null;
+  studentTimezone: string | null;
+  language: string | null;
+  whatsapp: string | null;
+  rescheduleFrom: string | null;
+}
+
+function agendaRow(item: AgendaItem, adminZone: string): [string, string] {
+  const parts = [item.studentName ?? "Unknown student"];
+  if (item.language) parts.push(LANGUAGE_LABELS[item.language] ?? item.language);
+  if (item.whatsapp) parts.push(`WhatsApp ${item.whatsapp}`);
+  if (item.studentTimezone && item.studentTimezone !== adminZone) {
+    parts.push(`their time ${formatInTimeZone(new Date(item.start), item.studentTimezone, "h:mm a zzz")}`);
+  }
+  if (item.rescheduleFrom) parts.push(`reschedule from ${shortTime(item.rescheduleFrom, adminZone)}`);
+  return [shortTime(item.start, adminZone), parts.join(" · ")];
+}
+
 // Each builder returns null when there's nobody to send it to.
 export const emails = {
+  rescheduleRequested(lesson: Lesson): Email | null {
+    const from = lesson.rescheduledFrom;
+    return studentEmail(lesson, "Reschedule request received", {
+      heading: "Reschedule request received",
+      intro:
+        `Hi ${firstName(lesson.studentName)}, thanks! Your current lesson stays booked until Trevor ` +
+        `approves the new time. You'll get an email either way.`,
+      details: [
+        ["Lesson", lessonType(lesson)],
+        ["New time", lessonWhen(lesson, studentZone(lesson))],
+        ...(from ? ([["Current time", lessonWhen(from, studentZone(lesson))]] as [string, string][]) : []),
+        ["Status", "Waiting for approval"],
+      ],
+      button: { label: "View your lessons", url: SITE_URL },
+    });
+  },
+
+  rescheduled(lesson: Lesson, meetLink: string | null): Email | null {
+    const from = lesson.rescheduledFrom;
+    return studentEmail(lesson, "Lesson moved", {
+      heading: "Your lesson has been moved",
+      intro: `Hi ${firstName(lesson.studentName)}, the new time is confirmed. Your calendar invitation has been updated.`,
+      details: [
+        ...studentDetails(lesson),
+        ...(from ? ([["Previously", lessonWhen(from, studentZone(lesson))]] as [string, string][]) : []),
+      ],
+      location: meet(meetLink),
+      button: { label: "View or cancel your lesson", url: SITE_URL },
+      footerNote: "Cancelling less than 24 hours before the lesson still counts as a class.",
+    });
+  },
+
+  rescheduleDeclined(lesson: Lesson): Email | null {
+    const from = lesson.rescheduledFrom;
+    return studentEmail(lesson, "Reschedule not available", {
+      heading: "The new time isn't available",
+      intro: `Hi ${firstName(lesson.studentName)}, sorry, Trevor can't move your lesson to that time. Your lesson stays as it was.`,
+      details: [
+        ["Lesson", lessonType(lesson)],
+        ...(from ? ([["Your lesson", lessonWhen(from, studentZone(lesson))]] as [string, string][]) : []),
+        ["Requested time", lessonWhen(lesson, studentZone(lesson))],
+      ],
+      button: { label: "View your lessons", url: SITE_URL },
+    });
+  },
+
+  adminRescheduleRequested(lesson: Lesson): Email | null {
+    const from = lesson.rescheduledFrom;
+    const adminZone = lesson.adminTimezone || LESSON_TIMEZONE;
+    return toAdmin(lesson, "Reschedule requested", {
+      heading: "A student wants to reschedule",
+      intro: "Their current lesson stays booked until you approve or decline the new time.",
+      details: [
+        ...adminDetails(lesson),
+        ...(from ? ([["Current time", lessonWhen(from, adminZone)]] as [string, string][]) : []),
+      ],
+      button: { label: "Approve or decline", url: `${SITE_URL}/admin/bookings` },
+    });
+  },
+
+  adminRescheduleWithdrawn(lesson: Lesson): Email | null {
+    return toAdmin(lesson, "Reschedule withdrawn", {
+      heading: "A reschedule request was withdrawn",
+      intro: "The student's original lesson stays as it was.",
+      details: adminDetails(lesson),
+    });
+  },
+
+  reminder(lesson: Lesson, meetLink: string | null): Email | null {
+    return studentEmail(lesson, "Lesson reminder", {
+      heading: "Your lesson is coming up",
+      intro: `Hi ${firstName(lesson.studentName)}, just a reminder about your lesson. See you soon!`,
+      details: studentDetails(lesson),
+      location: meet(meetLink),
+      button: { label: "View or cancel your lesson", url: SITE_URL },
+      footerNote: "Cancelling less than 24 hours before the lesson still counts as a class.",
+    });
+  },
+
+  adminAgenda(items: AgendaItem[], adminZone: string): Email | null {
+    const to = adminEmail();
+    const lessons = items.filter((i) => i.status === "CONFIRMED");
+    const waiting = items.filter((i) => i.status === "PENDING");
+    if (!to || items.length === 0) return null;
+    const summary = [
+      `${lessons.length} lesson${lessons.length === 1 ? "" : "s"} in the next 24 hours`,
+      ...(waiting.length ? [`${waiting.length} request${waiting.length === 1 ? "" : "s"} waiting`] : []),
+    ].join(", ");
+    return {
+      to,
+      subject: `Your day: ${summary}`,
+      ...renderEmail({
+        heading: "Your day ahead",
+        intro: `${summary}. Times are in ${formatInTimeZone(new Date(), adminZone, "zzzz")}.`,
+        details: [],
+        sections: [
+          { title: "Lessons", rows: lessons.map((i) => agendaRow(i, adminZone)) },
+          { title: "Waiting for your approval", rows: waiting.map((i) => agendaRow(i, adminZone)) },
+        ],
+        button: { label: "Open bookings", url: `${SITE_URL}/admin/bookings` },
+      }),
+    };
+  },
+
   requestReceived(lesson: Lesson): Email | null {
     return studentEmail(lesson, "Lesson request received", {
       heading: "Lesson request received",
@@ -205,14 +339,20 @@ async function attempt(label: string, work: () => Promise<void>) {
   try {
     await work();
   } catch (error) {
-    // A Google hiccup must never undo or block a booking; log and move on.
+    // A Google hiccup must never undo or block a booking; log it, flag it
+    // on the admin Overview, and move on.
     console.error(`[notifications] ${label} failed:`, error);
+    const detail = error instanceof Error ? error.message : String(error);
+    await recordGoogleStatus(false, `${label} failed: ${detail}`);
   }
 }
 
 async function send(email: Email | null) {
   if (email) await attempt(`email "${email.subject}"`, () => sendEmail(email));
 }
+
+/** Sends one notification; failures are logged and flagged, never thrown. */
+export const sendNotification = send;
 
 function configured() {
   if (isGoogleConfigured()) return true;
@@ -260,11 +400,49 @@ export async function afterAdminBooking(supabase: Supabase, lesson: Lesson) {
   await scheduleMeeting(supabase, lesson);
 }
 
+/** A student asked to move a confirmed lesson; it waits for approval. */
+export async function afterRescheduleRequest(lesson: Lesson) {
+  if (!configured()) return;
+  await Promise.all([send(emails.rescheduleRequested(lesson)), send(emails.adminRescheduleRequested(lesson))]);
+}
+
+/**
+ * The admin approved a reschedule: move the original calendar event (same
+ * Meet link) to the new time and record it on the new booking.
+ */
+export async function afterRescheduleApproval(
+  supabase: Supabase,
+  lesson: Lesson,
+  original: { eventId: string | null; meetLink: string | null },
+) {
+  if (!configured()) return;
+  let meetLink = original.meetLink;
+  if (original.eventId) {
+    const eventId = original.eventId;
+    await attempt("move calendar event", async () => {
+      meetLink = (await moveLessonEvent(eventId, lesson.start, lesson.end)).meetLink ?? meetLink;
+      const { error } = await supabase
+        .from("bookings")
+        .update({ google_event_id: eventId, meet_link: meetLink })
+        .eq("id", lesson.bookingId);
+      if (error) throw error;
+    });
+  } else {
+    meetLink = await scheduleMeeting(supabase, lesson);
+  }
+  await send(emails.rescheduled(lesson, meetLink));
+}
+
 export async function afterCancellation(
   lesson: Lesson,
   how: { by: "student" | "admin"; wasPending: boolean; late: boolean; eventId: string | null },
 ) {
   if (!configured()) return;
+  if (lesson.rescheduledFrom) {
+    // A reschedule request, not a lesson: the original stays untouched.
+    await send(how.by === "student" ? emails.adminRescheduleWithdrawn(lesson) : emails.rescheduleDeclined(lesson));
+    return;
+  }
   if (how.eventId) {
     const eventId = how.eventId;
     await attempt("delete calendar event", () => deleteLessonEvent(eventId));

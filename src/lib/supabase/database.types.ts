@@ -68,6 +68,8 @@ export type Database = {
           lesson_language: string | null
           meet_link: string | null
           notes: string | null
+          reminder_sent_at: string | null
+          reschedule_of: string | null
           session_slot_id: string
           status: string
           student_id: string
@@ -85,6 +87,8 @@ export type Database = {
           lesson_language?: string | null
           meet_link?: string | null
           notes?: string | null
+          reminder_sent_at?: string | null
+          reschedule_of?: string | null
           session_slot_id: string
           status?: string
           student_id: string
@@ -102,6 +106,8 @@ export type Database = {
           lesson_language?: string | null
           meet_link?: string | null
           notes?: string | null
+          reminder_sent_at?: string | null
+          reschedule_of?: string | null
           session_slot_id?: string
           status?: string
           student_id?: string
@@ -109,6 +115,13 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_reschedule_of_fkey"
+            columns: ["reschedule_of"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_session_slot_id_fkey"
             columns: ["session_slot_id"]
@@ -237,6 +250,12 @@ export type Database = {
           },
         ]
       }
+      integration_status: {
+        Row: { checked_at: string; message: string | null; ok: boolean; service: string }
+        Insert: { checked_at?: string; message?: string | null; ok: boolean; service: string }
+        Update: { checked_at?: string; message?: string | null; ok?: boolean; service?: string }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -310,7 +329,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_agenda: {
+        Args: { p_secret: string }
+        Returns: {
+          booking_id: string
+          status: string
+          start_time: string
+          end_time: string
+          student_name: string | null
+          student_email: string | null
+          student_timezone: string | null
+          meet_link: string | null
+          lesson_language: string | null
+          whatsapp: string | null
+          reschedule_from: string | null
+        }[]
+      }
+      admin_timezone: { Args: never; Returns: string }
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      claim_student_reminders: {
+        Args: { p_secret: string }
+        Returns: {
+          booking_id: string
+          start_time: string
+          end_time: string
+          student_name: string | null
+          student_email: string | null
+          student_timezone: string | null
+          meet_link: string | null
+        }[]
+      }
+      record_integration_status: {
+        Args: { p_message: string; p_ok: boolean; p_secret: string; p_service: string }
+        Returns: undefined
+      }
+      request_reschedule: {
+        Args: { p_booking_id: string; p_end: string; p_start: string; p_timezone?: string }
+        Returns: string
+      }
+      set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       request_individual_booking: {
         Args: { p_end: string; p_language?: string; p_start: string; p_timezone?: string; p_whatsapp?: string }

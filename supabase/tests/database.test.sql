@@ -320,6 +320,79 @@ begin
 end;
 $$;
 
+
+-- Reminders, the admin agenda, Google status, time zones, and reschedules.
+-- (Overwrites the job secret with a test value; the rollback restores it.)
+do $$
+declare
+  v_s uuid := gen_random_uuid(); v_o uuid := gen_random_uuid(); v_a uuid := gen_random_uuid();
+  v_sat date; v_b uuid; v_r uuid; v_near uuid; v_far uuid; v_n int; v_ok boolean; v_msg text;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role) values
+    (v_s, 'db-test-student2@example.com', '{"full_name":"T S"}', 'authenticated', 'authenticated'),
+    (v_o, 'db-test-other2@example.com', '{"full_name":"T O"}', 'authenticated', 'authenticated'),
+    (v_a, 'db-test-admin2@example.com', '{"full_name":"T A"}', 'authenticated', 'authenticated');
+  update public.profiles set role = 'admin' where id = v_a;
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+    on conflict (key) do update set value = excluded.value;
+  update public.availability_rules set is_active = false;
+  insert into public.availability_rules (day_of_week, start_time, end_time, slot_duration_minutes, timezone, created_by)
+  values (6, '08:00', '12:00', 60, 'America/Denver', v_a);
+  v_sat := (now() at time zone 'America/Denver')::date + 5;
+  v_sat := v_sat + ((6 - extract(dow from v_sat)::int + 7) % 7) + 7; -- a week after the checks above
+
+  -- Reminder fixtures: confirmed lessons 30h and 40h out
+  insert into public.session_slots (start_time, end_time, status) values (now() + interval '30 hours', now() + interval '31 hours', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+    values ((select id from public.session_slots where start_time = now() + interval '30 hours'), v_s, 'CONFIRMED') returning id into v_near;
+  insert into public.session_slots (start_time, end_time, status) values (now() + interval '40 hours', now() + interval '41 hours', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+    values ((select id from public.session_slots where start_time = now() + interval '40 hours'), v_s, 'CONFIRMED') returning id into v_far;
+
+  set local role anon;
+  v_ok := false; begin perform * from public.claim_student_reminders('wrong'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: reminders need the secret'; end if;
+  select count(*) into v_n from public.claim_student_reminders('test-secret') where booking_id in (v_near, v_far);
+  if v_n <> 1 then raise exception 'FAIL: only the lesson within 36h is reminded (got %)', v_n; end if;
+  select count(*) into v_n from public.claim_student_reminders('test-secret') where booking_id in (v_near, v_far);
+  if v_n <> 0 then raise exception 'FAIL: each lesson is reminded once (got %)', v_n; end if;
+  select count(*) into v_n from public.admin_agenda('test-secret') where booking_id = v_near;
+  if v_n <> 0 then raise exception 'FAIL: agenda covers only the next 24h of confirmed lessons'; end if;
+  perform public.record_integration_status('test-secret', 'google', false, 'token revoked');
+  v_ok := false; begin perform public.record_integration_status('wrong', 'google', true, null); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: status needs the secret'; end if;
+  if public.admin_timezone() is null then raise exception 'FAIL: admin tz'; end if;
+  reset role;
+  if (select ok from public.integration_status where service = 'google') then raise exception 'FAIL: status recorded'; end if;
+  v_ok := false; begin set local role anon; perform count(*) from private.app_settings; exception when others then v_ok := true; end;
+  reset role;
+  if not v_ok then raise exception 'FAIL: the secret table is not readable via the API roles'; end if;
+
+  -- Reschedule
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  perform public.set_my_timezone('Europe/Lisbon');
+  perform public.set_my_timezone('Not/AZone');
+  v_b := public.request_individual_booking((v_sat + time '08:00') at time zone 'America/Denver', (v_sat + time '09:00') at time zone 'America/Denver', 'America/Denver', 'ENGLISH', null);
+  v_r := public.request_reschedule(v_b, (v_sat + time '10:00') at time zone 'America/Denver', (v_sat + time '11:00') at time zone 'America/Denver', 'America/Sao_Paulo');
+  if (select status || ' ' || reschedule_of::text || ' ' || lesson_language || ' ' || student_timezone from public.bookings where id = v_r)
+     is distinct from 'PENDING ' || v_b::text || ' ENGLISH America/Sao_Paulo' then raise exception 'FAIL: reschedule request is pending and linked'; end if;
+  if (select status from public.bookings where id = v_b) <> 'CONFIRMED' then raise exception 'FAIL: original stays booked'; end if;
+  v_ok := false; begin perform public.request_reschedule(v_b, (v_sat + time '11:00') at time zone 'America/Denver', (v_sat + time '12:00') at time zone 'America/Denver'); exception when others then v_ok := true; v_msg := sqlerrm; end;
+  if not v_ok or v_msg not like '%already asked%' then raise exception 'FAIL: one reschedule request at a time (%)', v_msg; end if;
+  v_ok := false; begin perform public.request_reschedule(v_r, (v_sat + time '11:00') at time zone 'America/Denver', (v_sat + time '12:00') at time zone 'America/Denver'); exception when others then v_ok := true; v_msg := sqlerrm; end;
+  if not v_ok or v_msg not like '%confirmed lesson%' then raise exception 'FAIL: only confirmed lessons reschedule (%)', v_msg; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_o, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.request_reschedule(v_b, (v_sat + time '11:00') at time zone 'America/Denver', (v_sat + time '12:00') at time zone 'America/Denver'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: cannot reschedule someone else''s lesson'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  perform public.cancel_my_booking(v_b);
+  reset role;
+  if (select status from public.bookings where id = v_r) <> 'CANCELLED' then raise exception 'FAIL: cancelling the lesson withdraws its reschedule request'; end if;
+  if (select s.status from public.session_slots s join public.bookings b on b.session_slot_id = s.id where b.id = v_r) <> 'CANCELLED' then raise exception 'FAIL: the withdrawn request frees its time'; end if;
+  if (select timezone from public.profiles where id = v_s) <> 'Europe/Lisbon' then raise exception 'FAIL: set_my_timezone'; end if;
+end $$;
+
 select 'ALL DATABASE TESTS PASSED' as result;
 
 rollback;

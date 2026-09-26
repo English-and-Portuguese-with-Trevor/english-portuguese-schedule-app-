@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
+import { TimezoneSync } from "@/components/timezone-sync";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -12,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, email")
+    .select("role, full_name, email, timezone")
     .eq("id", user.id)
     .single();
 
@@ -20,6 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <AppShell role={"admin"} fullName={profile.full_name} email={profile.email}>
+      <TimezoneSync saved={profile.timezone} />
       {children}
     </AppShell>
   );

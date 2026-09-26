@@ -84,6 +84,27 @@ export async function createLessonEvent(lesson: {
   return { eventId: event.id, meetLink: event.hangoutLink ?? null };
 }
 
+/**
+ * Moves an existing lesson event to a new time, keeping its Meet link;
+ * Google emails the student the updated invitation.
+ */
+export async function moveLessonEvent(
+  eventId: string,
+  start: string,
+  end: string,
+): Promise<{ meetLink: string | null }> {
+  const res = await googleFetch(`${CALENDAR_EVENTS_URL}/${encodeURIComponent(eventId)}?sendUpdates=all`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      start: { dateTime: start, timeZone: LESSON_TIMEZONE },
+      end: { dateTime: end, timeZone: LESSON_TIMEZONE },
+    }),
+  });
+  const event = (await res.json()) as { hangoutLink?: string };
+  return { meetLink: event.hangoutLink ?? null };
+}
+
 /** Deletes the lesson event; Google emails the student the cancellation. */
 export async function deleteLessonEvent(eventId: string) {
   try {
@@ -148,3 +169,33 @@ export async function sendEmail(email: OutgoingEmail) {
     body: JSON.stringify({ raw: buildRawEmail(email) }),
   });
 }
+
+const REQUIRED_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.events",
+  "https://www.googleapis.com/auth/gmail.send",
+];
+
+/**
+ * Checks the Google connection end to end: the refresh token still works
+ * and still grants both Calendar and Gmail. Never throws.
+ */
+export async function checkGoogleConnection(): Promise<{ ok: boolean; message: string }> {
+  if (!isGoogleConfigured()) return { ok: false, message: "Not set up: the GOOGLE_* settings are missing in Vercel." };
+  try {
+    cachedToken = null; // prove the refresh token itself still works
+    const token = await accessToken();
+    const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`);
+    if (!res.ok) return { ok: false, message: `Google rejected the access token (${res.status}).` };
+    const { scope = "" } = (await res.json()) as { scope?: string };
+    const missing = REQUIRED_SCOPES.filter((s) => !scope.split(" ").includes(s));
+    if (missing.length) return { ok: false, message: `Missing permission: ${missing.join(", ")}` };
+    return { ok: true, message: "Calendar and Gmail are connected." };
+  } catch (error) {
+    const text = error instanceof Error ? error.message : String(error);
+    if (/invalid_grant/.test(text)) {
+      return { ok: false, message: "The refresh token was revoked or expired. Create a new one (see the README)." };
+    }
+    return { ok: false, message: text.slice(0, 300) };
+  }
+}
+

@@ -7,6 +7,8 @@ import {
   afterAdminBooking,
   afterApproval,
   afterCancellation,
+  afterRescheduleApproval,
+  afterRescheduleRequest,
   afterStudentBooking,
   type Lesson,
 } from "@/lib/notifications";
@@ -106,11 +108,32 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, status, late_cancellation, google_event_id, student_timezone, lesson_language, whatsapp, session_slots(start_time, end_time), profiles(full_name, email)",
+      "id, status, late_cancellation, google_event_id, meet_link, reschedule_of, student_timezone, lesson_language, whatsapp, session_slots(start_time, end_time), profiles(full_name, email)",
     )
     .eq("id", bookingId)
     .single();
   if (!data?.session_slots) return null;
+  const { data: adminTimezone } = await supabase.rpc("admin_timezone");
+
+  // A reschedule request carries the original lesson it would replace.
+  let original: { id: string; start: string; end: string; eventId: string | null; meetLink: string | null } | null =
+    null;
+  if (data.reschedule_of) {
+    const { data: o } = await supabase
+      .from("bookings")
+      .select("id, google_event_id, meet_link, session_slots(start_time, end_time)")
+      .eq("id", data.reschedule_of)
+      .single();
+    if (o?.session_slots) {
+      original = {
+        id: o.id,
+        start: o.session_slots.start_time,
+        end: o.session_slots.end_time,
+        eventId: o.google_event_id,
+        meetLink: o.meet_link,
+      };
+    }
+  }
 
   const lesson: Lesson = {
     bookingId: data.id,
@@ -121,8 +144,10 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
     studentTimezone: data.student_timezone,
     language: data.lesson_language,
     whatsapp: data.whatsapp,
+    adminTimezone,
+    rescheduledFrom: original ? { start: original.start, end: original.end } : null,
   };
-  return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id };
+  return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id, original };
 }
 
 function friendlyDbError(error: { code?: string; message: string }): string {
@@ -275,12 +300,51 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   if (error) return { error: error.message };
 
   if (updated.length > 0) {
-    after(async () => {
-      const booking = await loadBooking(supabase, bookingId);
-      if (booking) await afterApproval(supabase, booking.lesson);
-    });
+    const booking = await loadBooking(supabase, bookingId);
+    const original = booking?.original;
+    if (original) {
+      // Approving a reschedule replaces the original lesson. Its calendar
+      // event moves to the new time rather than being cancelled.
+      const { error: cancelError } = await supabase
+        .from("bookings")
+        .update({ status: "CANCELLED", cancelled_at: new Date().toISOString(), cancellation_reason: "Rescheduled" })
+        .eq("id", original.id);
+      if (cancelError) return { error: cancelError.message };
+      after(() => afterRescheduleApproval(supabase, booking.lesson, original));
+    } else if (booking) {
+      after(() => afterApproval(supabase, booking.lesson));
+    }
   }
 
+  revalidatePath("/admin/bookings");
+  revalidatePath("/dashboard");
+  return { error: null };
+}
+
+/**
+ * Student asks to move a confirmed lesson to another time. It's always a
+ * request: the original stays booked until the admin approves.
+ */
+export async function requestReschedule(
+  bookingId: string,
+  startIso: string,
+  endIso: string,
+  timezone?: string,
+): Promise<ActionResult> {
+  const { supabase } = await requireProfile();
+
+  const { data: requestId, error } = await supabase.rpc("request_reschedule", {
+    p_booking_id: bookingId,
+    p_start: startIso,
+    p_end: endIso,
+    p_timezone: timezone,
+  });
+  if (error) return { error: friendlyDbError(error) };
+
+  const booking = await loadBooking(supabase, requestId);
+  if (booking) after(() => afterRescheduleRequest(booking.lesson));
+
+  revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
   return { error: null };
 }
