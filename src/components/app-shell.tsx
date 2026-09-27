@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  BookOpen,
   CalendarClock,
   CalendarPlus,
   ClipboardList,
-  ExternalLink,
+  Home,
+  Layers,
   LayoutDashboard,
   LogOut,
+  Settings as SettingsIcon,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -17,7 +20,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -35,36 +37,65 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Book", icon: CalendarPlus },
 ];
 
-function initials(name: string | null, email: string | null) {
-  const source = name?.trim() || email || "?";
-  const parts = source.split(/\s+/);
-  return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : source.slice(0, 2)).toUpperCase();
+/** The account menu is the same on every site: the four sites, Settings, Log out. */
+export const ACCOUNT_MENU_LINKS = [
+  { href: LANDING_URL, label: "Home", icon: Home },
+  {
+    href: "https://lessons.englishandportuguesewithtrevor.com",
+    label: "Lessons",
+    icon: BookOpen,
+  },
+  {
+    href: "https://flashcards.englishandportuguesewithtrevor.com",
+    label: "Flashcards",
+    icon: Layers,
+  },
+  { href: "/dashboard", label: "Schedule a class", icon: CalendarPlus },
+] as const;
+
+function firstName(name: string | null, email: string | null) {
+  return (name?.trim() || email || "").split(/\s+/)[0];
 }
 
-function SettingsMenu({ fullName, email }: { fullName: string | null; email: string | null }) {
+function AccountMenu({
+  fullName,
+  email,
+}: {
+  fullName: string | null;
+  email: string | null;
+}) {
+  const first = firstName(fullName, email);
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="Settings"
-        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold text-secondary-foreground outline-none ring-offset-2 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {initials(fullName, email)}
+      <DropdownMenuTrigger className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-semibold whitespace-nowrap text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
+        {first ? `Hi, ${first}` : "Account"}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>
-          <p className="font-medium">{fullName ?? "Signed in"}</p>
-          {email && <p className="truncate text-xs font-normal text-muted-foreground">{email}</p>}
-        </DropdownMenuLabel>
+        {ACCOUNT_MENU_LINKS.map(({ href, label, icon: Icon }) => (
+          <DropdownMenuItem key={label} asChild>
+            {href.startsWith("/") ? (
+              <Link href={href}>
+                <Icon />
+                {label}
+              </Link>
+            ) : (
+              <a href={href}>
+                <Icon />
+                {label}
+              </a>
+            )}
+          </DropdownMenuItem>
+        ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <a href={LANDING_URL}>
-            <ExternalLink />
-            Main website
-          </a>
+          <Link href="/settings">
+            <SettingsIcon />
+            Settings
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void logout()}>
           <LogOut />
-          Sign out
+          Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -94,13 +125,17 @@ export function AppShell({
             className="font-display text-lg leading-tight text-brand sm:text-xl"
             aria-label="English & Portuguese with Trevor, main website"
           >
-            English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
+            English <em className="text-brand-accent">&amp;</em> Portuguese with
+            Trevor
           </a>
-          <SettingsMenu fullName={fullName} email={email} />
+          <AccountMenu fullName={fullName} email={email} />
         </div>
         {isAdmin && (
           // Wide screens: a tab row under the header. Phones use the bottom bar below.
-          <nav aria-label="Admin" className="mx-auto hidden max-w-5xl gap-1 px-4 pb-2 sm:flex">
+          <nav
+            aria-label="Admin"
+            className="mx-auto hidden max-w-5xl gap-1 px-4 pb-2 sm:flex"
+          >
             {ADMIN_LINKS.map((link) => (
               <Link
                 key={link.href}
@@ -118,7 +153,12 @@ export function AppShell({
         )}
       </header>
 
-      <main className={cn("mx-auto w-full max-w-5xl flex-1 px-4 py-8", isAdmin && "pb-24 sm:pb-8")}>
+      <main
+        className={cn(
+          "mx-auto w-full max-w-5xl flex-1 px-4 py-8",
+          isAdmin && "pb-24 sm:pb-8",
+        )}
+      >
         {children}
       </main>
 

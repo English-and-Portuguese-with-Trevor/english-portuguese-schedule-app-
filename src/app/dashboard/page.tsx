@@ -1,10 +1,18 @@
 import { addDays } from "date-fns";
 
 import { BookingBoard } from "@/components/booking-board";
+import { ClassProgressCard } from "@/components/class-progress-card";
 import { getDisplayNames } from "@/lib/display-names";
 import { generateUpcomingSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
-import type { AvailabilityRule, Booking, LessonLanguage, Role } from "@/lib/types";
+import type {
+  AvailabilityRule,
+  Booking,
+  ClassProgress,
+  LessonAccess,
+  LessonLanguage,
+  Role,
+} from "@/lib/types";
 
 const LOOKAHEAD_DAYS = 21;
 
@@ -16,7 +24,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, full_name")
+    .select("id, role, full_name, lesson_access")
     .eq("id", user!.id)
     .single();
   const isAdmin = profile!.role === "admin";
@@ -24,7 +32,13 @@ export default async function DashboardPage() {
   const now = new Date();
   const rangeEnd = addDays(now, LOOKAHEAD_DAYS);
 
-  const [{ data: rules }, { data: slots }, { data: myBookings }, { data: lastAnswers }] = await Promise.all([
+  const [
+    { data: rules },
+    { data: slots },
+    { data: myBookings },
+    { data: lastAnswers },
+    { data: progressRows },
+  ] = await Promise.all([
     supabase.from("availability_rules").select("*").eq("is_active", true),
     supabase
       .from("session_slots")
@@ -48,7 +62,10 @@ export default async function DashboardPage() {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // Progress toward lifetime lesson access (three class sets).
+    supabase.rpc("my_class_progress"),
   ]);
+  const progress = ((progressRows ?? []) as ClassProgress[])[0] ?? null;
 
   // Only admins see who booked a slot; students can't read other students'
   // bookings at all.
@@ -58,19 +75,26 @@ export default async function DashboardPage() {
       supabase
         .from("bookings")
         .select("session_slot_id, student_id")
-        .in("session_slot_id", slots.map((s) => s.id))
+        .in(
+          "session_slot_id",
+          slots.map((s) => s.id),
+        )
         .neq("status", "CANCELLED"),
       getDisplayNames(supabase),
     ]);
-    for (const b of activeBookings ?? []) studentBySlot.set(b.session_slot_id, displayNames[b.student_id]);
+    for (const b of activeBookings ?? [])
+      studentBySlot.set(b.session_slot_id, displayNames[b.student_id]);
   }
 
   // All candidate start times within active windows, including ones that
   // overlap a booking — the picker shows those struck through.
-  const candidates = generateUpcomingSlots((rules ?? []) as AvailabilityRule[], {
-    now,
-    days: LOOKAHEAD_DAYS,
-  });
+  const candidates = generateUpcomingSlots(
+    (rules ?? []) as AvailabilityRule[],
+    {
+      now,
+      days: LOOKAHEAD_DAYS,
+    },
+  );
 
   // Every OPEN slot is taken: cancelling a booking cancels its slot, so a
   // slot only stays OPEN while it has an active booking.
@@ -81,21 +105,37 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <BookingBoard
-      role={profile!.role as Role}
-      candidates={candidates.map((c) => ({
-        start: c.start.toISOString(),
-        end: c.end.toISOString(),
-        needsApproval: c.needsApproval,
-      }))}
-      busySlots={busySlots}
-      previousAnswers={{
-        language: (lastAnswers?.lesson_language as LessonLanguage | null) ?? undefined,
-        whatsapp: lastAnswers?.whatsapp ?? undefined,
-      }}
-      myBookings={(myBookings ?? []).sort((a, b) =>
-        a.session_slots.start_time.localeCompare(b.session_slots.start_time),
-      ) as (Booking & { session_slots: { start_time: string; end_time: string } })[]}
-    />
+    <div className="flex flex-col gap-8">
+      {!isAdmin && (
+        <ClassProgressCard
+          progress={progress}
+          lessonAccess={profile!.lesson_access as LessonAccess}
+        />
+      )}
+      <BookingBoard
+        role={profile!.role as Role}
+        candidates={candidates.map((c) => ({
+          start: c.start.toISOString(),
+          end: c.end.toISOString(),
+          needsApproval: c.needsApproval,
+        }))}
+        busySlots={busySlots}
+        previousAnswers={{
+          language:
+            (lastAnswers?.lesson_language as LessonLanguage | null) ??
+            undefined,
+          whatsapp: lastAnswers?.whatsapp ?? undefined,
+        }}
+        myBookings={
+          (myBookings ?? []).sort((a, b) =>
+            a.session_slots.start_time.localeCompare(
+              b.session_slots.start_time,
+            ),
+          ) as (Booking & {
+            session_slots: { start_time: string; end_time: string };
+          })[]
+        }
+      />
+    </div>
   );
 }

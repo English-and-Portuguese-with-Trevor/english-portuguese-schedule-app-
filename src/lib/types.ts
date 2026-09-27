@@ -1,14 +1,31 @@
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type Role = "admin" | "student";
-/** "granted" is set by Trevor by hand; "subscriber" will come from Stripe. */
-export type LessonAccess = "none" | "granted" | "subscriber";
+/**
+ * "granted" and "lifetime" are set by Trevor by hand; "subscriber" comes from
+ * the Stripe webhook. Lifetime is for students who finished three class sets.
+ */
+export type LessonAccess = "none" | "granted" | "subscriber" | "lifetime";
+
+/** Class sets a student must finish to qualify for lifetime lesson access. */
+export const LIFETIME_CLASS_SETS = 3;
+export type ClassPackage = 4 | 8;
+
+/** From the my_class_progress / admin_class_progress RPCs. */
+export interface ClassProgress {
+  user_id: string;
+  class_package: ClassPackage | null;
+  completed: number;
+  needed: number | null;
+  eligible: boolean;
+}
 export type SlotStatus = "OPEN" | "CANCELLED";
 export type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
-export type Profile = Omit<Tables<"profiles">, "role" | "lesson_access"> & {
+export type Profile = Omit<Tables<"profiles">, "role" | "lesson_access" | "class_package"> & {
   role: Role;
   lesson_access: LessonAccess;
+  class_package: ClassPackage | null;
 };
 export type AvailabilityRule = Tables<"availability_rules">;
 export type SessionSlot = Omit<Tables<"session_slots">, "status"> & { status: SlotStatus };

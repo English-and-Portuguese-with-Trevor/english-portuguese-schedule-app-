@@ -56,6 +56,39 @@ export type Database = {
           },
         ]
       }
+      billing: {
+        Row: {
+          cancel_at_period_end: boolean
+          current_period_end: string | null
+          price_id: string | null
+          status: string | null
+          stripe_customer_id: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          price_id?: string | null
+          status?: string | null
+          stripe_customer_id: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          price_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           cancellation_reason: string | null
@@ -258,7 +291,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          class_package: number | null
           created_at: string
+          earlier_classes: number
           email: string | null
           full_name: string | null
           id: string
@@ -268,7 +303,9 @@ export type Database = {
           timezone: string
         }
         Insert: {
+          class_package?: number | null
           created_at?: string
+          earlier_classes?: number
           email?: string | null
           full_name?: string | null
           id: string
@@ -278,7 +315,9 @@ export type Database = {
           timezone?: string
         }
         Update: {
+          class_package?: number | null
           created_at?: string
+          earlier_classes?: number
           email?: string | null
           full_name?: string | null
           id?: string
@@ -332,6 +371,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_class_progress: {
+        Args: never
+        Returns: {
+          class_package: number
+          completed: number
+          eligible: boolean
+          needed: number
+          user_id: string
+        }[]
+      }
       admin_agenda: {
         Args: { p_secret: string }
         Returns: {
@@ -360,6 +409,16 @@ export type Database = {
           student_email: string | null
           student_timezone: string | null
           meet_link: string | null
+        }[]
+      }
+      my_class_progress: {
+        Args: never
+        Returns: {
+          class_package: number
+          completed: number
+          eligible: boolean
+          needed: number
+          user_id: string
         }[]
       }
       record_integration_status: {
