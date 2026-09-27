@@ -63,6 +63,8 @@ describe("AppShell", () => {
 
     await user.click(screen.getByRole("button", { name: "Hi, Trevor" }));
     const menu = screen.getByRole("menu");
+    // Activities is admin-only for now (not open to students yet); see the
+    // admin-only test below.
     expect(
       within(menu)
         .getAllByRole("menuitem")
@@ -84,5 +86,24 @@ describe("AppShell", () => {
 
     await user.click(within(menu).getByRole("menuitem", { name: "Log out" }));
     expect(logout).toHaveBeenCalledOnce();
+  });
+
+  it("only shows Activities in the account menu to admins, since it is not open to students yet", async () => {
+    const user = renderShell("admin");
+    await user.click(screen.getByRole("button", { name: "Hi, Trevor" }));
+    const menu = screen.getByRole("menu");
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.textContent),
+    ).toEqual([
+      "Home",
+      "Lessons",
+      "Flashcards",
+      "Activities",
+      "Schedule a class",
+      "Settings",
+      "Log out",
+    ]);
   });
 });
