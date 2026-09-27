@@ -297,10 +297,13 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          learning_language: string | null
           lesson_access: string
           phone: string | null
           role: string
+          theme: string | null
           timezone: string
+          translation_language: string | null
         }
         Insert: {
           class_package?: number | null
@@ -309,10 +312,13 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          learning_language?: string | null
           lesson_access?: string
           phone?: string | null
           role?: string
+          theme?: string | null
           timezone?: string
+          translation_language?: string | null
         }
         Update: {
           class_package?: number | null
@@ -321,10 +327,13 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          learning_language?: string | null
           lesson_access?: string
           phone?: string | null
           role?: string
+          theme?: string | null
           timezone?: string
+          translation_language?: string | null
         }
         Relationships: []
       }
@@ -429,7 +438,9 @@ export type Database = {
         Args: { p_booking_id: string; p_end: string; p_start: string; p_timezone?: string }
         Returns: string
       }
+      set_learning_language: { Args: { lang: string }; Returns: undefined }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
+      set_theme: { Args: { theme: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       request_individual_booking: {
         Args: { p_end: string; p_language?: string; p_start: string; p_timezone?: string; p_whatsapp?: string }

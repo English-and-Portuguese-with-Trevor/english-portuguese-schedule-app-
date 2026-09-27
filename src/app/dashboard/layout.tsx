@@ -4,7 +4,11 @@ import { AppShell } from "@/components/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -13,14 +17,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, email")
+    .select("role, full_name, email, theme, learning_language")
     .eq("id", user.id)
     .single();
 
   if (!profile) redirect("/login");
 
   return (
-    <AppShell role={profile.role as Role} fullName={profile.full_name} email={profile.email}>
+    <AppShell
+      role={profile.role as Role}
+      fullName={profile.full_name}
+      email={profile.email}
+      theme={profile.theme}
+      learningLanguage={profile.learning_language}
+    >
       {children}
     </AppShell>
   );

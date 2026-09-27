@@ -17,7 +17,7 @@ export default async function SettingsLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, email")
+    .select("role, full_name, email, theme, learning_language")
     .eq("id", user.id)
     .single();
 
@@ -28,6 +28,8 @@ export default async function SettingsLayout({
       role={profile.role as Role}
       fullName={profile.full_name}
       email={profile.email}
+      theme={profile.theme}
+      learningLanguage={profile.learning_language}
     >
       {children}
     </AppShell>

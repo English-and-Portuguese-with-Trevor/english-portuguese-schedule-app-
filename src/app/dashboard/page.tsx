@@ -3,6 +3,7 @@ import { addDays } from "date-fns";
 import { BookingBoard } from "@/components/booking-board";
 import { ClassProgressCard } from "@/components/class-progress-card";
 import { getDisplayNames } from "@/lib/display-names";
+import { learningToLessonLanguage } from "@/lib/prefs";
 import { generateUpcomingSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -24,7 +25,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, full_name, lesson_access")
+    .select("id, role, full_name, lesson_access, learning_language")
     .eq("id", user!.id)
     .single();
   const isAdmin = profile!.role === "admin";
@@ -123,7 +124,7 @@ export default async function DashboardPage() {
         previousAnswers={{
           language:
             (lastAnswers?.lesson_language as LessonLanguage | null) ??
-            undefined,
+            learningToLessonLanguage(profile!.learning_language),
           whatsapp: lastAnswers?.whatsapp ?? undefined,
         }}
         myBookings={

@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Dark mode is the shared site preference (ept-prefs cookie → <html data-theme="dark">),
+   not the device setting, so it matches the other sites. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
@@ -56,30 +60,30 @@
   --color-brand-accent: var(--brand-accent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --brand: #95d5b2;
-    --brand-accent: #f4c430;
-    --background: #0a0a0a;
-    --foreground: #f1f5f9;
-    --card: #111827;
-    --card-foreground: #f1f5f9;
-    --popover: #111827;
-    --popover-foreground: #f1f5f9;
-    --primary: #f1f5f9;
-    --primary-foreground: #0f172a;
-    --secondary: #1e293b;
-    --secondary-foreground: #f1f5f9;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --accent: #1e293b;
-    --accent-foreground: #f1f5f9;
-    --destructive: #ef4444;
-    --destructive-foreground: #f8fafc;
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: #cbd5e1;
-  }
+/* Dark palette: the same forest greens as the other sites' dark mode. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --brand: #8fd3ae;
+  --brand-accent: #e4b84d;
+  --background: #111915;
+  --foreground: #e9efea;
+  --card: #1a2520;
+  --card-foreground: #e9efea;
+  --popover: #1a2520;
+  --popover-foreground: #e9efea;
+  --primary: #2d6a4f;
+  --primary-foreground: #f5f0e8;
+  --secondary: #24322b;
+  --secondary-foreground: #e9efea;
+  --muted: #24322b;
+  --muted-foreground: #a8b8ae;
+  --accent: #24322b;
+  --accent-foreground: #e9efea;
+  --destructive: #ff8a7f;
+  --destructive-foreground: #12231a;
+  --border: #2f4038;
+  --input: #3a4d43;
+  --ring: #7bc8a0;
 }
 
 body {

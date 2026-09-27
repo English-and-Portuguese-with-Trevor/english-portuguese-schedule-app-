@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const invoke = vi.fn();
 const signOut = vi.fn();
+const rpc = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ functions: { invoke }, auth: { signOut } }),
+  createClient: () => ({ functions: { invoke }, auth: { signOut }, rpc }),
 }));
 vi.mock("@/lib/actions/auth", () => ({ logout: vi.fn() }));
 const refresh = vi.fn();
@@ -24,7 +25,10 @@ beforeEach(() => {
   invoke.mockReset();
   invoke.mockResolvedValue({ data: { synced: false }, error: null });
   signOut.mockReset();
+  rpc.mockReset();
+  rpc.mockResolvedValue({ error: null });
   refresh.mockReset();
+  delete document.documentElement.dataset.theme;
 });
 
 describe("AccountSettings", () => {
@@ -115,5 +119,52 @@ describe("AccountSettings", () => {
     ).toBeInTheDocument();
     expect(invoke).toHaveBeenCalledWith("delete-account", { method: "POST" });
     await waitFor(() => expect(signOut).not.toHaveBeenCalled());
+  });
+});
+
+describe("Preferences", () => {
+  function renderSettings() {
+    render(
+      <AccountSettings
+        name="Ana"
+        email="ana@example.com"
+        role="student"
+        lessonAccess="none"
+        billing={null}
+      />,
+    );
+  }
+
+  it("shows the saved dark mode choice from the shared cookie", async () => {
+    document.cookie = `ept-prefs=${encodeURIComponent('{"theme":"dark"}')}; Path=/`;
+    renderSettings();
+    await waitFor(() =>
+      expect(screen.getByRole("switch", { name: "Dark mode" })).toBeChecked(),
+    );
+  });
+
+  it("turns on dark mode, saves the cookie and the profile", async () => {
+    renderSettings();
+    fireEvent.click(screen.getByRole("switch", { name: "Dark mode" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(decodeURIComponent(document.cookie)).toContain('"theme":"dark"');
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_theme", { theme: "dark" }),
+    );
+  });
+
+  it("saves the language being learned", async () => {
+    renderSettings();
+    fireEvent.change(screen.getByLabelText("I'm learning"), {
+      target: { value: "English" },
+    });
+    expect(decodeURIComponent(document.cookie)).toContain(
+      '"learning":"English"',
+    );
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_learning_language", {
+        lang: "English",
+      }),
+    );
   });
 });

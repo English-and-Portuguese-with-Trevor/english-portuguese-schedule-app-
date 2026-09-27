@@ -27,6 +27,8 @@ import {
   hasSubscription,
   type BillingSummary,
 } from "@/lib/account-summary";
+import { setLearningLanguage, setTheme } from "@/lib/preferences";
+import { readPrefs, type LearningLanguage, type Prefs } from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import type { LessonAccess, Role } from "@/lib/types";
 
@@ -100,6 +102,8 @@ export function AccountSettings({
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
 
+      <PreferencesCard />
+
       <Card>
         <CardHeader>
           <CardTitle>Account</CardTitle>
@@ -160,6 +164,80 @@ export function AccountSettings({
         onClose={() => setDeleteOpen(false)}
       />
     </div>
+  );
+}
+
+/** Dark mode and the language being learned; the same settings on every site. */
+function PreferencesCard() {
+  // The cookie is only readable in the browser; the server renders the defaults.
+  const [prefs, setPrefs] = useState<Prefs>({});
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- read the browser-only cookie after hydration
+    setPrefs(readPrefs());
+  }, []);
+  const dark = prefs.theme === "dark";
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Preferences</CardTitle>
+        <CardDescription>
+          These follow you to the lessons and flashcards sites too.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col divide-y">
+        <div className="flex items-center justify-between gap-4 py-3">
+          <span id="dark-mode-label" className="text-sm font-medium">
+            Dark mode
+          </span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={dark}
+            aria-labelledby="dark-mode-label"
+            onClick={() => {
+              const theme = dark ? "light" : "dark";
+              setTheme(theme);
+              setPrefs((p) => ({ ...p, theme }));
+            }}
+            className={`relative h-7 w-12 shrink-0 rounded-full border-2 transition-colors ${
+              dark
+                ? "border-primary bg-primary"
+                : "border-muted-foreground bg-muted"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 size-5 rounded-full transition-all ${
+                dark
+                  ? "left-[1.35rem] bg-primary-foreground"
+                  : "left-0.5 bg-muted-foreground"
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3">
+          <label htmlFor="learning-language" className="text-sm font-medium">
+            I&apos;m learning
+          </label>
+          <select
+            id="learning-language"
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+            value={prefs.learning ?? ""}
+            onChange={(e) => {
+              const learning = e.target.value as LearningLanguage;
+              setLearningLanguage(learning);
+              setPrefs((p) => ({ ...p, learning }));
+            }}
+          >
+            <option value="" disabled>
+              Choose…
+            </option>
+            <option value="Portuguese">Portuguese</option>
+            <option value="English">English</option>
+          </select>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
