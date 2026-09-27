@@ -42,25 +42,38 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Book", icon: CalendarPlus },
 ];
 
-/** The account menu is the same on every site: the five sites, Settings, Log out. */
+/**
+ * The account menu is the same on every site: the five sites, Settings, Log
+ * out. Activities isn't open to students yet (see its CLAUDE.md), so it's
+ * admin-only for now — remove `adminOnly` here (and in every other repo's
+ * account menu) once it is.
+ */
 export const ACCOUNT_MENU_LINKS = [
-  { href: LANDING_URL, label: tr("Home"), icon: Home },
+  { href: LANDING_URL, label: tr("Home"), icon: Home, adminOnly: false },
   {
     href: "https://lessons.englishandportuguesewithtrevor.com",
     label: tr("Lessons"),
     icon: BookOpen,
+    adminOnly: false,
   },
   {
     href: "https://flashcards.englishandportuguesewithtrevor.com",
     label: tr("Flashcards"),
     icon: Layers,
+    adminOnly: false,
   },
   {
     href: "https://activities.englishandportuguesewithtrevor.com",
     label: tr("Activities"),
     icon: Dumbbell,
+    adminOnly: true,
   },
-  { href: "/dashboard", label: tr("Schedule a class"), icon: CalendarPlus },
+  {
+    href: "/dashboard",
+    label: tr("Schedule a class"),
+    icon: CalendarPlus,
+    adminOnly: false,
+  },
 ] as const;
 
 function firstName(name: string | null, email: string | null) {
@@ -70,19 +83,22 @@ function firstName(name: string | null, email: string | null) {
 function AccountMenu({
   fullName,
   email,
+  isAdmin,
 }: {
   fullName: string | null;
   email: string | null;
+  isAdmin: boolean;
 }) {
   const first = firstName(fullName, email);
   const t = useT();
+  const links = ACCOUNT_MENU_LINKS.filter((link) => !link.adminOnly || isAdmin);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-semibold whitespace-nowrap text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
         {first ? t("Hi, {name}", { name: first }) : t("Account")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {ACCOUNT_MENU_LINKS.map(({ href, label, icon: Icon }) => (
+        {links.map(({ href, label, icon: Icon }) => (
           <DropdownMenuItem key={label} asChild>
             {href.startsWith("/") ? (
               <Link href={href}>
@@ -158,7 +174,7 @@ export function AppShell({
               English <em className="text-brand-accent">&amp;</em> Portuguese
               with Trevor
             </a>
-            <AccountMenu fullName={fullName} email={email} />
+            <AccountMenu fullName={fullName} email={email} isAdmin={isAdmin} />
           </div>
           {isAdmin && (
             // Wide screens: a tab row under the header. Phones use the bottom bar below.
