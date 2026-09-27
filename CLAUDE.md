@@ -16,8 +16,8 @@
 - Write text in English inside `t("…")` or `tr("…")` and add it to `src/i18n/strings.ts` under `es`, `pt` and `fr`; `src/i18n/i18n.test.ts` fails otherwise. Dates and times go through `formatDate()` in `src/i18n/format.ts` (English keeps the date-fns patterns). Server errors students can see are listed in `src/i18n/server-messages.ts`.
 - Trevor's admin pages, the privacy page and the emails stay in English.
 
-## DeepL translations are on hold
-Trevor's DeepL character allowance is limited, so **nothing new goes to DeepL without his approval**. The shared `translate` edge function (flashcards-app repo) only answers from saved translations unless a request says `sendNew: true`; the lessons deploy only sends that when run by hand with "Translate new text" ticked. Ask Trevor before sending new text, before re-translating anything, and before wiring DeepL into this site.
+## DeepL translations
+DeepL translates only the lessons site's lesson text, through the shared `translate` edge function (flashcards-app repo). Every translation is saved keyed on the text alone, so nothing is paid for twice, each deploy may send at most 25,000 new characters, and Claude reviews new rows (see the lessons repo's CLAUDE.md). This site's own text is hand-written in `src/i18n/strings.ts`; don't wire DeepL into it without asking Trevor.
 
 ## Workflow
 Trevor approved pushing straight to `main` (no branches or pull requests) for all changes. Run the tests and build first. Still ask before anything that needs a dashboard setting changed first, would log people out, or could charge anyone.
