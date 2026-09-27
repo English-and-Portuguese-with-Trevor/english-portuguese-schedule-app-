@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,24 @@ export function AccountSettings({
   const [billingError, setBillingError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const router = useRouter();
+
+  // Ask Stripe for the latest once per visit, so a cancel made in the Stripe
+  // portal shows here even if its webhook message went missing.
+  useEffect(() => {
+    let cancelled = false;
+    createClient()
+      .functions.invoke("billing", { body: { action: "refresh" } })
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data?.synced) router.refresh();
+      })
+      .catch(() => {
+        // Stripe unreachable: keep showing what's saved.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   function manageSubscription() {
     setBillingError(null);

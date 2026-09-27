@@ -8,6 +8,8 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ functions: { invoke }, auth: { signOut } }),
 }));
 vi.mock("@/lib/actions/auth", () => ({ logout: vi.fn() }));
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 import { AccountSettings } from "@/components/account-settings";
 
@@ -20,7 +22,9 @@ const subscription = {
 
 beforeEach(() => {
   invoke.mockReset();
+  invoke.mockResolvedValue({ data: { synced: false }, error: null });
   signOut.mockReset();
+  refresh.mockReset();
 });
 
 describe("AccountSettings", () => {
@@ -57,6 +61,23 @@ describe("AccountSettings", () => {
       screen.queryByRole("button", { name: "Manage subscription" }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(/Student access from Trevor/)).toBeInTheDocument();
+  });
+
+  it("asks Stripe for the latest when it opens and reloads if anything was synced", async () => {
+    invoke.mockResolvedValue({ data: { synced: true }, error: null });
+    render(
+      <AccountSettings
+        name="Ana"
+        email="ana@example.com"
+        role="student"
+        lessonAccess="subscriber"
+        billing={subscription}
+      />,
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(invoke).toHaveBeenCalledWith("billing", {
+      body: { action: "refresh" },
+    });
   });
 
   it("only deletes after typing DELETE, and shows why it couldn't", async () => {
