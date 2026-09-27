@@ -5,6 +5,7 @@ import {
   CalendarClock,
   CalendarPlus,
   ClipboardList,
+  Dumbbell,
   Home,
   Layers,
   LayoutDashboard,
@@ -41,7 +42,7 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Book", icon: CalendarPlus },
 ];
 
-/** The account menu is the same on every site: the four sites, Settings, Log out. */
+/** The account menu is the same on every site: the five sites, Settings, Log out. */
 export const ACCOUNT_MENU_LINKS = [
   { href: LANDING_URL, label: tr("Home"), icon: Home },
   {
@@ -53,6 +54,11 @@ export const ACCOUNT_MENU_LINKS = [
     href: "https://flashcards.englishandportuguesewithtrevor.com",
     label: tr("Flashcards"),
     icon: Layers,
+  },
+  {
+    href: "https://activities.englishandportuguesewithtrevor.com",
+    label: tr("Activities"),
+    icon: Dumbbell,
   },
   { href: "/dashboard", label: tr("Schedule a class"), icon: CalendarPlus },
 ] as const;

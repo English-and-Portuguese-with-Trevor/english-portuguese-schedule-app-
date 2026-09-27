@@ -71,6 +71,7 @@ describe("AppShell", () => {
       "Home",
       "Lessons",
       "Flashcards",
+      "Activities",
       "Schedule a class",
       "Settings",
       "Log out",
