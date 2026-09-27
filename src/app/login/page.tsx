@@ -3,7 +3,14 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { GoogleIcon } from "@/components/google-icon";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -34,7 +41,15 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <Button onClick={handleGoogleSignIn} disabled={pending}>
+          <Button
+            onClick={handleGoogleSignIn}
+            disabled={pending}
+            className="gap-2.5"
+          >
+            {/* White circle so Google's colors read on the dark button. */}
+            <span className="flex size-5 items-center justify-center rounded-full bg-white">
+              <GoogleIcon className="size-3.5" />
+            </span>
             {pending ? "Redirecting..." : "Sign in with Google"}
           </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}
