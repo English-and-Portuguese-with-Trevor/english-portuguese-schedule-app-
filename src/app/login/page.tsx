@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,10 +12,20 @@ import {
 } from "@/components/ui/card";
 import { GoogleIcon } from "@/components/google-icon";
 import { createClient } from "@/lib/supabase/client";
+import { sharedLoginUrl } from "@/lib/shared-login";
 
 export default function LoginPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Stay here only to show a failed Google login, or when running locally.
+    if (new URLSearchParams(window.location.search).has("error")) return;
+    const url = sharedLoginUrl(window.location);
+    if (url) {
+      window.location.replace(url);
+    }
+  }, []);
 
   async function handleGoogleSignIn() {
     setPending(true);
