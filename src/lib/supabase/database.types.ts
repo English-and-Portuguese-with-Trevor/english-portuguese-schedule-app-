@@ -298,6 +298,7 @@ export type Database = {
           full_name: string | null
           id: string
           learning_language: string | null
+          site_language: string | null
           lesson_access: string
           phone: string | null
           role: string
@@ -313,6 +314,7 @@ export type Database = {
           full_name?: string | null
           id: string
           learning_language?: string | null
+          site_language?: string | null
           lesson_access?: string
           phone?: string | null
           role?: string
@@ -328,6 +330,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           learning_language?: string | null
+          site_language?: string | null
           lesson_access?: string
           phone?: string | null
           role?: string
@@ -439,6 +442,7 @@ export type Database = {
         Returns: string
       }
       set_learning_language: { Args: { lang: string }; Returns: undefined }
+      set_site_language: { Args: { lang: string }; Returns: undefined }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
       set_theme: { Args: { theme: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }

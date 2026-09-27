@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_PATTERN, type BookingAnswers, type LessonLanguage, type Role } from "@/lib/types";
+import { useSiteLanguage, useT } from "@/i18n/client";
+import { formatDate, formatTimeRange, LOCALES } from "@/i18n/format";
+import { tr } from "@/i18n/translate";
+import type { SiteLanguage } from "@/lib/prefs";
 
 export interface CandidateSlotDTO {
   start: string;
@@ -53,11 +57,11 @@ interface DayInfo {
 }
 
 /** The viewer's time zone as a readable name, e.g. "Mountain Daylight Time". */
-export function timeZoneLabel() {
+export function timeZoneLabel(lang?: SiteLanguage) {
   return (
-    new Intl.DateTimeFormat(undefined, { timeZoneName: "long" })
+    new Intl.DateTimeFormat(lang && lang !== "en" ? LOCALES[lang] : undefined, { timeZoneName: "long" })
       .formatToParts(new Date())
-      .find((p) => p.type === "timeZoneName")?.value ?? "your local time"
+      .find((p) => p.type === "timeZoneName")?.value ?? null
   );
 }
 
@@ -80,6 +84,8 @@ export function SlotPicker({
   rescheduleFrom?: string;
 }) {
   const isAdmin = role === "admin";
+  const t = useT();
+  const lang = useSiteLanguage();
   const today = useMemo(() => startOfDay(new Date()), []);
   const days = useMemo(() => Array.from({ length: DAYS_SHOWN }, (_, i) => addDays(today, i)), [today]);
 
@@ -135,7 +141,7 @@ export function SlotPicker({
   const answersValid = !askQuestions || (language !== null && whatsappValid);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const tzLabel = useMemo(() => timeZoneLabel(), []);
+  const tzLabel = useMemo(() => timeZoneLabel(lang) ?? t("your local time"), [lang, t]);
 
   function confirm() {
     if (!pendingSlot) return;
@@ -143,7 +149,7 @@ export function SlotPicker({
     startTransition(async () => {
       const answers = !askQuestions || !language ? undefined : { language, whatsapp: whatsapp.trim() };
       const error = await onBook(pendingSlot.start.toISOString(), pendingSlot.end.toISOString(), answers);
-      if (error) setDialogError(error);
+      if (error) setDialogError(t(error));
       else setPendingSlot(null);
     });
   }
@@ -155,7 +161,7 @@ export function SlotPicker({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs text-muted-foreground">Times shown in {tzLabel}.</p>
+      <p className="text-xs text-muted-foreground">{t("Times shown in {zone}.", { zone: tzLabel })}</p>
 
       <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
         {days.map((day) => {
@@ -167,7 +173,7 @@ export function SlotPicker({
               key={key}
               type="button"
               aria-pressed={selected}
-              aria-label={`${format(day, "EEEE, MMMM d")}, ${count > 0 ? `${count} open` : "no availability"}`}
+              aria-label={`${formatDate(day, "longDay", lang)}, ${count > 0 ? t("{n} open", { n: count }) : t("no availability")}`}
               onClick={() => setSelectedKey(key)}
               className={cn(
                 "flex w-16 shrink-0 snap-start flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-colors",
@@ -175,10 +181,10 @@ export function SlotPicker({
                 !selected && count === 0 && "opacity-50",
               )}
             >
-              <span className="text-[11px] font-medium uppercase">{format(day, "EEE")}</span>
-              <span className="text-lg font-semibold leading-none">{format(day, "d")}</span>
+              <span className="text-[11px] font-medium uppercase">{formatDate(day, "weekday", lang)}</span>
+              <span className="text-lg font-semibold leading-none">{formatDate(day, "dayNumber", lang)}</span>
               <span className={cn("text-[10px]", selected ? "opacity-80" : "text-muted-foreground")}>
-                {count > 0 ? `${count} open` : "—"}
+                {count > 0 ? t("{n} open", { n: count }) : "—"}
               </span>
             </button>
           );
@@ -186,7 +192,7 @@ export function SlotPicker({
       </div>
 
       <div className="rounded-lg border p-4">
-        <h3 className="mb-3 font-semibold">{format(selectedDay, "EEEE, MMMM d")}</h3>
+        <h3 className="mb-3 font-semibold">{formatDate(selectedDay, "longDay", lang)}</h3>
 
         {info && info.busy.length > 0 && (
           <ul className="mb-4 flex flex-col gap-1">
@@ -195,7 +201,7 @@ export function SlotPicker({
                 key={b.start.toISOString()}
                 className="rounded-md bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
               >
-                {format(b.start, "h:mm")} – {format(b.end, "h:mm a")} · Booked
+                {formatTimeRange(b.start, b.end, lang)} · {t("Booked")}
                 {isAdmin && b.studentName ? ` (${b.studentName})` : ""}
               </li>
             ))}
@@ -203,13 +209,13 @@ export function SlotPicker({
         )}
 
         {!info || info.blocks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No availability on this day.</p>
+          <p className="text-sm text-muted-foreground">{t("No availability on this day.")}</p>
         ) : (
           <div className="flex flex-col gap-4">
             {info.blocks.map((block) => (
               <div key={block[0].start.toISOString()}>
                 <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  {format(block[0].start, "h:mm a")} – {format(block[block.length - 1].end, "h:mm a")}
+                  {formatDate(block[0].start, "time", lang)} – {formatDate(block[block.length - 1].end, "time", lang)}
                 </p>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {block.map((slot) => (
@@ -219,7 +225,9 @@ export function SlotPicker({
                       size="sm"
                       disabled={slot.blocked}
                       aria-label={
-                        showsApproval(slot) ? `${format(slot.start, "h:mm a")}, needs approval` : undefined
+                        showsApproval(slot)
+                          ? t("{time}, needs approval", { time: formatDate(slot.start, "time", lang) })
+                          : undefined
                       }
                       onClick={() => {
                         setDialogError(null);
@@ -227,7 +235,7 @@ export function SlotPicker({
                       }}
                       className={cn(slot.blocked && "line-through", showsApproval(slot) && "border-dashed border-muted-foreground/60")}
                     >
-                      {format(slot.start, "h:mm a")}
+                      {formatDate(slot.start, "time", lang)}
                     </Button>
                   ))}
                 </div>
@@ -235,8 +243,9 @@ export function SlotPicker({
             ))}
             {hasApprovalSlots && (
               <p className="text-xs text-muted-foreground">
-                Dashed times are less than 72 hours away. You can still request them, but Trevor needs
-                to approve them first.
+                {t(
+                  "Dashed times are less than 72 hours away. You can still request them, but Trevor needs to approve them first.",
+                )}
               </p>
             )}
           </div>
@@ -248,40 +257,42 @@ export function SlotPicker({
           <DialogHeader>
             <DialogTitle>
               {rescheduleFrom
-                ? "Request this new time?"
+                ? t("Request this new time?")
                 : pendingNeedsApproval
-                  ? "Request this session?"
-                  : "Book this session?"}
+                  ? t("Request this session?")
+                  : t("Book this session?")}
             </DialogTitle>
             <DialogDescription>
               {pendingSlot &&
-                `${format(pendingSlot.start, "EEEE, MMMM d")} · ${format(pendingSlot.start, "h:mm")} – ${format(
+                `${formatDate(pendingSlot.start, "longDay", lang)} · ${formatTimeRange(
+                  pendingSlot.start,
                   pendingSlot.end,
-                  "h:mm a",
+                  lang,
                 )} (${tzLabel})`}
             </DialogDescription>
           </DialogHeader>
           {rescheduleFrom ? (
             <p className="text-sm text-muted-foreground">
-              Your lesson on {format(new Date(rescheduleFrom), "EEEE, MMMM d 'at' h:mm a")} stays booked until
-              Trevor approves the change.
+              {t("Your lesson on {time} stays booked until Trevor approves the change.", {
+                time: formatDate(rescheduleFrom, "longDayAtTime", lang),
+              })}
             </p>
           ) : !isAdmin && (
             <p className="text-sm text-muted-foreground">
               {pendingNeedsApproval
-                ? "It's less than 72 hours away, so it stays pending until Trevor approves it."
-                : "It's confirmed as soon as you book."}
+                ? t("It's less than 72 hours away, so it stays pending until Trevor approves it.")
+                : t("It's confirmed as soon as you book.")}
             </p>
           )}
           {askQuestions && (
             <div className="flex flex-col gap-4">
               <fieldset className="flex flex-col gap-2">
-                <legend className="mb-2 text-sm font-medium">Are you looking for English or Portuguese lessons?</legend>
+                <legend className="mb-2 text-sm font-medium">{t("Are you looking for English or Portuguese lessons?")}</legend>
                 <div className="flex gap-2">
                   {(
                     [
-                      ["ENGLISH", "English"],
-                      ["PORTUGUESE", "Portuguese"],
+                      ["ENGLISH", tr("English")],
+                      ["PORTUGUESE", tr("Portuguese")],
                     ] as const
                   ).map(([value, label]) => (
                     <label
@@ -299,14 +310,14 @@ export function SlotPicker({
                         onChange={() => setLanguage(value)}
                         className="sr-only"
                       />
-                      {label}
+                      {t(label)}
                     </label>
                   ))}
                 </div>
               </fieldset>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="whatsapp">
-                  WhatsApp number <span className="font-normal text-muted-foreground">(optional)</span>
+                  {t("WhatsApp number")} <span className="font-normal text-muted-foreground">{t("(optional)")}</span>
                 </Label>
                 <Input
                   id="whatsapp"
@@ -318,7 +329,7 @@ export function SlotPicker({
                   onChange={(e) => setWhatsapp(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {whatsappValid ? "Include your country code." : "That doesn't look like a phone number."}
+                  {whatsappValid ? t("Include your country code.") : t("That doesn't look like a phone number.")}
                 </p>
               </div>
             </div>
@@ -330,10 +341,10 @@ export function SlotPicker({
           )}
           <DialogFooter className="gap-2">
             <Button variant="outline" disabled={isPending} onClick={() => setPendingSlot(null)}>
-              Back
+              {t("Back")}
             </Button>
             <Button disabled={isPending || !answersValid} onClick={confirm}>
-              {isPending ? "Sending…" : pendingNeedsApproval || rescheduleFrom ? "Request" : "Book"}
+              {isPending ? t("Sending…") : pendingNeedsApproval || rescheduleFrom ? t("Request") : t("Book")}
             </Button>
           </DialogFooter>
         </DialogContent>

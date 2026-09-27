@@ -40,4 +40,10 @@ describe("accessSummary", () => {
     expect(hasSubscription(sub)).toBe(true);
     expect(hasSubscription(null)).toBe(false);
   });
+
+  it("writes the summary and dates in the site language", () => {
+    expect(accessSummary("student", "subscriber", sub, "pt")).toBe(
+      "Assinante: todas as aulas de português estão liberadas. Renova em 27 de outubro de 2026.",
+    );
+  });
 });

@@ -1,3 +1,6 @@
+import { formatFullDate } from "@/i18n/format";
+import { translator, type Translate } from "@/i18n/translate";
+import type { SiteLanguage } from "@/lib/prefs";
 import type { LessonAccess, Role } from "@/lib/types";
 
 /** The parts of the billing row the Settings page shows. */
@@ -10,14 +13,6 @@ export interface BillingSummary {
 
 const LIVE = ["active", "trialing", "past_due"];
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
-
 /**
  * One or two sentences about the account's lesson access, worded the same as
  * the lessons and flashcards settings.
@@ -26,25 +21,37 @@ export function accessSummary(
   role: Role,
   access: LessonAccess,
   billing: BillingSummary | null,
+  lang: SiteLanguage = "en",
 ): string {
-  if (role === "admin") return "Admin: every lesson is open.";
+  const t: Translate = translator(lang);
+  if (role === "admin") return t("Admin: every lesson is open.");
   if (access === "lifetime")
-    return "Lifetime access: every lesson is yours for good.";
+    return t("Lifetime access: every lesson is yours for good.");
   if (access === "granted")
-    return "Student access from Trevor: every lesson is included with your classes.";
+    return t(
+      "Student access from Trevor: every lesson is included with your classes.",
+    );
   if (access === "subscriber") {
     const end = billing?.current_period_end
-      ? formatDate(billing.current_period_end)
+      ? formatFullDate(billing.current_period_end, lang)
       : null;
     if (billing?.status === "past_due")
-      return "Subscriber. Your last payment didn't go through; please update your card.";
+      return t(
+        "Subscriber. Your last payment didn't go through; please update your card.",
+      );
     if (end && billing?.cancel_at_period_end)
-      return `Subscriber. Canceled; your lessons stay open until ${end}.`;
+      return t("Subscriber. Canceled; your lessons stay open until {date}.", {
+        date: end,
+      });
     return end
-      ? `Subscriber: every Portuguese lesson is open. Renews on ${end}.`
-      : "Subscriber: every Portuguese lesson is open.";
+      ? t("Subscriber: every Portuguese lesson is open. Renews on {date}.", {
+          date: end,
+        })
+      : t("Subscriber: every Portuguese lesson is open.");
   }
-  return "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.";
+  return t(
+    "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.",
+  );
 }
 
 /** Whether there is a Stripe subscription to manage (including an ended one, for receipts). */

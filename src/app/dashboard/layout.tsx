@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
+import { getSiteLanguage } from "@/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
 
@@ -17,7 +18,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, email, theme, learning_language")
+    .select("role, full_name, email, theme, learning_language, site_language")
     .eq("id", user.id)
     .single();
 
@@ -30,6 +31,8 @@ export default async function DashboardLayout({
       email={profile.email}
       theme={profile.theme}
       learningLanguage={profile.learning_language}
+      siteLanguage={await getSiteLanguage(profile.site_language)}
+      profileSiteLanguage={profile.site_language}
     >
       {children}
     </AppShell>

@@ -27,8 +27,20 @@ import {
   hasSubscription,
   type BillingSummary,
 } from "@/lib/account-summary";
-import { setLearningLanguage, setTheme } from "@/lib/preferences";
-import { readPrefs, type LearningLanguage, type Prefs } from "@/lib/prefs";
+import { useSiteLanguage, useT } from "@/i18n/client";
+import { tr } from "@/i18n/translate";
+import {
+  setLearningLanguage,
+  setSiteLanguage,
+  setTheme,
+} from "@/lib/preferences";
+import {
+  readPrefs,
+  SITE_LANGUAGES,
+  type LearningLanguage,
+  type Prefs,
+  type SiteLanguage,
+} from "@/lib/prefs";
 import { createClient } from "@/lib/supabase/client";
 import type { LessonAccess, Role } from "@/lib/types";
 
@@ -62,6 +74,8 @@ export function AccountSettings({
   const [opening, startOpening] = useTransition();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const router = useRouter();
+  const t = useT();
+  const lang = useSiteLanguage();
 
   // Ask Stripe for the latest once per visit, so a cancel made in the Stripe
   // portal shows here even if its webhook message went missing.
@@ -93,44 +107,45 @@ export function AccountSettings({
       setBillingError(
         error
           ? await functionError(error)
-          : "Billing is unavailable right now. Please try again.",
+          : tr("Billing is unavailable right now. Please try again."),
       );
     });
   }
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <h1 className="text-2xl font-semibold">{t("Settings")}</h1>
 
       <PreferencesCard />
 
       <Card>
         <CardHeader>
-          <CardTitle>Account</CardTitle>
+          <CardTitle>{t("Account")}</CardTitle>
           <CardDescription>
-            The same account works on the lessons, flashcards and schedule
-            sites.
+            {t(
+              "The same account works on the lessons, flashcards and schedule sites.",
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">Name</dt>
+            <dt className="text-muted-foreground">{t("Name")}</dt>
             <dd className="break-words">{name || "—"}</dd>
-            <dt className="text-muted-foreground">Email</dt>
+            <dt className="text-muted-foreground">{t("Email")}</dt>
             <dd className="break-all">{email || "—"}</dd>
           </dl>
 
           <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Lessons &amp; subscription</p>
+            <p className="text-sm font-medium">{t("Lessons & subscription")}</p>
             <p className="text-sm text-muted-foreground">
-              {accessSummary(role, lessonAccess, billing)}
+              {accessSummary(role, lessonAccess, billing, lang)}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
             {hasSubscription(billing) && (
               <Button onClick={manageSubscription} disabled={opening}>
-                {opening ? "Opening…" : "Manage subscription"}
+                {opening ? t("Opening…") : t("Manage subscription")}
               </Button>
             )}
             <Button
@@ -138,21 +153,22 @@ export function AccountSettings({
               className="text-destructive"
               onClick={() => setDeleteOpen(true)}
             >
-              Delete account
+              {t("Delete account")}
             </Button>
             <Button variant="outline" onClick={() => void logout()}>
-              Log out
+              {t("Log out")}
             </Button>
           </div>
           {hasSubscription(billing) && (
             <p className="-mt-3 text-xs text-muted-foreground">
-              Change your card, see receipts, or cancel. Handled securely by
-              Stripe.
+              {t(
+                "Change your card, see receipts, or cancel. Handled securely by Stripe.",
+              )}
             </p>
           )}
           {billingError && (
             <p role="alert" className="text-sm text-destructive">
-              {billingError}
+              {t(billingError)}
             </p>
           )}
         </CardContent>
@@ -171,6 +187,10 @@ export function AccountSettings({
 function PreferencesCard() {
   // The cookie is only readable in the browser; the server renders the defaults.
   const [prefs, setPrefs] = useState<Prefs>({});
+  const t = useT();
+  const siteLanguage = useSiteLanguage();
+  const router = useRouter();
+  const [savingLanguage, startSavingLanguage] = useTransition();
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- read the browser-only cookie after hydration
     setPrefs(readPrefs());
@@ -180,15 +200,40 @@ function PreferencesCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Preferences</CardTitle>
+        <CardTitle>{t("Preferences")}</CardTitle>
         <CardDescription>
-          These follow you to the lessons and flashcards sites too.
+          {t("These follow you to the home, lessons and flashcards sites too.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col divide-y">
         <div className="flex items-center justify-between gap-4 py-3">
+          <label htmlFor="site-language" className="text-sm font-medium">
+            {t("Site language")}
+          </label>
+          <select
+            id="site-language"
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+            value={siteLanguage}
+            disabled={savingLanguage}
+            onChange={(e) => {
+              const next = e.target.value as SiteLanguage;
+              // Save first, then re-render the pages in the new language.
+              startSavingLanguage(async () => {
+                await setSiteLanguage(next);
+                router.refresh();
+              });
+            }}
+          >
+            {SITE_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code} lang={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3">
           <span id="dark-mode-label" className="text-sm font-medium">
-            Dark mode
+            {t("Dark mode")}
           </span>
           <button
             type="button"
@@ -217,7 +262,7 @@ function PreferencesCard() {
         </div>
         <div className="flex items-center justify-between gap-4 py-3">
           <label htmlFor="learning-language" className="text-sm font-medium">
-            I&apos;m learning
+            {t("I'm learning")}
           </label>
           <select
             id="learning-language"
@@ -230,10 +275,10 @@ function PreferencesCard() {
             }}
           >
             <option value="" disabled>
-              Choose…
+              {t("Choose…")}
             </option>
-            <option value="Portuguese">Portuguese</option>
-            <option value="English">English</option>
+            <option value="Portuguese">{t("Portuguese")}</option>
+            <option value="English">{t("English")}</option>
           </select>
         </div>
       </CardContent>
@@ -254,6 +299,7 @@ function DeleteAccountDialog({
   const [error, setError] = useState<string | null>(null);
   const [deleting, startDeleting] = useTransition();
   const canDelete = confirmText.trim().toUpperCase() === "DELETE";
+  const t = useT();
 
   function close() {
     setConfirmText("");
@@ -283,27 +329,26 @@ function DeleteAccountDialog({
     <Dialog open={open} onOpenChange={(next) => !next && !deleting && close()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete account</DialogTitle>
+          <DialogTitle>{t("Delete account")}</DialogTitle>
           <DialogDescription>
-            This deletes your account on every Trevor site.
+            {t("This deletes your account on every Trevor site.")}
           </DialogDescription>
         </DialogHeader>
         {isAdmin ? (
           <p className="text-sm text-muted-foreground">
-            Admin accounts can&apos;t be deleted from the app, since that would
-            remove the account that manages the schedule, lessons and instructor
-            decks.
+            {t(
+              "Admin accounts can't be deleted from the app, since that would remove the account that manages the schedule, lessons and instructor decks.",
+            )}
           </p>
         ) : (
           <>
             <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              This permanently deletes your account, your class history, your
-              flashcard decks and study progress, and cancels any lesson
-              subscription. Cancel upcoming classes first. This can&apos;t be
-              undone.
+              {t(
+                "This permanently deletes your account, your class history, your flashcard decks and study progress, and cancels any lesson subscription. Cancel upcoming classes first. This can't be undone.",
+              )}
             </p>
             <label className="flex flex-col gap-1 text-sm">
-              Type DELETE to confirm
+              {t("Type DELETE to confirm")}
               <Input
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
@@ -315,14 +360,14 @@ function DeleteAccountDialog({
                 role="alert"
                 className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
               >
-                {error}
+                {t(error)}
               </p>
             )}
           </>
         )}
         <DialogFooter className="gap-2">
           <Button variant="outline" disabled={deleting} onClick={close}>
-            Keep my account
+            {t("Keep my account")}
           </Button>
           {!isAdmin && (
             <Button
@@ -330,7 +375,7 @@ function DeleteAccountDialog({
               disabled={!canDelete || deleting}
               onClick={confirm}
             >
-              {deleting ? "Deleting…" : "Permanently delete my account"}
+              {deleting ? t("Deleting…") : t("Permanently delete my account")}
             </Button>
           )}
         </DialogFooter>

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { learningToLessonLanguage, parsePrefs, writePrefs } from "@/lib/prefs";
+import {
+  acceptLanguages,
+  learningToLessonLanguage,
+  parsePrefs,
+  siteLanguage,
+  writePrefs,
+} from "@/lib/prefs";
 
 function fakeDocument() {
   let jar = "";
@@ -76,5 +82,23 @@ describe("learningToLessonLanguage", () => {
     expect(learningToLessonLanguage("English")).toBe("ENGLISH");
     expect(learningToLessonLanguage("Portuguese")).toBe("PORTUGUESE");
     expect(learningToLessonLanguage(null)).toBeUndefined();
+  });
+});
+
+describe("siteLanguage", () => {
+  it("uses the saved choice, then the browser's languages, then English", () => {
+    expect(siteLanguage({ site: "fr" }, ["es"])).toBe("fr");
+    expect(siteLanguage({}, ["de-DE", "pt-BR"])).toBe("pt");
+    expect(siteLanguage({}, ["de"])).toBe("en");
+  });
+
+  it("reads the Accept-Language header in order of preference", () => {
+    expect(acceptLanguages("de;q=0.9, es-MX;q=0.95, en;q=0.1")).toEqual([
+      "es-MX",
+      "de",
+      "en",
+    ]);
+    expect(siteLanguage({}, acceptLanguages("fr-CA,fr;q=0.9"))).toBe("fr");
+    expect(acceptLanguages(null)).toEqual([]);
   });
 });

@@ -10,5 +10,11 @@
 - When logged in the profile (`theme`, `learning_language`) wins: `AppShell` renders `PrefsSync`, which copies it to the cookie (`src/lib/preferences.ts`). Settings has the Dark mode switch and "I'm learning"; the booking form's lesson language defaults to it when the student has no earlier booking.
 - Dark colors live under `:root[data-theme="dark"]` in `globals.css` (Tailwind `dark:` follows the attribute, not the device setting). Don't add `prefers-color-scheme` rules.
 
+## Site language (translations)
+- Student-facing text (account menu, dashboard, booking, cancel dialog, class progress, Settings) is shown in the site language: English, Spanish, Portuguese or French (`SITE_LANGUAGES` in `src/lib/prefs.ts`). It's shared with the other sites through the `ept-prefs` cookie (`site`) and saved on the profile (`profiles.site_language`, `set_site_language` RPC); Settings has the Site language menu.
+- The layouts pick it on the server (`getSiteLanguage()` in `src/i18n/server.ts`: profile, then cookie, then Accept-Language) and pass it to `AppShell`, which provides it to client components (`useT()` / `useSiteLanguage()` from `src/i18n/client.tsx`). Don't call `getSiteLanguage()` from the root layout or static pages (it reads cookies).
+- Write text in English inside `t("…")` or `tr("…")` and add it to `src/i18n/strings.ts` under `es`, `pt` and `fr`; `src/i18n/i18n.test.ts` fails otherwise. Dates and times go through `formatDate()` in `src/i18n/format.ts` (English keeps the date-fns patterns). Server errors students can see are listed in `src/i18n/server-messages.ts`.
+- Trevor's admin pages, the privacy page and the emails stay in English.
+
 ## Workflow
 Trevor approved pushing straight to `main` (no branches or pull requests) for all changes. Run the tests and build first. Still ask before anything that needs a dashboard setting changed first, would log people out, or could charge anyone.

@@ -13,6 +13,7 @@ const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 
 import { AccountSettings } from "@/components/account-settings";
+import { SiteLanguageProvider } from "@/i18n/client";
 
 const subscription = {
   status: "active",
@@ -166,5 +167,41 @@ describe("Preferences", () => {
         lang: "English",
       }),
     );
+  });
+
+  it("saves the site language, then reloads the page in it", async () => {
+    render(
+      <AccountSettings
+        name="Ana"
+        email="ana@example.com"
+        role="student"
+        lessonAccess="none"
+        billing={null}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Site language"), {
+      target: { value: "es" },
+    });
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_site_language", { lang: "es" }),
+    );
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(decodeURIComponent(document.cookie)).toContain('"site":"es"');
+  });
+
+  it("shows the settings in the site language", () => {
+    render(
+      <SiteLanguageProvider lang="fr">
+        <AccountSettings
+          name="Ana"
+          email="ana@example.com"
+          role="student"
+          lessonAccess="granted"
+          billing={null}
+        />
+      </SiteLanguageProvider>,
+    );
+    expect(screen.getByRole("heading", { name: "Paramètres" })).toBeInTheDocument();
+    expect(screen.getByText(/Accès élève offert par Trevor/)).toBeInTheDocument();
   });
 });

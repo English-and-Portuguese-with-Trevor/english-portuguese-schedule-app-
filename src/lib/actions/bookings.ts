@@ -14,6 +14,7 @@ import {
 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
 import { WHATSAPP_PATTERN, type BookingAnswers } from "@/lib/types";
+import { tr } from "@/i18n/translate";
 
 type ActionResult = { error: string | null };
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -67,7 +68,7 @@ async function bookIndividualSlot(
     .limit(1);
 
   if (overlapping && overlapping.length > 0) {
-    return { error: "That time overlaps an existing session. Please pick another time." };
+    return { error: tr("That time overlaps an existing session. Please pick another time.") };
   }
 
   const { data: slot, error: slotErr } = await supabase
@@ -160,7 +161,7 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
 
 function friendlyDbError(error: { code?: string; message: string }): string {
   // 23P01: overlaps another session; 23505: the slot already has a booking.
-  if (error.code === "23P01" || error.code === "23505") return "That time was just taken. Please pick another.";
+  if (error.code === "23P01" || error.code === "23505") return tr("That time was just taken. Please pick another.");
   return error.message;
 }
 
@@ -196,9 +197,9 @@ export async function requestBooking(
       if (booking) await afterAdminBooking(supabase, booking.lesson);
     });
   } else {
-    if (!answers?.language) return { error: "Please choose English or Portuguese." };
+    if (!answers?.language) return { error: tr("Please choose English or Portuguese.") };
     const whatsapp = answers.whatsapp.trim();
-    if (whatsapp && !WHATSAPP_PATTERN.test(whatsapp)) return { error: "Please enter a valid WhatsApp number." };
+    if (whatsapp && !WHATSAPP_PATTERN.test(whatsapp)) return { error: tr("Please enter a valid WhatsApp number.") };
 
     const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
       p_start: startIso,

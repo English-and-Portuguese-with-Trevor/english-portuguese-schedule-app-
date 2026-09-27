@@ -8,12 +8,18 @@ import { syncFromProfile } from "@/lib/preferences";
 export function PrefsSync({
   theme,
   learningLanguage,
+  siteLanguage,
 }: {
   theme: string | null;
   learningLanguage: string | null;
+  siteLanguage: string | null;
 }) {
   useEffect(() => {
-    syncFromProfile({ theme, learning_language: learningLanguage });
-  }, [theme, learningLanguage]);
+    syncFromProfile({
+      theme,
+      learning_language: learningLanguage,
+      site_language: siteLanguage,
+    });
+  }, [theme, learningLanguage, siteLanguage]);
   return null;
 }

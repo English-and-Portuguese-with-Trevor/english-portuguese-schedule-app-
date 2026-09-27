@@ -24,6 +24,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PrefsSync } from "@/components/prefs-sync";
+import { SiteLanguageProvider, useT } from "@/i18n/client";
+import { tr, translate } from "@/i18n/translate";
+import type { SiteLanguage } from "@/lib/prefs";
 import { logout } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
@@ -40,18 +43,18 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 
 /** The account menu is the same on every site: the four sites, Settings, Log out. */
 export const ACCOUNT_MENU_LINKS = [
-  { href: LANDING_URL, label: "Home", icon: Home },
+  { href: LANDING_URL, label: tr("Home"), icon: Home },
   {
     href: "https://lessons.englishandportuguesewithtrevor.com",
-    label: "Lessons",
+    label: tr("Lessons"),
     icon: BookOpen,
   },
   {
     href: "https://flashcards.englishandportuguesewithtrevor.com",
-    label: "Flashcards",
+    label: tr("Flashcards"),
     icon: Layers,
   },
-  { href: "/dashboard", label: "Schedule a class", icon: CalendarPlus },
+  { href: "/dashboard", label: tr("Schedule a class"), icon: CalendarPlus },
 ] as const;
 
 function firstName(name: string | null, email: string | null) {
@@ -66,10 +69,11 @@ function AccountMenu({
   email: string | null;
 }) {
   const first = firstName(fullName, email);
+  const t = useT();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-semibold whitespace-nowrap text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
-        {first ? `Hi, ${first}` : "Account"}
+        {first ? t("Hi, {name}", { name: first }) : t("Account")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {ACCOUNT_MENU_LINKS.map(({ href, label, icon: Icon }) => (
@@ -77,12 +81,12 @@ function AccountMenu({
             {href.startsWith("/") ? (
               <Link href={href}>
                 <Icon />
-                {label}
+                {t(label)}
               </Link>
             ) : (
               <a href={href}>
                 <Icon />
-                {label}
+                {t(label)}
               </a>
             )}
           </DropdownMenuItem>
@@ -91,12 +95,12 @@ function AccountMenu({
         <DropdownMenuItem asChild>
           <Link href="/settings">
             <SettingsIcon />
-            Settings
+            {t("Settings")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void logout()}>
           <LogOut />
-          Log out
+          {t("Log out")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -109,6 +113,8 @@ export function AppShell({
   email,
   theme = null,
   learningLanguage = null,
+  siteLanguage = "en",
+  profileSiteLanguage = null,
   children,
 }: {
   role: Role;
@@ -117,21 +123,31 @@ export function AppShell({
   /** The profile's saved preferences, shared with the other sites. */
   theme?: string | null;
   learningLanguage?: string | null;
+  /** The language to show the site in (see i18n/server.ts). */
+  siteLanguage?: SiteLanguage;
+  profileSiteLanguage?: string | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const isAdmin = role === "admin";
 
   return (
-    <>
-      <PrefsSync theme={theme} learningLanguage={learningLanguage} />
+    <SiteLanguageProvider lang={siteLanguage}>
+      <PrefsSync
+        theme={theme}
+        learningLanguage={learningLanguage}
+        siteLanguage={profileSiteLanguage}
+      />
       <div className="flex min-h-svh flex-col">
         <header className="border-b">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
             <a
               href={LANDING_URL}
               className="font-display text-lg leading-tight text-brand sm:text-xl"
-              aria-label="English & Portuguese with Trevor, main website"
+              aria-label={translate(
+                siteLanguage,
+                tr("English & Portuguese with Trevor, main website"),
+              )}
             >
               English <em className="text-brand-accent">&amp;</em> Portuguese
               with Trevor
@@ -193,6 +209,6 @@ export function AppShell({
           </nav>
         )}
       </div>
-    </>
+    </SiteLanguageProvider>
   );
 }

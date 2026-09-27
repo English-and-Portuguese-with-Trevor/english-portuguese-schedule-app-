@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -7,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import type { ClassProgress, LessonAccess } from "@/lib/types";
 import { LIFETIME_CLASS_SETS } from "@/lib/types";
+import { useT } from "@/i18n/client";
 
 /**
  * A student's progress toward lifetime lesson access (three class sets).
@@ -20,14 +23,18 @@ export function ClassProgressCard({
   progress: ClassProgress | null;
   lessonAccess: LessonAccess;
 }) {
+  const t = useT();
   if (lessonAccess === "lifetime") {
     return (
       <Card className="border-brand-accent/60">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Lifetime lesson access</CardTitle>
+          <CardTitle className="text-base">
+            {t("Lifetime lesson access")}
+          </CardTitle>
           <CardDescription>
-            Every lesson on the lessons site is yours for good. Obrigado for
-            learning with Trevor!
+            {t(
+              "Every lesson on the lessons site is yours for good. Obrigado for learning with Trevor!",
+            )}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -43,12 +50,13 @@ export function ClassProgressCard({
       <Card className="border-brand-accent/60">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">
-            You qualify for lifetime lesson access!
+            {t("You qualify for lifetime lesson access!")}
           </CardTitle>
           <CardDescription>
-            You&apos;ve finished {LIFETIME_CLASS_SETS} sets of{" "}
-            {progress.class_package} classes. Trevor will set up lifetime access
-            to every lesson for you.
+            {t(
+              "You've finished {sets} sets of {size} classes. Trevor will set up lifetime access to every lesson for you.",
+              { sets: LIFETIME_CLASS_SETS, size: progress.class_package },
+            )}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -59,17 +67,19 @@ export function ClassProgressCard({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">
-          Toward lifetime lesson access
+          {t("Toward lifetime lesson access")}
         </CardTitle>
         <CardDescription>
-          Finish {LIFETIME_CLASS_SETS} sets of {progress.class_package} classes
-          to qualify for lifetime access to every lesson.
+          {t(
+            "Finish {sets} sets of {size} classes to qualify for lifetime access to every lesson.",
+            { sets: LIFETIME_CLASS_SETS, size: progress.class_package },
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div
           role="progressbar"
-          aria-label="Classes toward lifetime lesson access"
+          aria-label={t("Classes toward lifetime lesson access")}
           aria-valuemin={0}
           aria-valuemax={progress.needed}
           aria-valuenow={done}
@@ -81,8 +91,12 @@ export function ClassProgressCard({
           />
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          {done} of {progress.needed} classes · {setsDone} of{" "}
-          {LIFETIME_CLASS_SETS} sets
+          {t("{done} of {needed} classes · {setsDone} of {sets} sets", {
+            done,
+            needed: progress.needed,
+            setsDone,
+            sets: LIFETIME_CLASS_SETS,
+          })}
         </p>
       </CardContent>
     </Card>
