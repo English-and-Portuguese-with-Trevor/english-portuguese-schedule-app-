@@ -14,6 +14,20 @@ describe("sharedLoginUrl", () => {
     );
   });
 
+  it("sends people on to the page they were opening", () => {
+    expect(
+      sharedLoginUrl(
+        {
+          hostname: "schedule.englishandportuguesewithtrevor.com",
+          origin: "https://schedule.englishandportuguesewithtrevor.com",
+        },
+        "/admin/bookings",
+      ),
+    ).toBe(
+      "https://englishandportuguesewithtrevor.com/login/?next=https%3A%2F%2Fschedule.englishandportuguesewithtrevor.com%2Fadmin%2Fbookings",
+    );
+  });
+
   it("keeps the local Google button when running locally", () => {
     expect(sharedLoginUrl({ hostname: "localhost", origin: "http://localhost:3000" })).toBeNull();
   });

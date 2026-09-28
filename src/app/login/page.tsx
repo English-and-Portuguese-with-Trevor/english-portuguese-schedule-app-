@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,17 +11,33 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GoogleIcon } from "@/components/google-icon";
+import { translator } from "@/i18n/translate";
+import { readPrefs, siteLanguage, type SiteLanguage } from "@/lib/prefs";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { createClient } from "@/lib/supabase/client";
 import { sharedLoginUrl } from "@/lib/shared-login";
+
+const noopSubscribe = () => () => {};
+// Nobody is logged in here, so the site language comes from the shared
+// cookie (or the browser); the server can't know it, so English until hydrated.
+const cookieLanguage = () => siteLanguage(readPrefs(), navigator.languages);
+const serverLanguage = (): SiteLanguage => "en";
+
+/** Where to go after login: the page that sent us here (see supabase/proxy.ts), else the dashboard. */
+function nextPath() {
+  return safeNextPath(new URLSearchParams(window.location.search).get("redirect"));
+}
 
 export default function LoginPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lang = useSyncExternalStore(noopSubscribe, cookieLanguage, serverLanguage);
+  const t = translator(lang);
 
   useEffect(() => {
     // Stay here only to show a failed Google login, or when running locally.
     if (new URLSearchParams(window.location.search).has("error")) return;
-    const url = sharedLoginUrl(window.location);
+    const url = sharedLoginUrl(window.location, nextPath());
     if (url) {
       window.location.replace(url);
     }
@@ -33,7 +49,9 @@ export default function LoginPage() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath())}`,
+      },
     });
     if (error) {
       setError(error.message);
@@ -45,9 +63,9 @@ export default function LoginPage() {
     <div className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Welcome</CardTitle>
+          <CardTitle>{t("Welcome")}</CardTitle>
           <CardDescription>
-            Sign in with the same Google account you use for the flashcards app.
+            {t("Log in with your Google account or your email and password.")}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -60,7 +78,7 @@ export default function LoginPage() {
             <span className="flex size-5 items-center justify-center rounded-full bg-white">
               <GoogleIcon className="size-3.5" />
             </span>
-            {pending ? "Redirecting..." : "Sign in with Google"}
+            {pending ? t("Redirecting...") : t("Log in with Google")}
           </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
