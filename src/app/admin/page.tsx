@@ -11,7 +11,12 @@ export default async function AdminOverviewPage() {
 
   const [{ count: pendingCount }, { count: upcomingCount }, { count: studentCount }, google, { data: lastProblem }] =
     await Promise.all([
-      supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "PENDING"),
+      // The same rows the Bookings page lists: requests for times still to come.
+      supabase
+        .from("bookings")
+        .select("id, session_slots!inner(end_time)", { count: "exact", head: true })
+        .eq("status", "PENDING")
+        .gt("session_slots.end_time", now),
       supabase
         .from("bookings")
         .select("id, session_slots!inner(start_time)", { count: "exact", head: true })

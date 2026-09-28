@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { differenceInMinutes, format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LATE_CANCEL_HOURS } from "@/lib/types";
 
 interface BookingRow {
   id: string;
@@ -55,7 +56,9 @@ export function BookingsManager({
   displayNames: Record<string, string>;
 }) {
   const router = useRouter();
-  // Times on this page follow this device's time zone; say which one.
+  // Times on this page follow this device's time zone, which the server
+  // (UTC) can't know, so they're rendered on the client only; say which one.
+  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const tzLabel = useSyncExternalStore(noopSubscribe, timeZoneLabel, () => null);
   const [prevInitialBookings, setPrevInitialBookings] = useState(initialBookings);
   const [bookings, setBookings] = useState(initialBookings);
@@ -88,17 +91,40 @@ export function BookingsManager({
   }, [router]);
 
   function handleConfirm(id: string) {
+    setError(null);
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: "CONFIRMED" } : b)));
-    startTransition(() => {
-      void confirmBooking(id);
+    startTransition(async () => {
+      const result = await confirmBooking(id);
+      if (result.error) {
+        setError(`Couldn't confirm the booking: ${result.error}`);
+        setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: "PENDING" } : b)));
+      }
     });
   }
 
   function handleCancel(id: string) {
+    const removed = bookings.find((b) => b.id === id);
+    setError(null);
     setBookings((prev) => prev.filter((b) => b.id !== id));
-    startTransition(() => {
-      void cancelBooking(id);
+    startTransition(async () => {
+      const result = await cancelBooking(id);
+      if (result.error) {
+        setError(`Couldn't cancel the booking: ${result.error}`);
+        if (removed) setBookings((prev) => (prev.some((b) => b.id === id) ? prev : [...prev, removed]));
+      }
     });
+  }
+
+  function formatStart(iso: string) {
+    return isClient ? format(new Date(iso), "EEE, MMM d 'at' h:mm a") : null;
+  }
+
+  /** "starts in 3 h" while the class is less than a day away, so a late reschedule stands out. */
+  function startsSoon(iso: string) {
+    if (!isClient) return null;
+    const minutes = differenceInMinutes(new Date(iso), new Date());
+    if (minutes < 0 || minutes >= LATE_CANCEL_HOURS * 60) return null;
+    return minutes < 60 ? `starts in ${minutes} min` : `starts in ${Math.floor(minutes / 60)} h`;
   }
 
   function handleOverrideBook() {
@@ -115,7 +141,7 @@ export function BookingsManager({
         setError(result.error);
         return;
       }
-      window.location.reload();
+      router.refresh();
     });
   }
 
@@ -140,12 +166,12 @@ export function BookingsManager({
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-4">
           <div className="flex flex-col gap-2">
-            <Label>Student</Label>
+            <Label htmlFor="override-student">Student</Label>
             <Select
               value={overrideForm.studentId}
               onValueChange={(v) => setOverrideForm({ ...overrideForm, studentId: v })}
             >
-              <SelectTrigger className="w-56">
+              <SelectTrigger id="override-student" className="w-56">
                 <SelectValue placeholder="Choose a student" />
               </SelectTrigger>
               <SelectContent>
@@ -158,24 +184,29 @@ export function BookingsManager({
             </Select>
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Date</Label>
+            <Label htmlFor="override-date">Date</Label>
             <Input
+              id="override-date"
               type="date"
               value={overrideForm.date}
               onChange={(e) => setOverrideForm({ ...overrideForm, date: e.target.value })}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Time{tzLabel && <span className="font-normal text-muted-foreground"> ({tzLabel})</span>}</Label>
+            <Label htmlFor="override-time">
+              Time{tzLabel && <span className="font-normal text-muted-foreground"> ({tzLabel})</span>}
+            </Label>
             <Input
+              id="override-time"
               type="time"
               value={overrideForm.time}
               onChange={(e) => setOverrideForm({ ...overrideForm, time: e.target.value })}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Duration (min)</Label>
+            <Label htmlFor="override-duration">Duration (min)</Label>
             <Input
+              id="override-duration"
               type="number"
               className="w-24"
               value={overrideForm.durationMinutes}
@@ -193,33 +224,39 @@ export function BookingsManager({
         <h2 className="mb-3 text-lg font-semibold">Pending requests ({pending.length})</h2>
         <div className="flex flex-col gap-2">
           {pending.length === 0 && <p className="text-sm text-muted-foreground">Nothing pending.</p>}
-          {pending.map((b) => (
-            <div key={b.id} className="flex items-center justify-between rounded-md border px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
-                <p className="text-sm text-muted-foreground">
-                  {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
-                </p>
-                {b.reschedule_of && (
-                  <p className="text-sm font-medium text-brand">
-                    Reschedule
-                    {startById.get(b.reschedule_of)
-                      ? ` from ${format(new Date(startById.get(b.reschedule_of)!), "EEE, MMM d 'at' h:mm a")}`
-                      : " (the original lesson was cancelled; approving books this time as a new lesson)"}
+          {pending.map((b) => {
+            // A reschedule request: the class it would move, and whether that's less than a day away.
+            const originalStart = b.reschedule_of ? startById.get(b.reschedule_of) : null;
+            const soon = originalStart ? startsSoon(originalStart) : null;
+            return (
+              <div key={b.id} className="flex items-center justify-between rounded-md border px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {b.session_slots && formatStart(b.session_slots.start_time)}
                   </p>
-                )}
-                <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
+                  {b.reschedule_of && (
+                    <p className="text-sm font-medium text-brand">
+                      Reschedule
+                      {originalStart
+                        ? ` from ${formatStart(originalStart)}`
+                        : " (the original lesson was cancelled; approving books this time as a new lesson)"}
+                      {soon && <span className="text-destructive"> · {soon}</span>}
+                    </p>
+                  )}
+                  <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => handleConfirm(b.id)}>
+                    {b.reschedule_of ? "Approve move" : "Confirm"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleCancel(b.id)}>
+                    Decline
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleConfirm(b.id)}>
-                  {b.reschedule_of ? "Approve move" : "Confirm"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleCancel(b.id)}>
-                  Decline
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -231,7 +268,7 @@ export function BookingsManager({
               <div>
                 <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
                 <p className="text-sm text-muted-foreground">
-                  {b.session_slots && format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
+                  {b.session_slots && formatStart(b.session_slots.start_time)}
                 </p>
                 <BookingAnswersLine language={b.lesson_language} whatsapp={b.whatsapp} />
               </div>

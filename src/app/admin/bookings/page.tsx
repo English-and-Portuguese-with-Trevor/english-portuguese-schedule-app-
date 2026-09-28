@@ -8,16 +8,19 @@ import { LATE_CANCEL_LIST_DAYS } from "@/lib/types";
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
 
-  const lateSince = subDays(new Date(), LATE_CANCEL_LIST_DAYS).toISOString();
+  const now = new Date();
+  const lateSince = subDays(now, LATE_CANCEL_LIST_DAYS).toISOString();
 
   const [{ data: bookings }, { data: lateCancellations }, { data: students }, displayNames] =
     await Promise.all([
+      // Upcoming only (a class in progress included): a request for a time
+      // that has passed can't be approved any more, and a finished class
+      // needs no cancelling.
       supabase
         .from("bookings")
-        .select("*, session_slots(start_time, end_time)")
+        .select("*, session_slots!inner(start_time, end_time)")
         .neq("status", "CANCELLED")
-        .order("created_at", { ascending: false })
-        .limit(100),
+        .gt("session_slots.end_time", now.toISOString()),
       supabase
         .from("bookings")
         .select("id, student_id, cancelled_at, session_slots(start_time)")
@@ -32,9 +35,13 @@ export default async function AdminBookingsPage() {
     .map((s) => ({ id: s.id, name: displayNames[s.id] ?? "Unknown" }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const upcoming = (bookings ?? []).sort((a, b) =>
+    a.session_slots.start_time.localeCompare(b.session_slots.start_time),
+  );
+
   return (
     <BookingsManager
-      initialBookings={bookings ?? []}
+      initialBookings={upcoming}
       lateCancellations={lateCancellations ?? []}
       students={studentOptions}
       displayNames={displayNames}

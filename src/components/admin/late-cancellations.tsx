@@ -1,6 +1,11 @@
+"use client";
+
 import { differenceInMinutes, format } from "date-fns";
+import { useSyncExternalStore } from "react";
 
 import { LATE_CANCEL_HOURS, LATE_CANCEL_LIST_DAYS } from "@/lib/types";
+
+const noopSubscribe = () => () => {};
 
 export interface LateCancellationRow {
   id: string;
@@ -23,6 +28,8 @@ export function LateCancellations({
   rows: LateCancellationRow[];
   displayNames: Record<string, string>;
 }) {
+  // Times follow this device's zone, which the server (UTC) can't know: client only.
+  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
   return (
     <section>
       <h2 className="text-lg font-semibold">Late cancellations ({rows.length})</h2>
@@ -35,7 +42,7 @@ export function LateCancellations({
         {rows.map((b) => (
           <div key={b.id} className="rounded-md border px-4 py-3">
             <p className="text-sm font-medium">{displayNames[b.student_id] ?? "Unknown"}</p>
-            {b.session_slots && (
+            {isClient && b.session_slots && (
               <p className="text-sm text-muted-foreground">
                 {format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
                 {b.cancelled_at && ` · cancelled ${noticeGiven(b.cancelled_at, b.session_slots.start_time)} before`}
