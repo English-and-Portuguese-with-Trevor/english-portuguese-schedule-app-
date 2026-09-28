@@ -32,14 +32,14 @@ describe("AppShell", () => {
   it("gives students no admin navigation", () => {
     renderShell("student");
     expect(
-      screen.queryByRole("navigation", { name: "Admin" }),
+      screen.queryByRole("navigation", { name: /^Admin/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Page content")).toBeInTheDocument();
   });
 
   it("gives admins every section without scrolling, on wide screens and phones", () => {
     renderShell("admin");
-    const navs = screen.getAllByRole("navigation", { name: "Admin" });
+    const navs = screen.getAllByRole("navigation", { name: /^Admin/ });
     expect(navs).toHaveLength(2); // header tabs (wide) and bottom bar (phone)
     for (const nav of navs) {
       const links = within(nav).getAllByRole("link");
