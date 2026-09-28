@@ -26,6 +26,16 @@ Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): t
 ## DeepL translations
 DeepL translates only the lessons site's lesson text, through the shared `translate` edge function (flashcards-app repo). Every translation is saved keyed on the text alone, so nothing is paid for twice, each deploy may send at most 25,000 new characters, and Claude reviews new rows (see the lessons repo's CLAUDE.md). This site's own text is hand-written in `src/i18n/strings.ts`; don't wire DeepL into it without asking Trevor.
 
+## Portuguese and English stay separate
+Trevor's rule for every site (2026-09-28): everything students practise is
+split by the language they're learning, the "I'm learning" preference
+(`learning` in the shared `ept-prefs` cookie; `profiles.learning_language`
+when logged in, which wins). Portuguese material appears only for Portuguese
+learners and English material only for English learners. Never put both in
+one list, and never run from a Portuguese activity straight into an English
+one. (The activities site does this with `catalogFor(learning)`; see its
+CLAUDE.md.)
+
 ## Keep it simple
 - Make the smallest change that does the job. No new dependency, helper, abstraction, option or setting unless this task needs it now; use what the browser, Node and the existing code already provide first.
 - Don't build for cases nobody asked for (fallbacks, flags, "future-proofing"). If the simple version leaves a real gap, say so in the reply instead of coding around it.
