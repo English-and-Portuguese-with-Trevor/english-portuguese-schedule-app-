@@ -123,7 +123,7 @@ describe("SlotPicker", () => {
 
     await user.click(soon);
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Request this session?")).toBeInTheDocument();
+    expect(within(dialog).getByText("Request this class?")).toBeInTheDocument();
     expect(within(dialog).getByText(/stays pending until Trevor approves it/)).toBeInTheDocument();
     await answerQuestions(user);
     await user.click(within(dialog).getByRole("button", { name: "Request" }));
@@ -140,7 +140,7 @@ describe("SlotPicker", () => {
     expect(screen.queryByText(/Dashed times/)).not.toBeInTheDocument();
 
     await user.click(soon);
-    expect(within(screen.getByRole("dialog")).getByText("Book this session?")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("Book this class?")).toBeInTheDocument();
   });
 
   it("asks for confirmation, then books the exact hour picked", async () => {
@@ -149,7 +149,7 @@ describe("SlotPicker", () => {
     await user.click(screen.getByRole("button", { name: "3:00 PM" })); // exactly 72 hours out
 
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Book this session?")).toBeInTheDocument();
+    expect(within(dialog).getByText("Book this class?")).toBeInTheDocument();
     expect(within(dialog).getByText(/Sunday, September 27 · 3:00 – 4:00 PM/)).toBeInTheDocument();
     expect(within(dialog).getByText("It's confirmed as soon as you book.")).toBeInTheDocument();
     expect(onBook).not.toHaveBeenCalled();

@@ -45,8 +45,9 @@ describe("isLateCancellation", () => {
 describe("CancelBookingDialog", () => {
   it("warns that a late cancellation still counts, then cancels", async () => {
     const { user, onCancel } = renderDialog({ id: "b1", startTime: hoursFromNow(5), status: "CONFIRMED" });
-    expect(screen.getByText("Cancel this session?")).toBeInTheDocument();
-    expect(screen.getByText(/less than 24 hours, so it will still count as a class/)).toBeInTheDocument();
+    expect(screen.getByText("Cancel this class?")).toBeInTheDocument();
+    expect(screen.getByText("Thursday, September 24 at 8:00 PM (Mountain Daylight Time)")).toBeInTheDocument();
+    expect(screen.getByText(/less than 24 hours, so it still counts as a class/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel anyway" }));
     expect(onCancel).toHaveBeenCalledWith("b1");
@@ -56,7 +57,7 @@ describe("CancelBookingDialog", () => {
     renderDialog({ id: "b1", startTime: hoursFromNow(48), status: "CONFIRMED" });
     expect(screen.queryByText(/still count/)).not.toBeInTheDocument();
     expect(screen.getByText("The time will open up for other students.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancel session" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel class" })).toBeInTheDocument();
   });
 
   it("lets a student withdraw a pending request without a warning", () => {
@@ -76,7 +77,7 @@ describe("CancelBookingDialog", () => {
   it("shows the error and stays open if cancelling fails", async () => {
     const onCancel = vi.fn(async () => "Booking not found.");
     const { user, onClose } = renderDialog({ id: "b1", startTime: hoursFromNow(48), status: "CONFIRMED" }, onCancel);
-    await user.click(screen.getByRole("button", { name: "Cancel session" }));
+    await user.click(screen.getByRole("button", { name: "Cancel class" }));
     expect(screen.getByText("Booking not found.")).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });

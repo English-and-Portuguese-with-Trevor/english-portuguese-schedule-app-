@@ -17,25 +17,25 @@ export const STRINGS = {
     "Log out": "Cerrar sesión",
     "Loading…": "Cargando…",
     "My bookings": "Mis reservas",
-    "You have no upcoming sessions yet.": "Todavía no tienes clases próximas.",
+    "You have no upcoming classes yet.": "Todavía no tienes clases próximas.",
     "Reschedule request": "Solicitud de cambio de horario",
-    "English / Portuguese Lesson": "Clase de inglés / portugués",
+    "English / Portuguese class": "Clase de inglés / portugués",
     "Moving from {time}": "Se mueve desde el {time}",
     "Reschedule requested": "Cambio de horario solicitado",
     Confirmed: "Confirmada",
-    Pending: "Pendiente",
+    "Waiting for approval": "Esperando aprobación",
     "Join Meet": "Unirse a Meet",
     Reschedule: "Cambiar horario",
     Cancel: "Cancelar",
     "Pick a new time": "Elige un nuevo horario",
-    "Book a lesson": "Reservar una clase",
-    "Moving your lesson on {time}. It stays booked until Trevor approves the new time.":
+    "Book a class": "Reservar una clase",
+    "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Cambiando tu clase del {time}. Sigue reservada hasta que Trevor apruebe el nuevo horario.",
     Stop: "Dejar",
     "Request sent — Trevor needs to approve it.":
       "Solicitud enviada: Trevor tiene que aprobarla.",
-    "Session booked.": "Clase reservada.",
-    "Pick the lesson to move first.":
+    "Class booked.": "Clase reservada.",
+    "Pick the class to move first.":
       "Primero elige la clase que quieres mover.",
     "Reschedule request sent — Trevor needs to approve it.":
       "Solicitud de cambio enviada: Trevor tiene que aprobarla.",
@@ -50,9 +50,9 @@ export const STRINGS = {
     "Dashed times are less than 72 hours away. You can still request them, but Trevor needs to approve them first.":
       "Los horarios con borde punteado son en menos de 72 horas. Puedes solicitarlos, pero Trevor tiene que aprobarlos primero.",
     "Request this new time?": "¿Solicitar este nuevo horario?",
-    "Request this session?": "¿Solicitar esta clase?",
-    "Book this session?": "¿Reservar esta clase?",
-    "Your lesson on {time} stays booked until Trevor approves the change.":
+    "Request this class?": "¿Solicitar esta clase?",
+    "Book this class?": "¿Reservar esta clase?",
+    "Your class on {time} stays booked until Trevor approves the change.":
       "Tu clase del {time} sigue reservada hasta que Trevor apruebe el cambio.",
     "It's less than 72 hours away, so it stays pending until Trevor approves it.":
       "Es en menos de 72 horas, así que queda pendiente hasta que Trevor la apruebe.",
@@ -71,8 +71,8 @@ export const STRINGS = {
     Request: "Solicitar",
     Book: "Reservar",
     "Withdraw this request?": "¿Retirar esta solicitud?",
-    "Cancel this session?": "¿Cancelar esta clase?",
-    "This session starts in less than {hours} hours, so it will still count as a class.":
+    "Cancel this class?": "¿Cancelar esta clase?",
+    "This class starts in less than {hours} hours, so it still counts as a class.":
       "Esta clase empieza en menos de {hours} horas, así que contará como clase igualmente.",
     "The time will open up for other students.":
       "El horario quedará libre para otros alumnos.",
@@ -80,7 +80,7 @@ export const STRINGS = {
     "Cancelling…": "Cancelando…",
     "Withdraw request": "Retirar solicitud",
     "Cancel anyway": "Cancelar de todos modos",
-    "Cancel session": "Cancelar clase",
+    "Cancel class": "Cancelar clase",
     "Lifetime lesson access": "Acceso a las lecciones de por vida",
     "Every lesson on the lessons site is yours for good. Obrigado for learning with Trevor!":
       "Todas las lecciones del sitio son tuyas para siempre. ¡Obrigado por aprender con Trevor!",
@@ -140,8 +140,21 @@ export const STRINGS = {
       "Suscriptor: todas las lecciones de portugués están abiertas.",
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
       "Lecciones gratis: las lecciones 1–4 están abiertas. Suscríbete en el sitio de lecciones o pídele a Trevor acceso de alumno.",
-    "That time overlaps an existing session. Please pick another time.":
+    "That time overlaps an existing class. Please pick another time.":
       "Ese horario se superpone con otra clase. Elige otro.",
+    "Something went wrong. Please try again.": "Algo salió mal. Inténtalo de nuevo.",
+    "That time overlaps your current class. Pick a time that doesn't overlap it.":
+      "Ese horario se superpone con tu clase actual. Elige un horario que no se superponga con ella.",
+    "Classes can be booked up to 60 days ahead.":
+      "Las clases se pueden reservar con hasta 60 días de anticipación.",
+    "You already have 10 upcoming classes. Cancel one to book another.":
+      "Ya tienes 10 clases próximas. Cancela una para reservar otra.",
+    Close: "Cerrar",
+    Welcome: "Bienvenido",
+    "Log in with your Google account or your email and password.":
+      "Inicia sesión con tu cuenta de Google o con tu correo y contraseña.",
+    "Redirecting...": "Redirigiendo...",
+    "Log in with Google": "Iniciar sesión con Google",
     "That time was just taken. Please pick another.":
       "Alguien acaba de reservar ese horario. Elige otro.",
     "Please choose English or Portuguese.": "Elige inglés o portugués.",
@@ -183,25 +196,25 @@ export const STRINGS = {
     "Log out": "Sair",
     "Loading…": "Carregando…",
     "My bookings": "Minhas aulas agendadas",
-    "You have no upcoming sessions yet.": "Você ainda não tem aulas agendadas.",
+    "You have no upcoming classes yet.": "Você ainda não tem aulas agendadas.",
     "Reschedule request": "Pedido de remarcação",
-    "English / Portuguese Lesson": "Aula de inglês / português",
+    "English / Portuguese class": "Aula de inglês / português",
     "Moving from {time}": "Mudando de {time}",
     "Reschedule requested": "Remarcação solicitada",
     Confirmed: "Confirmada",
-    Pending: "Pendente",
+    "Waiting for approval": "Aguardando aprovação",
     "Join Meet": "Entrar no Meet",
     Reschedule: "Remarcar",
     Cancel: "Cancelar",
     "Pick a new time": "Escolha um novo horário",
-    "Book a lesson": "Agendar uma aula",
-    "Moving your lesson on {time}. It stays booked until Trevor approves the new time.":
+    "Book a class": "Agendar uma aula",
+    "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Remarcando sua aula de {time}. Ela continua agendada até o Trevor aprovar o novo horário.",
     Stop: "Parar",
     "Request sent — Trevor needs to approve it.":
       "Pedido enviado: o Trevor precisa aprovar.",
-    "Session booked.": "Aula agendada.",
-    "Pick the lesson to move first.": "Primeiro escolha a aula que quer mudar.",
+    "Class booked.": "Aula agendada.",
+    "Pick the class to move first.": "Primeiro escolha a aula que quer mudar.",
     "Reschedule request sent — Trevor needs to approve it.":
       "Pedido de remarcação enviado: o Trevor precisa aprovar.",
     "Booking cancelled.": "Agendamento cancelado.",
@@ -215,9 +228,9 @@ export const STRINGS = {
     "Dashed times are less than 72 hours away. You can still request them, but Trevor needs to approve them first.":
       "Os horários tracejados são daqui a menos de 72 horas. Você ainda pode pedir, mas o Trevor precisa aprovar antes.",
     "Request this new time?": "Pedir este novo horário?",
-    "Request this session?": "Pedir esta aula?",
-    "Book this session?": "Agendar esta aula?",
-    "Your lesson on {time} stays booked until Trevor approves the change.":
+    "Request this class?": "Pedir esta aula?",
+    "Book this class?": "Agendar esta aula?",
+    "Your class on {time} stays booked until Trevor approves the change.":
       "Sua aula de {time} continua agendada até o Trevor aprovar a mudança.",
     "It's less than 72 hours away, so it stays pending until Trevor approves it.":
       "É daqui a menos de 72 horas, então fica pendente até o Trevor aprovar.",
@@ -237,8 +250,8 @@ export const STRINGS = {
     Request: "Pedir",
     Book: "Agendar",
     "Withdraw this request?": "Retirar este pedido?",
-    "Cancel this session?": "Cancelar esta aula?",
-    "This session starts in less than {hours} hours, so it will still count as a class.":
+    "Cancel this class?": "Cancelar esta aula?",
+    "This class starts in less than {hours} hours, so it still counts as a class.":
       "Esta aula começa em menos de {hours} horas, então ainda vai contar como aula.",
     "The time will open up for other students.":
       "O horário fica livre para outros alunos.",
@@ -246,7 +259,7 @@ export const STRINGS = {
     "Cancelling…": "Cancelando…",
     "Withdraw request": "Retirar pedido",
     "Cancel anyway": "Cancelar mesmo assim",
-    "Cancel session": "Cancelar aula",
+    "Cancel class": "Cancelar aula",
     "Lifetime lesson access": "Acesso vitalício às aulas",
     "Every lesson on the lessons site is yours for good. Obrigado for learning with Trevor!":
       "Todas as aulas do site de aulas são suas para sempre. Obrigado por aprender com o Trevor!",
@@ -304,8 +317,21 @@ export const STRINGS = {
       "Assinante: todas as aulas de português estão liberadas.",
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
       "Aulas grátis: as aulas 1–4 estão liberadas. Assine no site de aulas ou peça ao Trevor acesso de aluno.",
-    "That time overlaps an existing session. Please pick another time.":
+    "That time overlaps an existing class. Please pick another time.":
       "Esse horário coincide com outra aula. Escolha outro.",
+    "Something went wrong. Please try again.": "Algo deu errado. Tente de novo.",
+    "That time overlaps your current class. Pick a time that doesn't overlap it.":
+      "Esse horário coincide com a sua aula atual. Escolha um horário que não coincida com ela.",
+    "Classes can be booked up to 60 days ahead.":
+      "As aulas podem ser agendadas com até 60 dias de antecedência.",
+    "You already have 10 upcoming classes. Cancel one to book another.":
+      "Você já tem 10 aulas agendadas. Cancele uma para agendar outra.",
+    Close: "Fechar",
+    Welcome: "Bem-vindo",
+    "Log in with your Google account or your email and password.":
+      "Entre com a sua conta do Google ou com o seu e-mail e senha.",
+    "Redirecting...": "Redirecionando...",
+    "Log in with Google": "Entrar com o Google",
     "That time was just taken. Please pick another.":
       "Esse horário acabou de ser reservado. Escolha outro.",
     "Please choose English or Portuguese.": "Escolha inglês ou português.",
@@ -348,26 +374,26 @@ export const STRINGS = {
     "Log out": "Se déconnecter",
     "Loading…": "Chargement…",
     "My bookings": "Mes réservations",
-    "You have no upcoming sessions yet.":
+    "You have no upcoming classes yet.":
       "Vous n'avez pas encore de cours à venir.",
     "Reschedule request": "Demande de changement d'horaire",
-    "English / Portuguese Lesson": "Cours d'anglais / de portugais",
+    "English / Portuguese class": "Cours d'anglais / de portugais",
     "Moving from {time}": "Déplacé depuis le {time}",
     "Reschedule requested": "Changement d'horaire demandé",
     Confirmed: "Confirmé",
-    Pending: "En attente",
+    "Waiting for approval": "En attente d'approbation",
     "Join Meet": "Rejoindre Meet",
     Reschedule: "Changer l'horaire",
     Cancel: "Annuler",
     "Pick a new time": "Choisissez un nouvel horaire",
-    "Book a lesson": "Réserver un cours",
-    "Moving your lesson on {time}. It stays booked until Trevor approves the new time.":
+    "Book a class": "Réserver un cours",
+    "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Déplacement de votre cours du {time}. Il reste réservé jusqu'à ce que Trevor approuve le nouvel horaire.",
     Stop: "Arrêter",
     "Request sent — Trevor needs to approve it.":
       "Demande envoyée : Trevor doit l'approuver.",
-    "Session booked.": "Cours réservé.",
-    "Pick the lesson to move first.": "Choisissez d'abord le cours à déplacer.",
+    "Class booked.": "Cours réservé.",
+    "Pick the class to move first.": "Choisissez d'abord le cours à déplacer.",
     "Reschedule request sent — Trevor needs to approve it.":
       "Demande de changement envoyée : Trevor doit l'approuver.",
     "Booking cancelled.": "Réservation annulée.",
@@ -381,9 +407,9 @@ export const STRINGS = {
     "Dashed times are less than 72 hours away. You can still request them, but Trevor needs to approve them first.":
       "Les horaires en pointillés sont dans moins de 72 heures. Vous pouvez les demander, mais Trevor doit d'abord les approuver.",
     "Request this new time?": "Demander ce nouvel horaire ?",
-    "Request this session?": "Demander ce cours ?",
-    "Book this session?": "Réserver ce cours ?",
-    "Your lesson on {time} stays booked until Trevor approves the change.":
+    "Request this class?": "Demander ce cours ?",
+    "Book this class?": "Réserver ce cours ?",
+    "Your class on {time} stays booked until Trevor approves the change.":
       "Votre cours du {time} reste réservé jusqu'à ce que Trevor approuve le changement.",
     "It's less than 72 hours away, so it stays pending until Trevor approves it.":
       "C'est dans moins de 72 heures, donc le cours reste en attente jusqu'à ce que Trevor l'approuve.",
@@ -403,8 +429,8 @@ export const STRINGS = {
     Request: "Demander",
     Book: "Réserver",
     "Withdraw this request?": "Retirer cette demande ?",
-    "Cancel this session?": "Annuler ce cours ?",
-    "This session starts in less than {hours} hours, so it will still count as a class.":
+    "Cancel this class?": "Annuler ce cours ?",
+    "This class starts in less than {hours} hours, so it still counts as a class.":
       "Ce cours commence dans moins de {hours} heures, il comptera donc quand même comme un cours.",
     "The time will open up for other students.":
       "Le créneau se libérera pour d'autres élèves.",
@@ -412,7 +438,7 @@ export const STRINGS = {
     "Cancelling…": "Annulation…",
     "Withdraw request": "Retirer la demande",
     "Cancel anyway": "Annuler quand même",
-    "Cancel session": "Annuler le cours",
+    "Cancel class": "Annuler le cours",
     "Lifetime lesson access": "Accès à vie aux leçons",
     "Every lesson on the lessons site is yours for good. Obrigado for learning with Trevor!":
       "Toutes les leçons du site sont à vous pour toujours. Obrigado d'apprendre avec Trevor !",
@@ -470,8 +496,21 @@ export const STRINGS = {
       "Abonné : toutes les leçons de portugais sont ouvertes.",
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
       "Leçons gratuites : les leçons 1 à 4 sont ouvertes. Abonnez-vous sur le site des leçons, ou demandez à Trevor un accès élève.",
-    "That time overlaps an existing session. Please pick another time.":
+    "That time overlaps an existing class. Please pick another time.":
       "Cet horaire chevauche un autre cours. Choisissez-en un autre.",
+    "Something went wrong. Please try again.": "Une erreur s'est produite. Réessayez.",
+    "That time overlaps your current class. Pick a time that doesn't overlap it.":
+      "Cet horaire chevauche votre cours actuel. Choisissez un horaire qui ne le chevauche pas.",
+    "Classes can be booked up to 60 days ahead.":
+      "Les cours peuvent être réservés jusqu'à 60 jours à l'avance.",
+    "You already have 10 upcoming classes. Cancel one to book another.":
+      "Vous avez déjà 10 cours à venir. Annulez-en un pour en réserver un autre.",
+    Close: "Fermer",
+    Welcome: "Bienvenue",
+    "Log in with your Google account or your email and password.":
+      "Connectez-vous avec votre compte Google ou avec votre e-mail et votre mot de passe.",
+    "Redirecting...": "Redirection...",
+    "Log in with Google": "Se connecter avec Google",
     "That time was just taken. Please pick another.":
       "Cet horaire vient d'être pris. Choisissez-en un autre.",
     "Please choose English or Portuguese.": "Choisissez anglais ou portugais.",

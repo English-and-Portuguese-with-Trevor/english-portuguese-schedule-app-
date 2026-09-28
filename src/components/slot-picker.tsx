@@ -259,8 +259,8 @@ export function SlotPicker({
               {rescheduleFrom
                 ? t("Request this new time?")
                 : pendingNeedsApproval
-                  ? t("Request this session?")
-                  : t("Book this session?")}
+                  ? t("Request this class?")
+                  : t("Book this class?")}
             </DialogTitle>
             <DialogDescription>
               {pendingSlot &&
@@ -273,7 +273,7 @@ export function SlotPicker({
           </DialogHeader>
           {rescheduleFrom ? (
             <p className="text-sm text-muted-foreground">
-              {t("Your lesson on {time} stays booked until Trevor approves the change.", {
+              {t("Your class on {time} stays booked until Trevor approves the change.", {
                 time: formatDate(rescheduleFrom, "longDayAtTime", lang),
               })}
             </p>

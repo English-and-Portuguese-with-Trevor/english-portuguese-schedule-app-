@@ -68,7 +68,7 @@ async function bookIndividualSlot(
     .limit(1);
 
   if (overlapping && overlapping.length > 0) {
-    return { error: tr("That time overlaps an existing session. Please pick another time.") };
+    return { error: tr("That time overlaps an existing class. Please pick another time.") };
   }
 
   const { data: slot, error: slotErr } = await supabase
@@ -159,10 +159,16 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
   return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id, original };
 }
 
-function friendlyDbError(error: { code?: string; message: string }): string {
-  // 23P01: overlaps another session; 23505: the slot already has a booking.
+function friendlyDbError(error: { code?: string; message: string }, rescheduling = false): string {
+  // 23P01: overlaps another class; 23505: the slot already has a booking.
+  if (error.code === "23P01" && rescheduling) {
+    return tr("That time overlaps your current class. Pick a time that doesn't overlap it.");
+  }
   if (error.code === "23P01" || error.code === "23505") return tr("That time was just taken. Please pick another.");
-  return error.message;
+  // P0001: a message the booking functions raise for the student (see i18n/server-messages.ts).
+  if (error.code === "P0001") return error.message;
+  console.error("[bookings] database error", error);
+  return tr("Something went wrong. Please try again.");
 }
 
 /**
@@ -352,7 +358,7 @@ export async function requestReschedule(
     p_end: endIso,
     p_timezone: timezone,
   });
-  if (error) return { error: friendlyDbError(error) };
+  if (error) return { error: friendlyDbError(error, true) };
 
   const booking = await loadBooking(supabase, requestId);
   if (booking) after(() => afterRescheduleRequest(booking.lesson));

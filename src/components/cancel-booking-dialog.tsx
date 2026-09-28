@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { timeZoneLabel } from "@/components/slot-picker";
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import { LATE_CANCEL_HOURS } from "@/lib/types";
@@ -48,6 +49,7 @@ export function CancelBookingDialog({
   const late = booking !== null && isLateCancellation(booking);
   const t = useT();
   const lang = useSiteLanguage();
+  const tzLabel = timeZoneLabel(lang) ?? t("your local time");
 
   function close() {
     setError(null);
@@ -68,14 +70,14 @@ export function CancelBookingDialog({
     <Dialog open={booking !== null} onOpenChange={(open) => !open && !isPending && close()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{booking?.status === "PENDING" ? t("Withdraw this request?") : t("Cancel this session?")}</DialogTitle>
+          <DialogTitle>{booking?.status === "PENDING" ? t("Withdraw this request?") : t("Cancel this class?")}</DialogTitle>
           <DialogDescription>
-            {booking && formatDate(booking.startTime, "longDayAtTime", lang)}
+            {booking && `${formatDate(booking.startTime, "longDayAtTime", lang)} (${tzLabel})`}
           </DialogDescription>
         </DialogHeader>
         {late ? (
-          <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {t("This session starts in less than {hours} hours, so it will still count as a class.", {
+          <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+            {t("This class starts in less than {hours} hours, so it still counts as a class.", {
               hours: LATE_CANCEL_HOURS,
             })}
           </p>
@@ -98,7 +100,7 @@ export function CancelBookingDialog({
                 ? t("Withdraw request")
                 : late
                   ? t("Cancel anyway")
-                  : t("Cancel session")}
+                  : t("Cancel class")}
           </Button>
         </DialogFooter>
       </DialogContent>

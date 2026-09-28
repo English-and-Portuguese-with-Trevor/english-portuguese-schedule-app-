@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { cancelBooking, requestBooking, requestReschedule } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CancelBookingDialog, type CancellableBooking } from "@/components/cancel-booking-dialog";
-import { SlotPicker, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
+import { SlotPicker, timeZoneLabel, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
 import { createClient } from "@/lib/supabase/client";
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
@@ -44,6 +44,7 @@ export function BookingBoard({
   const [notice, setNotice] = useState<Notice | null>(null);
   const t = useT();
   const lang = useSiteLanguage();
+  const tzLabel = useMemo(() => timeZoneLabel(lang) ?? t("your local time"), [lang, t]);
 
   // Every time here is shown in the viewer's timezone, which the server
   // (UTC) can't know — so this renders on the client only.
@@ -77,7 +78,7 @@ export function BookingBoard({
     if (result.error) return t(result.error);
     setNotice({
       kind: "success",
-      text: result.pending ? t("Request sent — Trevor needs to approve it.") : t("Session booked."),
+      text: result.pending ? t("Request sent — Trevor needs to approve it.") : t("Class booked."),
     });
     return null;
   }
@@ -97,7 +98,7 @@ export function BookingBoard({
   }
 
   async function handleReschedule(start: string, end: string) {
-    if (!rescheduling) return t("Pick the lesson to move first.");
+    if (!rescheduling) return t("Pick the class to move first.");
     const result = await requestReschedule(
       rescheduling.id,
       start,
@@ -124,16 +125,17 @@ export function BookingBoard({
   return (
     <div className="flex flex-col gap-8">
       <section>
+        <p className="mb-1 text-xs text-muted-foreground">{t("Times shown in {zone}.", { zone: tzLabel })}</p>
         <h2 className="mb-3 text-lg font-semibold">{t("My bookings")}</h2>
         {myBookings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("You have no upcoming sessions yet.")}</p>
+          <p className="text-sm text-muted-foreground">{t("You have no upcoming classes yet.")}</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {myBookings.map((b) => (
               <Card key={b.id}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">
-                    {b.reschedule_of ? t("Reschedule request") : t("English / Portuguese Lesson")}
+                    {b.reschedule_of ? t("Reschedule request") : t("English / Portuguese class")}
                   </CardTitle>
                   <CardDescription>
                     {b.session_slots && formatDate(b.session_slots.start_time, "dayAtTime", lang)}
@@ -153,7 +155,7 @@ export function BookingBoard({
                 </CardHeader>
                 <CardContent className="flex items-center justify-between pt-0">
                   <Badge variant={b.status === "CONFIRMED" ? "success" : "secondary"}>
-                    {b.status === "CONFIRMED" ? t("Confirmed") : t("Pending")}
+                    {b.status === "CONFIRMED" ? t("Confirmed") : t("Waiting for approval")}
                   </Badge>
                   <div className="flex gap-2">
                     {b.meet_link && (
@@ -187,11 +189,11 @@ export function BookingBoard({
       </section>
 
       <section ref={pickerRef} className="scroll-mt-4">
-        <h2 className="mb-3 text-lg font-semibold">{rescheduling ? t("Pick a new time") : t("Book a lesson")}</h2>
+        <h2 className="mb-3 text-lg font-semibold">{rescheduling ? t("Pick a new time") : t("Book a class")}</h2>
         {rescheduling && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-secondary px-4 py-3 text-sm">
             <span>
-              {t("Moving your lesson on {time}. It stays booked until Trevor approves the new time.", {
+              {t("Moving your class on {time}. It stays booked until Trevor approves the new time.", {
                 time: formatDate(rescheduling.start, "dayAtTime", lang),
               })}
             </span>
@@ -220,7 +222,7 @@ export function BookingBoard({
             // Clear the admin's bottom tab bar on phones.
             role === "admin" && "bottom-20 sm:bottom-4",
             notice.kind === "success"
-              ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+              ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-100"
               : "border-destructive/40 bg-background text-destructive",
           )}
         >

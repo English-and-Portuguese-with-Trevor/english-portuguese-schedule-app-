@@ -74,7 +74,9 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2>Your choices</h2>
           <p>
-            You can ask for your account and booking history to be deleted at any time by emailing{" "}
+            You can delete your account, with your booking history, at any time: open Settings from the
+            account menu and use the Delete account button. It removes your account from every Trevor site.
+            If you have trouble with it, email{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className="underline">
               {CONTACT_EMAIL}
             </a>
