@@ -134,10 +134,10 @@ export const STRINGS = {
       "Suscriptor. Tu último pago no se realizó; actualiza tu tarjeta.",
     "Subscriber. Canceled; your lessons stay open until {date}.":
       "Suscriptor. Cancelada; tus lecciones siguen abiertas hasta el {date}.",
-    "Subscriber: every Portuguese lesson is open. Renews on {date}.":
-      "Suscriptor: todas las lecciones de portugués están abiertas. Se renueva el {date}.",
-    "Subscriber: every Portuguese lesson is open.":
-      "Suscriptor: todas las lecciones de portugués están abiertas.",
+    "Subscriber: every lesson is open, in both languages. Renews on {date}.":
+      "Suscriptor: todas las lecciones están abiertas, en los dos idiomas. Se renueva el {date}.",
+    "Subscriber: every lesson is open, in both languages.":
+      "Suscriptor: todas las lecciones están abiertas, en los dos idiomas.",
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
       "Lecciones gratis: las lecciones 1–4 están abiertas. Suscríbete en el sitio de lecciones o pídele a Trevor acceso de alumno.",
     "That time overlaps an existing class. Please pick another time.":
@@ -311,10 +311,10 @@ export const STRINGS = {
       "Assinante. Seu último pagamento não foi aprovado; atualize seu cartão.",
     "Subscriber. Canceled; your lessons stay open until {date}.":
       "Assinante. Cancelada; suas aulas ficam liberadas até {date}.",
-    "Subscriber: every Portuguese lesson is open. Renews on {date}.":
-      "Assinante: todas as aulas de português estão liberadas. Renova em {date}.",
-    "Subscriber: every Portuguese lesson is open.":
-      "Assinante: todas as aulas de português estão liberadas.",
+    "Subscriber: every lesson is open, in both languages. Renews on {date}.":
+      "Assinante: todas as aulas estão liberadas, nos dois idiomas. Renova em {date}.",
+    "Subscriber: every lesson is open, in both languages.":
+      "Assinante: todas as aulas estão liberadas, nos dois idiomas.",
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
       "Aulas grátis: as aulas 1–4 estão liberadas. Assine no site de aulas ou peça ao Trevor acesso de aluno.",
     "That time overlaps an existing class. Please pick another time.":
@@ -490,10 +490,10 @@ export const STRINGS = {
       "Abonné. Votre dernier paiement n'est pas passé ; veuillez mettre à jour votre carte.",
     "Subscriber. Canceled; your lessons stay open until {date}.":
       "Abonné. Annulé ; vos leçons restent ouvertes jusqu'au {date}.",
-    "Subscriber: every Portuguese lesson is open. Renews on {date}.":
-      "Abonné : toutes les leçons de portugais sont ouvertes. Se renouvelle le {date}.",
-    "Subscriber: every Portuguese lesson is open.":
-      "Abonné : toutes les leçons de portugais sont ouvertes.",
+    "Subscriber: every lesson is open, in both languages. Renews on {date}.":
+      "Abonné : toutes les leçons sont ouvertes, dans les deux langues. Renouvellement le {date}.",
+    "Subscriber: every lesson is open, in both languages.":
+      "Abonné : toutes les leçons sont ouvertes, dans les deux langues.",
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
       "Leçons gratuites : les leçons 1 à 4 sont ouvertes. Abonnez-vous sur le site des leçons, ou demandez à Trevor un accès élève.",
     "That time overlaps an existing class. Please pick another time.":
