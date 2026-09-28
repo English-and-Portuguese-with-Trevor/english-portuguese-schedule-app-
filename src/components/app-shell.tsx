@@ -7,7 +7,9 @@ import {
   CalendarPlus,
   ClipboardList,
   Dumbbell,
+  GraduationCap,
   Home,
+  Puzzle,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -23,6 +25,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PrefsSync } from "@/components/prefs-sync";
@@ -44,34 +49,29 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 ];
 
 /**
- * The account menu is the same on every site: the five sites, Settings, Log
- * out. An entry with `adminOnly: true` is shown to admins only.
+ * The account menu is the same on every site: Home, a Learn sub-menu with the
+ * learning sites, Schedule a class, Settings, Log out.
  */
-export const ACCOUNT_MENU_LINKS = [
-  { href: LANDING_URL, label: tr("Home"), icon: Home, adminOnly: false },
+export const LEARN_LINKS = [
   {
     href: "https://lessons.englishandportuguesewithtrevor.com",
     label: tr("Lessons"),
     icon: BookOpen,
-    adminOnly: false,
   },
   {
     href: "https://flashcards.englishandportuguesewithtrevor.com",
     label: tr("Flashcards"),
     icon: Layers,
-    adminOnly: false,
   },
   {
     href: "https://activities.englishandportuguesewithtrevor.com",
     label: tr("Activities"),
     icon: Dumbbell,
-    adminOnly: false,
   },
   {
-    href: "/dashboard",
-    label: tr("Schedule a class"),
-    icon: CalendarPlus,
-    adminOnly: false,
+    href: "https://dailies.englishandportuguesewithtrevor.com",
+    label: tr("Daily puzzles"),
+    icon: Puzzle,
   },
 ] as const;
 
@@ -79,39 +79,43 @@ function firstName(name: string | null, email: string | null) {
   return (name?.trim() || email || "").split(/\s+/)[0];
 }
 
-function AccountMenu({
-  fullName,
-  email,
-  isAdmin,
-}: {
-  fullName: string | null;
-  email: string | null;
-  isAdmin: boolean;
-}) {
+function AccountMenu({ fullName, email }: { fullName: string | null; email: string | null }) {
   const first = firstName(fullName, email);
   const t = useT();
-  const links = ACCOUNT_MENU_LINKS.filter((link) => !link.adminOnly || isAdmin);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-semibold whitespace-nowrap text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
         {first ? t("Hi, {name}", { name: first }) : t("Account")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {links.map(({ href, label, icon: Icon }) => (
-          <DropdownMenuItem key={label} asChild>
-            {href.startsWith("/") ? (
-              <Link href={href}>
-                <Icon />
-                {t(label)}
-              </Link>
-            ) : (
-              <a href={href}>
-                <Icon />
-                {t(label)}
-              </a>
-            )}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuItem asChild>
+          <a href={LANDING_URL}>
+            <Home />
+            {t("Home")}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <GraduationCap />
+            {t("Learn")}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {LEARN_LINKS.map(({ href, label, icon: Icon }) => (
+              <DropdownMenuItem key={label} asChild>
+                <a href={href}>
+                  <Icon />
+                  {t(label)}
+                </a>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard">
+            <CalendarPlus />
+            {t("Schedule a class")}
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings">
@@ -195,7 +199,7 @@ export function AppShell({
                   )}
                 </Link>
               )}
-              <AccountMenu fullName={fullName} email={email} isAdmin={isAdmin} />
+              <AccountMenu fullName={fullName} email={email} />
             </div>
           </div>
           {isAdmin && (
