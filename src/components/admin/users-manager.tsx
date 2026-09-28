@@ -23,11 +23,14 @@ export function UsersManager({
   initialUsers,
   displayNames,
   progress = {},
+  currentUserId,
 }: {
   initialUsers: Profile[];
   displayNames: Record<string, string>;
   /** Class-set progress by user id (admin_class_progress). */
   progress?: Record<string, ClassProgress>;
+  /** The signed-in admin, who can't demote themselves. */
+  currentUserId?: string;
 }) {
   const [users, setUsers] = useState(initialUsers);
   const [query, setQuery] = useState("");
@@ -42,10 +45,20 @@ export function UsersManager({
     });
   }
 
-  function handleRoleChange(userId: string, role: Role) {
-    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
-    startTransition(() => {
-      void updateUserRole(userId, role);
+  function handleRoleChange(user: Profile, role: Role) {
+    const previous = user.role;
+    setError(null);
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, role } : u)),
+    );
+    startTransition(async () => {
+      const result = await updateUserRole(user.id, role);
+      if (result.error) {
+        setError(`Couldn't change the role: ${result.error}`);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === user.id ? { ...u, role: previous } : u)),
+        );
+      }
     });
   }
 
@@ -137,11 +150,12 @@ export function UsersManager({
             name={displayNames[user.id] ?? "Unknown"}
             progress={progress[user.id]}
             disabled={isPending}
+            isSelf={user.id === currentUserId}
             onLessonAccess={(access) => handleLessonAccess(user, access)}
             onClassTracking={(pkg, earlier) =>
               handleClassTracking(user, pkg, earlier)
             }
-            onRoleChange={(role) => handleRoleChange(user.id, role)}
+            onRoleChange={(role) => handleRoleChange(user, role)}
           />
         ))}
         {users.length === 0 && (
@@ -157,6 +171,7 @@ function UserRow({
   name,
   progress,
   disabled,
+  isSelf,
   onLessonAccess,
   onClassTracking,
   onRoleChange,
@@ -165,6 +180,8 @@ function UserRow({
   name: string;
   progress: ClassProgress | undefined;
   disabled: boolean;
+  /** The admin's own row: they can't make themselves a student. */
+  isSelf: boolean;
   onLessonAccess: (access: Exclude<LessonAccess, "subscriber">) => void;
   onClassTracking: (
     classPackage: ClassPackage | null,
@@ -218,16 +235,18 @@ function UserRow({
           <Badge variant={user.role === "admin" ? "default" : "secondary"}>
             {user.role}
           </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-            onClick={() =>
-              onRoleChange(user.role === "admin" ? "student" : "admin")
-            }
-          >
-            Make {user.role === "admin" ? "student" : "admin"}
-          </Button>
+          {!(isSelf && user.role === "admin") && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={disabled}
+              onClick={() =>
+                onRoleChange(user.role === "admin" ? "student" : "admin")
+              }
+            >
+              Make {user.role === "admin" ? "student" : "admin"}
+            </Button>
+          )}
         </div>
       </div>
 

@@ -5,8 +5,9 @@ import type { ClassProgress, Profile } from "@/lib/types";
 
 export default async function UsersPage() {
   const supabase = await createClient();
-  const [{ data: users }, displayNames, { data: progressRows }] =
+  const [{ data: { user } }, { data: users }, displayNames, { data: progressRows }] =
     await Promise.all([
+      supabase.auth.getUser(),
       supabase
         .from("profiles")
         .select("*")
@@ -25,6 +26,7 @@ export default async function UsersPage() {
       initialUsers={(users ?? []) as Profile[]}
       displayNames={displayNames}
       progress={progress}
+      currentUserId={user?.id}
     />
   );
 }

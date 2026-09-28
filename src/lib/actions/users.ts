@@ -17,11 +17,11 @@ async function requireAdmin() {
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") throw new Error("Admin only");
 
-  return supabase;
+  return { supabase, adminId: user.id };
 }
 
 export async function searchUsers(query: string) {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   let builder = supabase.from("profiles").select("*").order("created_at", { ascending: false });
 
   const trimmed = query.trim();
@@ -40,7 +40,19 @@ export async function searchUsers(query: string) {
 }
 
 export async function updateUserRole(userId: string, role: Role): Promise<ActionResult> {
-  const supabase = await requireAdmin();
+  const { supabase, adminId } = await requireAdmin();
+
+  if (role !== "admin") {
+    // Demoting yourself, or the only admin, would lock everyone out of these pages.
+    if (userId === adminId) return { error: "You can't remove your own admin access." };
+    const { count } = await supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin")
+      .neq("id", userId);
+    if (!count) return { error: "There must always be at least one admin." };
+  }
+
   const { error } = await supabase.from("profiles").update({ role }).eq("id", userId);
 
   if (error) return { error: error.message };
@@ -53,7 +65,7 @@ export async function setLessonAccess(
   userId: string,
   access: Exclude<LessonAccess, "subscriber">,
 ): Promise<ActionResult> {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   let update = supabase.from("profiles").update({ lesson_access: access }).eq("id", userId);
   if (access !== "lifetime") update = update.neq("lesson_access", "subscriber");
   const { error } = await update;
@@ -73,7 +85,7 @@ export async function setClassTracking(
   if (!Number.isInteger(earlierClasses) || earlierClasses < 0 || earlierClasses > 1000) {
     return { error: "Earlier classes must be a whole number from 0 to 1000." };
   }
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { error } = await supabase
     .from("profiles")
     .update({ class_package: classPackage, earlier_classes: earlierClasses })
@@ -85,7 +97,7 @@ export async function setClassTracking(
 }
 
 export async function getClassProgress(): Promise<ClassProgress[]> {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { data, error } = await supabase.rpc("admin_class_progress");
   if (error) throw new Error(error.message);
   return (data ?? []) as ClassProgress[];
