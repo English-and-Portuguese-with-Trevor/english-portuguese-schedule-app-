@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import {
   Dialog,
@@ -72,6 +71,7 @@ export function AccountSettings({
   const [billingError, setBillingError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [page, setPage] = useState<"preferences" | "account" | null>(null);
   const router = useRouter();
   const t = useT();
   const lang = useSiteLanguage();
@@ -111,39 +111,67 @@ export function AccountSettings({
     });
   }
 
+  // Settings is a short menu; Preferences and Account each open their own page.
+  if (page) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <Button variant="ghost" className="-ml-3 self-start" onClick={() => setPage(null)}>
+          ‹ {t("Settings")}
+        </Button>
+        <h1 className="-mt-4 text-2xl font-semibold">
+          {page === "preferences" ? t("Preferences") : t("Account")}
+        </h1>
+        {page === "preferences" ? (
+          <PreferencesCard />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardDescription>
+                {t("The same account works on the lessons, flashcards and schedule sites.")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-5">
+              <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">{t("Name")}</dt>
+                <dd className="break-words">{name || "—"}</dd>
+                <dt className="text-muted-foreground">{t("Email")}</dt>
+                <dd className="break-all">{email || "—"}</dd>
+              </dl>
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">{t("Lessons & subscription")}</p>
+                <p className="text-sm text-muted-foreground">
+                  {accessSummary(role, lessonAccess, billing, lang)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <h1 className="text-2xl font-semibold">{t("Settings")}</h1>
 
-      <PreferencesCard />
-
-      <Fold
-        title={t("Account")}
-        description={t(
-          "The same account works on the lessons, flashcards and schedule sites.",
-        )}
-      >
-        <CardContent className="flex flex-col gap-5">
-          <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
-            <dt className="text-muted-foreground">{t("Name")}</dt>
-            <dd className="break-words">{name || "—"}</dd>
-            <dt className="text-muted-foreground">{t("Email")}</dt>
-            <dd className="break-all">{email || "—"}</dd>
-          </dl>
-
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">{t("Lessons & subscription")}</p>
-            <p className="text-sm text-muted-foreground">
-              {accessSummary(role, lessonAccess, billing, lang)}
-            </p>
-          </div>
-
-        </CardContent>
-      </Fold>
-
-      {/* Always on view, the same rows on every site's Settings. The Stripe
-          portal opens for any account (card, receipts, cancel). */}
+      {/* The Stripe portal opens for any account (card, receipts, cancel). */}
       <div className="flex flex-col gap-2">
+        <Button
+          variant="outline"
+          className="h-12 w-full justify-between"
+          onClick={() => setPage("preferences")}
+        >
+          {t("Preferences")}
+          <span aria-hidden>›</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="h-12 w-full justify-between"
+          onClick={() => setPage("account")}
+        >
+          {t("Account")}
+          <span aria-hidden>›</span>
+        </Button>
         <Button
           variant="outline"
           className="h-12 w-full justify-start"
@@ -202,10 +230,12 @@ function PreferencesCard() {
   const dark = prefs.theme === "dark";
 
   return (
-    <Fold
-      title={t("Preferences")}
-      description={t("These follow you to the home, lessons and flashcards sites too.")}
-    >
+    <Card>
+      <CardHeader>
+        <CardDescription>
+          {t("These follow you to the home, lessons and flashcards sites too.")}
+        </CardDescription>
+      </CardHeader>
       <CardContent className="flex flex-col divide-y">
         <div className="flex items-center justify-between gap-4 py-3">
           <label htmlFor="site-language" className="text-sm font-medium">
@@ -283,34 +313,6 @@ function PreferencesCard() {
           </select>
         </div>
       </CardContent>
-    </Fold>
-  );
-}
-
-/** A Settings card folded to its title, so the page stays short. */
-function Fold({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card>
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-          <CardHeader className="flex-1">
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </CardHeader>
-          <span aria-hidden className="pr-6 text-muted-foreground transition-transform group-open:rotate-90">
-            ▸
-          </span>
-        </summary>
-        {children}
-      </details>
     </Card>
   );
 }

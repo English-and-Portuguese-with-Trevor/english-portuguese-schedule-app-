@@ -32,6 +32,9 @@ beforeEach(() => {
   delete document.documentElement.dataset.theme;
 });
 
+// Settings is a menu: open one of its pages.
+const openPage = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
+
 describe("AccountSettings", () => {
   it("puts Manage subscription next to Delete account for subscribers", () => {
     render(
@@ -49,10 +52,11 @@ describe("AccountSettings", () => {
     expect(
       screen.getByRole("button", { name: "Delete account" }),
     ).toBeInTheDocument();
+    openPage("Account");
     expect(screen.getByText(/Renews on October 27, 2026/)).toBeInTheDocument();
   });
 
-  it("folds Preferences and Account to their titles", () => {
+  it("is a short menu; Preferences opens its own page with nothing else under it", () => {
     render(
       <AccountSettings
         name="Ana"
@@ -62,13 +66,18 @@ describe("AccountSettings", () => {
         billing={null}
       />,
     );
-    const folds = [...document.querySelectorAll("details")];
-    expect(
-      folds.map((d) => [d.querySelector("summary h3, summary [class*=font-semibold]")?.textContent, d.open]),
-    ).toEqual([
-      ["Preferences", false],
-      ["Account", false],
+    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "Preferences›",
+      "Account›",
+      "Manage subscription",
+      "Delete account",
+      "Log out",
     ]);
+    openPage("Preferences");
+    expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete account" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Settings/ }));
+    expect(screen.getByRole("button", { name: "Delete account" })).toBeInTheDocument();
   });
 
   it("keeps Manage subscription, Delete account and Log out on view for every account", () => {
@@ -82,8 +91,9 @@ describe("AccountSettings", () => {
       />,
     );
     for (const name of ["Manage subscription", "Delete account", "Log out"]) {
-      expect(screen.getByRole("button", { name }).closest("details")).toBeNull();
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
+    openPage("Account");
     expect(screen.getByText(/Student access from Trevor/)).toBeInTheDocument();
   });
 
@@ -158,6 +168,7 @@ describe("Preferences", () => {
   it("shows the saved dark mode choice from the shared cookie", async () => {
     document.cookie = `ept-prefs=${encodeURIComponent('{"theme":"dark"}')}; Path=/`;
     renderSettings();
+    openPage("Preferences");
     await waitFor(() =>
       expect(screen.getByRole("switch", { name: "Dark mode" })).toBeChecked(),
     );
@@ -165,6 +176,7 @@ describe("Preferences", () => {
 
   it("turns on dark mode, saves the cookie and the profile", async () => {
     renderSettings();
+    openPage("Preferences");
     fireEvent.click(screen.getByRole("switch", { name: "Dark mode" }));
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(decodeURIComponent(document.cookie)).toContain('"theme":"dark"');
@@ -175,6 +187,7 @@ describe("Preferences", () => {
 
   it("saves the language being learned", async () => {
     renderSettings();
+    openPage("Preferences");
     fireEvent.change(screen.getByLabelText("I'm learning"), {
       target: { value: "English" },
     });
@@ -198,6 +211,7 @@ describe("Preferences", () => {
         billing={null}
       />,
     );
+    openPage("Preferences");
     fireEvent.change(screen.getByLabelText("Site language"), {
       target: { value: "es" },
     });
@@ -221,6 +235,7 @@ describe("Preferences", () => {
       </SiteLanguageProvider>,
     );
     expect(screen.getByRole("heading", { name: "Paramètres" })).toBeInTheDocument();
+    openPage("Compte");
     expect(screen.getByText(/Accès élève offert par Trevor/)).toBeInTheDocument();
   });
 });
