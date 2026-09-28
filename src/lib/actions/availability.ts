@@ -26,6 +26,9 @@ export async function createAvailabilityRule(input: {
   slotDurationMinutes: number;
   timezone: string;
 }): Promise<ActionResult> {
+  if (!Intl.supportedValuesOf("timeZone").includes(input.timezone)) {
+    return { error: "Pick a time zone from the list." };
+  }
   const supabase = await requireAdmin();
   const {
     data: { user },

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useSyncExternalStore, useTransition } from "react";
 
 import {
   createAvailabilityRule,
@@ -21,7 +22,28 @@ import {
 } from "@/components/ui/select";
 import { DAY_NAMES, type AvailabilityRule } from "@/lib/types";
 
+// Where Trevor and his students are; this device's zone and a rule's own
+// zone are added when they're not here.
+const COMMON_TIME_ZONES = [
+  "America/Denver",
+  "America/Phoenix",
+  "America/Los_Angeles",
+  "America/Chicago",
+  "America/New_York",
+  "America/Sao_Paulo",
+  "America/Manaus",
+  "Europe/Lisbon",
+  "Europe/London",
+  "Europe/Madrid",
+  "Europe/Paris",
+  "UTC",
+];
+
+const noopSubscribe = () => () => {};
+const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export function AvailabilityManager({ initialRules }: { initialRules: AvailabilityRule[] }) {
+  const router = useRouter();
   const [rules, setRules] = useState(initialRules);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +54,11 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
     slotDurationMinutes: "60",
     timezone: "America/Denver",
   });
+  // The server (UTC) doesn't know this device's zone, so it's added on the client only.
+  const deviceZone = useSyncExternalStore(noopSubscribe, deviceTimeZone, () => null);
+  const timeZones = Array.from(
+    new Set([form.timezone, ...COMMON_TIME_ZONES, ...(deviceZone ? [deviceZone] : [])]),
+  );
 
   function handleCreate() {
     setError(null);
@@ -47,21 +74,32 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
         setError(result.error);
         return;
       }
-      window.location.reload();
+      router.refresh();
     });
   }
 
   function handleToggle(id: string, next: boolean) {
+    setError(null);
     setRules((prev) => prev.map((r) => (r.id === id ? { ...r, is_active: next } : r)));
-    startTransition(() => {
-      void toggleAvailabilityRule(id, next);
+    startTransition(async () => {
+      const result = await toggleAvailabilityRule(id, next);
+      if (result.error) {
+        setError(`Couldn't change the window: ${result.error}`);
+        setRules((prev) => prev.map((r) => (r.id === id ? { ...r, is_active: !next } : r)));
+      }
     });
   }
 
   function handleDelete(id: string) {
+    const removed = rules.find((r) => r.id === id);
+    setError(null);
     setRules((prev) => prev.filter((r) => r.id !== id));
-    startTransition(() => {
-      void deleteAvailabilityRule(id);
+    startTransition(async () => {
+      const result = await deleteAvailabilityRule(id);
+      if (result.error) {
+        setError(`Couldn't delete the window: ${result.error}`);
+        if (removed) setRules((prev) => (prev.some((r) => r.id === id) ? prev : [...prev, removed]));
+      }
     });
   }
 
@@ -81,9 +119,9 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-4">
           <div className="flex flex-col gap-2">
-            <Label>Day</Label>
+            <Label htmlFor="rule-day">Day</Label>
             <Select value={form.dayOfWeek} onValueChange={(v) => setForm({ ...form, dayOfWeek: v })}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger id="rule-day" className="w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -96,24 +134,27 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
             </Select>
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Start time</Label>
+            <Label htmlFor="rule-start">Start time</Label>
             <Input
+              id="rule-start"
               type="time"
               value={form.startTime}
               onChange={(e) => setForm({ ...form, startTime: e.target.value })}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>End time</Label>
+            <Label htmlFor="rule-end">End time</Label>
             <Input
+              id="rule-end"
               type="time"
               value={form.endTime}
               onChange={(e) => setForm({ ...form, endTime: e.target.value })}
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Duration (min)</Label>
+            <Label htmlFor="rule-duration">Duration (min)</Label>
             <Input
+              id="rule-duration"
               type="number"
               min={5}
               className="w-24"
@@ -122,12 +163,19 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Label>Timezone</Label>
-            <Input
-              className="w-52"
-              value={form.timezone}
-              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
-            />
+            <Label htmlFor="rule-timezone">Time zone</Label>
+            <Select value={form.timezone} onValueChange={(v) => setForm({ ...form, timezone: v })}>
+              <SelectTrigger id="rule-timezone" className="w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {timeZones.map((zone) => (
+                  <SelectItem key={zone} value={zone}>
+                    {zone}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button onClick={handleCreate} disabled={isPending}>
             Add window
