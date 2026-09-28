@@ -49,8 +49,9 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 ];
 
 /**
- * The account menu is the same on every site: Home, a Learn sub-menu with the
- * learning sites, Schedule a class, Settings, Log out.
+ * The account menu is the same on every site: Home, Daily puzzles (in gold, so
+ * it stands out), a Learn sub-menu with the learning sites, Schedule a class,
+ * Settings, Log out.
  */
 export const LEARN_LINKS = [
   {
@@ -67,11 +68,6 @@ export const LEARN_LINKS = [
     href: "https://activities.englishandportuguesewithtrevor.com",
     label: tr("Activities"),
     icon: Dumbbell,
-  },
-  {
-    href: "https://dailies.englishandportuguesewithtrevor.com",
-    label: tr("Daily puzzles"),
-    icon: Puzzle,
   },
 ] as const;
 
@@ -92,6 +88,15 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
           <a href={LANDING_URL}>
             <Home />
             {t("Home")}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          asChild
+          className="bg-brand-accent font-semibold text-neutral-950 focus:bg-brand-accent focus:text-neutral-950"
+        >
+          <a href="https://dailies.englishandportuguesewithtrevor.com">
+            <Puzzle />
+            {t("Daily puzzles")}
           </a>
         </DropdownMenuItem>
         <DropdownMenuSub>

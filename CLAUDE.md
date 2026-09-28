@@ -1,7 +1,7 @@
 @AGENTS.md
 
 ## Account menu, Settings, lifetime access
-- The "Hi, name" account menu (`src/components/app-shell.tsx`) is the same on every site, in this order: Home, Learn (a sub-menu: Lessons, Flashcards, Activities, Daily puzzles), Schedule a class, Settings, Log out.
+- The "Hi, name" account menu (`src/components/app-shell.tsx`) is the same on every site, in this order: Home, Daily puzzles (a gold row, kept out of Learn so it stands out), Learn (a sub-menu: Lessons, Flashcards, Activities), Schedule a class, Settings, Log out.
 - `/settings` (`src/components/account-settings.tsx`): Preferences and Account cards fold to their titles (closed by default). Account holds lesson access, then Manage subscription (Stripe portal via the `billing` edge function) next to Delete account (the `delete-account` edge function). Both functions live in the flashcards-app repo.
 - Lifetime lesson access: students qualify after three class sets (12 classes on the 4-class package, 24 on the 8-class package). Completed classes = past confirmed bookings + late cancellations + `profiles.earlier_classes`. The app only flags it (`my_class_progress` / `admin_class_progress` RPCs); Trevor gives `lifetime` by hand on the Users page. Never grant it automatically.
 

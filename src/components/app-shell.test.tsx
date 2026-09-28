@@ -67,7 +67,7 @@ describe("AppShell", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Home", "Learn", "Schedule a class", "Settings", "Log out"]);
+    ).toEqual(["Home", "Daily puzzles", "Learn", "Schedule a class", "Settings", "Log out"]);
     expect(
       within(menu).getByRole("menuitem", { name: "Home" }),
     ).toHaveAttribute("href", LANDING_URL);
@@ -75,12 +75,15 @@ describe("AppShell", () => {
       within(menu).getByRole("menuitem", { name: "Settings" }),
     ).toHaveAttribute("href", "/settings");
 
+    expect(
+      within(menu).getByRole("menuitem", { name: "Daily puzzles" }),
+    ).toHaveAttribute("href", "https://dailies.englishandportuguesewithtrevor.com");
+
     // Learn folds the learning sites into a sub-menu.
     await user.click(within(menu).getByRole("menuitem", { name: "Learn" }));
-    const puzzles = await screen.findByRole("menuitem", { name: "Daily puzzles" });
-    expect(puzzles).toHaveAttribute("href", "https://dailies.englishandportuguesewithtrevor.com");
+    await screen.findByRole("menuitem", { name: "Lessons" });
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(
-      expect.arrayContaining(["Lessons", "Flashcards", "Activities", "Daily puzzles"]),
+      expect.arrayContaining(["Lessons", "Flashcards", "Activities"]),
     );
 
     await user.click(within(menu).getByRole("menuitem", { name: "Log out" }));
