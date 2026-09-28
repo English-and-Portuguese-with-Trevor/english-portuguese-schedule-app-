@@ -118,15 +118,12 @@ export function AccountSettings({
 
       <PreferencesCard />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("Account")}</CardTitle>
-          <CardDescription>
-            {t(
-              "The same account works on the lessons, flashcards and schedule sites.",
-            )}
-          </CardDescription>
-        </CardHeader>
+      <Fold
+        title={t("Account")}
+        description={t(
+          "The same account works on the lessons, flashcards and schedule sites.",
+        )}
+      >
         <CardContent className="flex flex-col gap-5">
           <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
             <dt className="text-muted-foreground">{t("Name")}</dt>
@@ -172,7 +169,7 @@ export function AccountSettings({
             </p>
           )}
         </CardContent>
-      </Card>
+      </Fold>
 
       <DeleteAccountDialog
         open={deleteOpen}
@@ -198,13 +195,10 @@ function PreferencesCard() {
   const dark = prefs.theme === "dark";
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("Preferences")}</CardTitle>
-        <CardDescription>
-          {t("These follow you to the home, lessons and flashcards sites too.")}
-        </CardDescription>
-      </CardHeader>
+    <Fold
+      title={t("Preferences")}
+      description={t("These follow you to the home, lessons and flashcards sites too.")}
+    >
       <CardContent className="flex flex-col divide-y">
         <div className="flex items-center justify-between gap-4 py-3">
           <label htmlFor="site-language" className="text-sm font-medium">
@@ -282,6 +276,34 @@ function PreferencesCard() {
           </select>
         </div>
       </CardContent>
+    </Fold>
+  );
+}
+
+/** A Settings card folded to its title, so the page stays short. */
+function Fold({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card>
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
+          <CardHeader className="flex-1">
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <span aria-hidden className="pr-6 text-muted-foreground transition-transform group-open:rotate-90">
+            ▸
+          </span>
+        </summary>
+        {children}
+      </details>
     </Card>
   );
 }

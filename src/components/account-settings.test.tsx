@@ -52,6 +52,25 @@ describe("AccountSettings", () => {
     expect(screen.getByText(/Renews on October 27, 2026/)).toBeInTheDocument();
   });
 
+  it("folds Preferences and Account to their titles", () => {
+    render(
+      <AccountSettings
+        name="Ana"
+        email="ana@example.com"
+        role="student"
+        lessonAccess="none"
+        billing={null}
+      />,
+    );
+    const folds = [...document.querySelectorAll("details")];
+    expect(
+      folds.map((d) => [d.querySelector("summary h3, summary [class*=font-semibold]")?.textContent, d.open]),
+    ).toEqual([
+      ["Preferences", false],
+      ["Account", false],
+    ]);
+  });
+
   it("has no Manage subscription button without a subscription", () => {
     render(
       <AccountSettings
