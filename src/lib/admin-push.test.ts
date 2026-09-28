@@ -3,6 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   sendNotification: vi.fn(),
+  sendEmail: vi.fn<(email: { to: string; subject: string }) => Promise<void>>(async () => {}),
+  isGoogleConfigured: vi.fn(() => true),
+}));
+vi.mock("@/lib/google", () => ({
+  isGoogleConfigured: mocks.isGoogleConfigured,
+  sendEmail: mocks.sendEmail,
+  LESSON_TIMEZONE: "America/Denver",
 }));
 vi.mock("@/lib/integration-status", () => ({ createServerJobClient: () => ({ rpc: mocks.rpc }) }));
 vi.mock("web-push", () => ({
@@ -10,7 +17,7 @@ vi.mock("web-push", () => ({
 }));
 
 import { POST } from "@/app/api/alerts/push/route";
-import { sendAlertPushes } from "@/lib/admin-push";
+import { sendAlerts } from "@/lib/admin-push";
 import { pushMessage, type AlertRow } from "@/lib/alerts";
 
 const signup: AlertRow = { id: 1, kind: "signup", name: "Ana Pereira", email: "ana@example.com", created_at: "2026-09-28T12:00:00Z" };
@@ -26,6 +33,7 @@ function claimed(alerts: AlertRow[], subscriptions = devices) {
 
 beforeEach(() => {
   vi.stubEnv("CRON_SECRET", "s3cret");
+  vi.stubEnv("ADMIN_NOTIFY_EMAIL", "trevor@example.com");
   mocks.rpc.mockResolvedValue({ data: null, error: null });
   mocks.sendNotification.mockResolvedValue({});
 });
@@ -56,10 +64,12 @@ describe("pushMessage", () => {
   });
 });
 
-describe("sendAlertPushes", () => {
-  it("sends the claimed alerts to every device", async () => {
+describe("sendAlerts", () => {
+  it("emails the claimed alerts and pushes them to every device", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
-    expect(await sendAlertPushes("s3cret")).toEqual({ alerts: 1, sent: 2 });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: true, sent: 2 });
+    expect(mocks.sendEmail).toHaveBeenCalledOnce();
+    expect(mocks.sendEmail.mock.calls[0][0]).toMatchObject({ to: "trevor@example.com", subject: "New sign-up: Ana Pereira" });
     expect(mocks.rpc).toHaveBeenCalledWith("claim_alert_pushes", { p_secret: "s3cret" });
     const [target, payload, options] = mocks.sendNotification.mock.calls[0];
     expect(target).toEqual({ endpoint: "https://push.example/a", keys: { p256dh: "k1", auth: "a1" } });
@@ -70,22 +80,35 @@ describe("sendAlertPushes", () => {
   it("forgets devices the push service says are gone, and keeps going", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: claimed([subscriber]), error: null });
     mocks.sendNotification.mockRejectedValueOnce(Object.assign(new Error("Gone"), { statusCode: 410 }));
-    expect(await sendAlertPushes("s3cret")).toEqual({ alerts: 1, sent: 1 });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: true, sent: 1 });
     expect(mocks.rpc).toHaveBeenCalledWith("drop_push_subscription", {
       p_secret: "s3cret",
       p_endpoint: "https://push.example/a",
     });
   });
 
-  it("sends nothing without alerts, devices or keys", async () => {
+  it("sends nothing when there are no new alerts", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: claimed([]), error: null });
-    expect(await sendAlertPushes("s3cret")).toEqual({ alerts: 0, sent: 0 });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 0, emailed: false, sent: 0 });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+    expect(mocks.sendNotification).not.toHaveBeenCalled();
+  });
+
+  it("still emails without push devices or keys", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: claimed([signup], []), error: null });
-    expect(await sendAlertPushes("s3cret")).toEqual({ alerts: 1, sent: 0 });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: true, sent: 0 });
     vi.spyOn(console, "error").mockImplementation(() => {});
     mocks.rpc.mockResolvedValueOnce({ data: { ...claimed([signup]), vapid_private_key: null }, error: null });
-    expect(await sendAlertPushes("s3cret")).toEqual({ alerts: 1, sent: 0 });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: true, sent: 0 });
     expect(mocks.sendNotification).not.toHaveBeenCalled();
+    expect(mocks.sendEmail).toHaveBeenCalledTimes(2);
+  });
+
+  it("still pushes when Gmail isn't set up", async () => {
+    mocks.isGoogleConfigured.mockReturnValueOnce(false);
+    mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: false, sent: 2 });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
   });
 });
 
@@ -106,6 +129,6 @@ describe("POST /api/alerts/push", () => {
       new Request("http://x/api/alerts/push", { method: "POST", headers: { authorization: "Bearer s3cret" } }),
     );
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ alerts: 1, sent: 2 });
+    expect(await res.json()).toEqual({ alerts: 1, emailed: true, sent: 2 });
   });
 });

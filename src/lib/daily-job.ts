@@ -1,3 +1,4 @@
+import { sendAlerts } from "@/lib/admin-push";
 import { checkGoogleConnection } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
 import { emails, sendNotification } from "@/lib/notifications";
@@ -5,10 +6,13 @@ import { emails, sendNotification } from "@/lib/notifications";
 /**
  * Runs once a day (see vercel.json): checks the Google connection, sends
  * each student one reminder for lessons in the next 36 hours, and sends the
- * admin the day's agenda. The database functions it calls are guarded by
- * the same CRON_SECRET the request was authorized with.
+ * admin the day's agenda. It also sends any sign-up or subscriber alert the
+ * database's own call to /api/alerts/push missed. The database functions it
+ * calls are guarded by the same CRON_SECRET the request was authorized with.
  */
 export async function runDailyJob(secret: string) {
+  await sendAlerts(secret).catch((error) => console.error("[daily-job] alerts failed:", error));
+
   const google = await checkGoogleConnection();
   await recordGoogleStatus(google.ok, google.ok ? "Daily check passed." : google.message);
   // Leave reminders unclaimed while Google is down, so tomorrow's run can still send them.

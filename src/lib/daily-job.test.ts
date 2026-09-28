@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   recordGoogleStatus: vi.fn(async () => {}),
   sendNotification: vi.fn<(email: { to: string; subject: string } | null) => Promise<void>>(async () => {}),
   rpc: vi.fn(),
+  sendAlerts: vi.fn(async () => ({ alerts: 0, emailed: false, sent: 0 })),
 }));
+vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
 vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection }));
 vi.mock("@/lib/integration-status", () => ({
   recordGoogleStatus: mocks.recordGoogleStatus,
@@ -60,6 +62,12 @@ describe("runDailyJob", () => {
     expect(sent.map((e) => e?.to)).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(sent[0]?.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
     expect(result).toEqual({ google: "ok", reminders: 1, agenda: true });
+  });
+
+  it("sends sign-up and subscriber alerts the database's own call missed, even while Google is down", async () => {
+    mocks.checkGoogleConnection.mockResolvedValueOnce({ ok: false, message: "down" });
+    await runDailyJob("s3cret");
+    expect(mocks.sendAlerts).toHaveBeenCalledWith("s3cret");
   });
 
   it("while Google is down: records it and leaves reminders unclaimed for tomorrow", async () => {

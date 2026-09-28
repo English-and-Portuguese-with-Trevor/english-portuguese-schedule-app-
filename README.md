@@ -38,6 +38,12 @@ them the invitation, changes, cancellations, and reminders. Other
 notifications go out through that account's Gmail (see
 `src/lib/notifications.ts` for the full list).
 
+The admin gets an email for every scheduling change: the ones students make
+(new lesson, approval needed, reschedule requested or withdrawn,
+cancellations) and a copy of the ones the admin makes ("You approved", "You
+booked", "You moved", "You declined", "You cancelled"), plus new sign-ups and
+subscribers (see "Alerts" below).
+
 This needs four environment variables in Vercel (see `.env.example`). Without
 the three `GOOGLE_*` ones, bookings still work; nothing is sent.
 
@@ -84,13 +90,18 @@ them (newest first) and marks them read. The database makes them
 subscription starts (or starts again after ending; a payment retry going
 from past_due back to active is not new).
 
+Each alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
+one email), through the same Gmail connection as the booking emails.
+
 Push notifications: on `/admin/alerts`, **Turn on push notifications** on each
 phone or computer that should get them. On an iPhone, first add the site to
 the home screen (Share > Add to Home Screen) and open it from there; iOS only
 allows push for installed sites. After that, each new alert makes the
 database call `/api/alerts/push` (pg_net, with the `cron_secret` from
-`private.app_settings`), which sends it with `web-push` to every device saved
-in `push_subscriptions`. Devices the push service reports as gone are removed.
+`private.app_settings`), which emails it and sends it with `web-push` to every
+device saved in `push_subscriptions`. Devices the push service reports as gone
+are removed. If that call is missed (say, during a deploy), the daily job
+sends the alert the next morning.
 
 The push key pair (VAPID) is made by the server the first time push is turned
 on and saved in `private.app_settings` (`vapid_public_key`,

@@ -7,7 +7,10 @@
 
 ## Admin alerts (new sign-ups, new subscribers)
 - Database triggers fill `admin_alerts` (a new `profiles` row; a `billing` subscription that starts). The admin header's bell shows the unread count, `/admin/alerts` lists them and has the push on/off switch (`src/components/admin/push-toggle.tsx`, service worker `public/sw.js`).
-- Push goes DB (pg_net) -> `/api/alerts/push` (Bearer `CRON_SECRET`) -> `web-push` (`src/lib/admin-push.ts`). The VAPID keys live in `private.app_settings`, made once by the server; never replace them. See the README's "Alerts" section. Admin-only, so English only.
+- Every alert is emailed to `ADMIN_NOTIFY_EMAIL` and pushed: DB (pg_net) -> `/api/alerts/push` (Bearer `CRON_SECRET`) -> `emails.adminAlerts` + `web-push` (`src/lib/admin-push.ts`); the daily job sends any the DB call missed. The VAPID keys live in `private.app_settings`, made once by the server; never replace them. See the README's "Alerts" section. Admin-only, so English only.
+
+## Admin emails
+Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): the students' changes, and a copy of his own ("You approved", "You booked", "You moved", "You declined", "You cancelled"). A new scheduling action needs both its student email and an admin email.
 
 ## Dark mode and shared preferences
 - Dark mode and the language being learned are shared by all four sites through the `ept-prefs` cookie (`src/lib/prefs.ts`, same logic as `prefs.js` in the other repos; kept through log out). `THEME_SCRIPT` in the root layout's `<head>` sets `<html data-theme="dark">` before paint; don't read cookies in the root layout (that would stop static pages from prerendering).

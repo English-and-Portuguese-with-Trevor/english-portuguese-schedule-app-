@@ -160,22 +160,25 @@ describe("a student booking", () => {
 });
 
 describe("approval", () => {
-  it("creates the Meet event and emails the student the link", async () => {
+  it("creates the Meet event, emails the student the link, and copies the admin", async () => {
     await afterApproval(supabase, lesson);
 
     expect(google.createLessonEvent).toHaveBeenCalledOnce();
-    expect(sentTo()).toEqual(["ana@example.com"]);
-    const [email] = sentEmails();
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
+    const [email, admin] = sentEmails();
     expect(email.subject).toBe("Lesson confirmed: Mon, Sep 28, 2:30 PM");
     expect(email.text).toContain("https://meet.google.com/abc-defg-hij");
+    expect(admin.subject).toBe("You approved: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    expect(admin.text).toContain("https://meet.google.com/abc-defg-hij");
   });
 });
 
 describe("admin booking a student in", () => {
-  it("creates the event; the calendar invitation is the only notice", async () => {
+  it("creates the event (the student's notice) and copies the admin", async () => {
     await afterAdminBooking(supabase, lesson);
     expect(google.createLessonEvent).toHaveBeenCalledOnce();
-    expect(google.sendEmail).not.toHaveBeenCalled();
+    expect(sentTo()).toEqual(["trevor@example.com"]);
+    expect(subjects()).toEqual(["You booked: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
   });
 });
 
@@ -196,16 +199,22 @@ describe("cancellation", () => {
     expect(subjects()).toEqual(["Request withdrawn: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
   });
 
-  it("by the admin declining a request: tells the student", async () => {
+  it("by the admin declining a request: tells the student and copies the admin", async () => {
     await afterCancellation(lesson, { by: "admin", wasPending: true, late: false, eventId: null });
-    expect(sentTo()).toEqual(["ana@example.com"]);
-    expect(subjects()).toEqual(["Lesson request not available: Mon, Sep 28, 2:30 PM"]);
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toEqual([
+      "Lesson request not available: Mon, Sep 28, 2:30 PM",
+      "You declined: Ana Pereira, Mon, Sep 28, 2:30 PM",
+    ]);
   });
 
-  it("by the admin cancelling a confirmed lesson: removes the event and tells the student", async () => {
+  it("by the admin cancelling a confirmed lesson: removes the event, tells the student, copies the admin", async () => {
     await afterCancellation(lesson, { by: "admin", wasPending: false, late: false, eventId: "evt1" });
     expect(google.deleteLessonEvent).toHaveBeenCalledWith("evt1");
-    expect(subjects()).toEqual(["Lesson cancelled: Mon, Sep 28, 2:30 PM"]);
+    expect(subjects()).toEqual([
+      "Lesson cancelled: Mon, Sep 28, 2:30 PM",
+      "You cancelled: Ana Pereira, Mon, Sep 28, 2:30 PM",
+    ]);
   });
 });
 
@@ -221,7 +230,7 @@ describe("failure handling", () => {
     google.createLessonEvent.mockRejectedValueOnce(new Error("Google is down"));
     await expect(afterApproval(supabase, lesson)).resolves.toBeUndefined();
     expect(rpc).not.toHaveBeenCalled();
-    expect(sentTo()).toEqual(["ana@example.com"]);
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(console.error).toHaveBeenCalled();
   });
 
@@ -287,9 +296,11 @@ describe("reschedules", () => {
     expect(google.createLessonEvent).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith({ google_event_id: "evt-old", meet_link: "https://meet.google.com/abc-defg-hij" });
     expect(updateEq).toHaveBeenCalledWith("id", "b2");
-    const [email] = sentEmails();
+    const [email, admin] = sentEmails();
     expect(email.subject).toBe("Lesson moved: Wed, Sep 30, 3:00 PM");
     expect(email.text).toContain("Previously: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
+    expect(admin.subject).toBe("You moved: Ana Pereira, Wed, Sep 30, 3:00 PM");
+    expect(admin.text).toContain("Previously: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
   });
 
   it("approval creates a new event if the original never had one", async () => {
@@ -299,15 +310,43 @@ describe("reschedules", () => {
 
   it("declining keeps the original lesson and says so", async () => {
     await afterCancellation(request, { by: "admin", wasPending: true, late: false, eventId: null });
-    const [email] = sentEmails();
+    const [email, admin] = sentEmails();
     expect(email.subject).toBe("Reschedule not available: Wed, Sep 30, 3:00 PM");
     expect(email.text).toContain("Your lesson stays as it was.");
+    expect(admin.subject).toBe("You declined a reschedule: Ana Pereira, Wed, Sep 30, 3:00 PM");
+    expect(admin.text).toContain("Their lesson: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
     expect(google.deleteLessonEvent).not.toHaveBeenCalled();
   });
 
   it("a withdrawn request tells the admin, not as a cancelled lesson", async () => {
     await afterCancellation(request, { by: "student", wasPending: true, late: false, eventId: null });
     expect(subjects()).toEqual(["Reschedule withdrawn: Ana Pereira, Wed, Sep 30, 3:00 PM"]);
+  });
+});
+
+describe("sign-up and subscriber alerts", () => {
+  const signup = { id: 1, kind: "signup" as const, name: "Ana Pereira", email: "ana@example.com", created_at: "2026-09-28T18:00:00Z" };
+  const subscriber = { id: 2, kind: "subscriber" as const, name: "Bo Silva", email: "bo@example.com", created_at: "2026-09-28T18:05:00Z" };
+
+  it("emails one alert on its own", () => {
+    const email = emails.adminAlerts([subscriber])!;
+    expect(email.to).toBe("trevor@example.com");
+    expect(email.subject).toBe("New subscriber: Bo Silva");
+    expect(email.text).toContain("bo@example.com");
+    expect(email.text).toContain("/admin/alerts");
+  });
+
+  it("lists several alerts in one email", () => {
+    const email = emails.adminAlerts([signup, subscriber])!;
+    expect(email.subject).toBe("2 new alerts");
+    expect(email.text).toContain("New subscribers");
+    expect(email.text).toContain("New sign-ups");
+    expect(email.text).toContain("Ana Pereira");
+  });
+
+  it("sends nothing without an admin address", () => {
+    vi.stubEnv("ADMIN_NOTIFY_EMAIL", "");
+    expect(emails.adminAlerts([signup])).toBeNull();
   });
 });
 

@@ -1,13 +1,16 @@
 import webpush from "web-push";
 
 import { pushMessage, type AlertRow } from "@/lib/alerts";
+import { isGoogleConfigured } from "@/lib/google";
 import { createServerJobClient } from "@/lib/integration-status";
+import { emails, sendNotification } from "@/lib/notifications";
 
 /**
- * Push notifications to the admin for new sign-ups and new subscribers.
- * The database makes the alerts (see the admin_alerts migration) and asks
- * /api/alerts/push to send them; the devices and the VAPID keys come from
- * claim_alert_pushes, guarded by CRON_SECRET.
+ * Email and push notifications to the admin for new sign-ups and new
+ * subscribers. The database makes the alerts (see the admin_alerts
+ * migration) and asks /api/alerts/push to send them; the daily job sends any
+ * it missed. The devices and the VAPID keys come from claim_alert_pushes,
+ * guarded by CRON_SECRET.
  */
 
 type PushSubscriptionRow = { endpoint: string; p256dh: string; auth: string };
@@ -21,18 +24,30 @@ type Claimed = {
 
 export const VAPID_SUBJECT = "mailto:englishportuguesewithtrevor@gmail.com";
 
-/** Sends every alert not pushed yet to every admin device. Never throws for one bad device. */
-export async function sendAlertPushes(secret: string) {
+/**
+ * Emails and pushes every alert not sent yet. Claiming marks them sent
+ * first, so two calls at once never send one twice. Never throws for one bad
+ * device or a failed email (those are logged).
+ */
+export async function sendAlerts(secret: string) {
   const supabase = createServerJobClient();
   const { data, error } = await supabase.rpc("claim_alert_pushes", { p_secret: secret });
   if (error) throw new Error(`claim_alert_pushes: ${error.message}`);
   const claimed = data as unknown as Claimed;
+  if (!claimed.alerts.length) return { alerts: 0, emailed: false, sent: 0 };
 
-  if (!claimed.alerts.length || !claimed.subscriptions.length) return { alerts: claimed.alerts.length, sent: 0 };
+  const email = isGoogleConfigured() ? emails.adminAlerts(claimed.alerts) : null;
+  const [sent] = await Promise.all([pushAlerts(secret, claimed), sendNotification(email)]);
+  return { alerts: claimed.alerts.length, emailed: email !== null, sent };
+}
+
+async function pushAlerts(secret: string, claimed: Claimed) {
+  if (!claimed.subscriptions.length) return 0;
   if (!claimed.vapid_public_key || !claimed.vapid_private_key) {
     console.error("[alerts] no push keys yet; turn push on from /admin/alerts");
-    return { alerts: claimed.alerts.length, sent: 0 };
+    return 0;
   }
+  const supabase = createServerJobClient();
 
   const payload = JSON.stringify(pushMessage(claimed.alerts));
   const options = {
@@ -65,7 +80,7 @@ export async function sendAlertPushes(secret: string) {
       }
     }),
   );
-  return { alerts: claimed.alerts.length, sent };
+  return sent;
 }
 
 /** Makes a push key pair and saves it, unless one is saved already (set_vapid_keys never replaces one). */
