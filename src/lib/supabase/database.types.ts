@@ -12,6 +12,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_alerts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: number
+          kind: "signup" | "subscriber"
+          name: string | null
+          pushed_at: string | null
+          read_at: string | null
+          user_id: string | null
+        }
+        Insert: never
+        Update: { read_at?: string | null }
+        Relationships: []
+      }
       availability_rules: {
         Row: {
           created_at: string
@@ -383,6 +398,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_alert_pushes: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      delete_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      drop_push_subscription: {
+        Args: { p_endpoint: string; p_secret: string }
+        Returns: undefined
+      }
+      save_push_subscription: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_user_agent?: string }
+        Returns: undefined
+      }
+      set_vapid_keys: {
+        Args: { p_private: string; p_public: string; p_secret: string }
+        Returns: undefined
+      }
+      vapid_public_key: {
+        Args: never
+        Returns: string | null
+      }
       admin_class_progress: {
         Args: never
         Returns: {

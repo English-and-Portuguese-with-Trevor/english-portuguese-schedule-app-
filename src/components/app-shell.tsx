@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Bell,
   BookOpen,
   CalendarClock,
   CalendarPlus,
@@ -135,6 +136,7 @@ export function AppShell({
   learningLanguage = null,
   siteLanguage = "en",
   profileSiteLanguage = null,
+  unreadAlerts = 0,
   children,
 }: {
   role: Role;
@@ -146,6 +148,8 @@ export function AppShell({
   /** The language to show the site in (see i18n/server.ts). */
   siteLanguage?: SiteLanguage;
   profileSiteLanguage?: string | null;
+  /** Admins only: new sign-ups and subscribers not seen yet (the bell's number). */
+  unreadAlerts?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -172,7 +176,27 @@ export function AppShell({
               English <em className="text-brand-accent">&amp;</em> Portuguese
               with Trevor
             </a>
-            <AccountMenu fullName={fullName} email={email} isAdmin={isAdmin} />
+            <div className="flex shrink-0 items-center gap-2">
+              {isAdmin && (
+                <Link
+                  href="/admin/alerts"
+                  aria-label={unreadAlerts ? `Alerts, ${unreadAlerts} new` : "Alerts"}
+                  aria-current={pathname === "/admin/alerts" ? "page" : undefined}
+                  className="relative rounded-full p-2 text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <Bell className="size-5" aria-hidden />
+                  {unreadAlerts > 0 && (
+                    <span
+                      aria-hidden
+                      className="absolute -top-0.5 -right-0.5 min-w-5 rounded-full bg-destructive px-1 text-center text-[11px] leading-5 font-semibold text-destructive-foreground"
+                    >
+                      {unreadAlerts > 99 ? "99+" : unreadAlerts}
+                    </span>
+                  )}
+                </Link>
+              )}
+              <AccountMenu fullName={fullName} email={email} isAdmin={isAdmin} />
+            </div>
           </div>
           {isAdmin && (
             // Wide screens: a tab row under the header. Phones use the bottom bar below.

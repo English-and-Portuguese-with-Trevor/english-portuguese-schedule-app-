@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getSiteLanguage } from "@/i18n/server";
 import { TimezoneSync } from "@/components/timezone-sync";
+import { unreadAlertCount } from "@/lib/alerts";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminLayout({
@@ -35,6 +36,7 @@ export default async function AdminLayout({
       learningLanguage={profile.learning_language}
       siteLanguage={await getSiteLanguage(profile.site_language)}
       profileSiteLanguage={profile.site_language}
+      unreadAlerts={await unreadAlertCount(supabase, "admin")}
     >
       <TimezoneSync saved={profile.timezone} />
       {children}

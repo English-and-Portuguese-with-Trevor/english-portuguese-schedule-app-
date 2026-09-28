@@ -468,6 +468,65 @@ begin
   if (select timezone from public.profiles where id = v_s) <> 'Europe/Lisbon' then raise exception 'FAIL: set_my_timezone'; end if;
 end $$;
 
+-- Admin alerts: new sign-ups and new subscribers
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_a uuid := gen_random_uuid();
+  v_ok boolean;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-alert-student@example.com', '{"full_name":"Alert Student"}', 'authenticated', 'authenticated'),
+    (v_a, 'db-test-alert-admin@example.com', '{"full_name":"Alert Admin"}', 'authenticated', 'authenticated');
+  update public.profiles set role = 'admin' where id = v_a;
+
+  if not exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'signup'
+                 and name = 'Alert Student' and email = 'db-test-alert-student@example.com') then
+    raise exception 'FAIL: a new account makes a sign-up alert';
+  end if;
+
+  insert into public.billing (user_id, stripe_customer_id, status) values (v_s, 'cus_db_test_alert', 'incomplete');
+  update public.billing set status = 'active' where user_id = v_s;
+  update public.billing set status = 'past_due' where user_id = v_s;
+  update public.billing set status = 'active' where user_id = v_s;
+  if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'subscriber') <> 1 then
+    raise exception 'FAIL: one subscriber alert when a subscription starts, none for a payment retry';
+  end if;
+  update public.billing set status = 'canceled' where user_id = v_s;
+  update public.billing set status = 'active' where user_id = v_s;
+  if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'subscriber') <> 2 then
+    raise exception 'FAIL: subscribing again after canceling makes a new alert';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  if exists (select 1 from public.admin_alerts) then raise exception 'FAIL: students cannot read alerts'; end if;
+  v_ok := false; begin perform public.save_push_subscription('https://push.example/x', 'k', 'a'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot sign up for alert pushes'; end if;
+  v_ok := false; begin perform public.vapid_public_key(); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: only admins get the push key'; end if;
+  v_ok := false; begin perform public.claim_alert_pushes('wrong'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: claiming pushes needs the job secret'; end if;
+  v_ok := false; begin perform public.set_vapid_keys('wrong', 'p', 'q'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: saving push keys needs the job secret'; end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated')::text, true);
+  if not exists (select 1 from public.admin_alerts where user_id = v_s) then raise exception 'FAIL: admins read alerts'; end if;
+  update public.admin_alerts set read_at = now() where user_id = v_s;
+  v_ok := false; begin update public.admin_alerts set kind = 'signup' where user_id = v_s; exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: admins can only mark alerts read'; end if;
+  perform public.save_push_subscription('https://push.example/db-test', 'k', 'a');
+  reset role;
+  if (select count(*) from public.admin_alerts where user_id = v_s and read_at is null) <> 0 then raise exception 'FAIL: admins mark alerts read'; end if;
+  if not exists (select 1 from public.push_subscriptions where endpoint = 'https://push.example/db-test' and user_id = v_a) then
+    raise exception 'FAIL: admins save push devices';
+  end if;
+
+  delete from auth.users where id = v_s;
+  if exists (select 1 from public.admin_alerts where user_id = v_s) then raise exception 'FAIL: deleting an account deletes its alerts'; end if;
+end $$;
+
 select 'ALL DATABASE TESTS PASSED' as result;
 
 rollback;

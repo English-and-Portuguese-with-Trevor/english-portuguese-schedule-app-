@@ -75,6 +75,28 @@ Supabase. To rotate it, generate a new value and update both:
 update private.app_settings set value = '<new secret>' where key = 'cron_secret';
 ```
 
+## Alerts: new sign-ups and new subscribers
+
+The bell in the admin header counts alerts not seen yet; `/admin/alerts` lists
+them (newest first) and marks them read. The database makes them
+(`supabase/migrations/20260928093244_admin_alerts.sql`): a trigger on
+`profiles` for every new account, and one on `billing` when a Stripe
+subscription starts (or starts again after ending; a payment retry going
+from past_due back to active is not new).
+
+Push notifications: on `/admin/alerts`, **Turn on push notifications** on each
+phone or computer that should get them. On an iPhone, first add the site to
+the home screen (Share > Add to Home Screen) and open it from there; iOS only
+allows push for installed sites. After that, each new alert makes the
+database call `/api/alerts/push` (pg_net, with the `cron_secret` from
+`private.app_settings`), which sends it with `web-push` to every device saved
+in `push_subscriptions`. Devices the push service reports as gone are removed.
+
+The push key pair (VAPID) is made by the server the first time push is turned
+on and saved in `private.app_settings` (`vapid_public_key`,
+`vapid_private_key`); nothing needs setting in Vercel beyond `CRON_SECRET`.
+Don't replace the keys: every device would have to turn push on again.
+
 ## Tests
 
 ```bash
@@ -94,8 +116,10 @@ npm run test:watch   # rerun on save
   cancellations list.
 - `src/lib/notifications.test.ts` and `src/lib/google.test.ts`: which emails
   and calendar events each booking change produces (Google is stubbed out).
-- `src/components/app-shell.test.tsx`: the header, admin navigation, and
-  settings menu.
+- `src/components/app-shell.test.tsx`: the header, admin navigation, the
+  alerts bell, and settings menu.
+- `src/lib/admin-push.test.ts`: the alert push messages and `/api/alerts/push`
+  (web-push is stubbed out).
 
 ### Database tests
 

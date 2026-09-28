@@ -32,6 +32,7 @@
     "react-dom": "19.2.8",
     "react-hook-form": "^7.88.0",
     "tailwind-merge": "^3.7.0",
+    "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -43,6 +44,7 @@
     "@types/node": "^22.20.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "jsdom": "^30.1.1",

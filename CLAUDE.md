@@ -5,6 +5,10 @@
 - `/settings` (`src/components/account-settings.tsx`): lesson access, then Manage subscription (Stripe portal via the `billing` edge function) next to Delete account (the `delete-account` edge function). Both functions live in the flashcards-app repo.
 - Lifetime lesson access: students qualify after three class sets (12 classes on the 4-class package, 24 on the 8-class package). Completed classes = past confirmed bookings + late cancellations + `profiles.earlier_classes`. The app only flags it (`my_class_progress` / `admin_class_progress` RPCs); Trevor gives `lifetime` by hand on the Users page. Never grant it automatically.
 
+## Admin alerts (new sign-ups, new subscribers)
+- Database triggers fill `admin_alerts` (a new `profiles` row; a `billing` subscription that starts). The admin header's bell shows the unread count, `/admin/alerts` lists them and has the push on/off switch (`src/components/admin/push-toggle.tsx`, service worker `public/sw.js`).
+- Push goes DB (pg_net) -> `/api/alerts/push` (Bearer `CRON_SECRET`) -> `web-push` (`src/lib/admin-push.ts`). The VAPID keys live in `private.app_settings`, made once by the server; never replace them. See the README's "Alerts" section. Admin-only, so English only.
+
 ## Dark mode and shared preferences
 - Dark mode and the language being learned are shared by all four sites through the `ept-prefs` cookie (`src/lib/prefs.ts`, same logic as `prefs.js` in the other repos; kept through log out). `THEME_SCRIPT` in the root layout's `<head>` sets `<html data-theme="dark">` before paint; don't read cookies in the root layout (that would stop static pages from prerendering).
 - When logged in the profile (`theme`, `learning_language`) wins: `AppShell` renders `PrefsSync`, which copies it to the cookie (`src/lib/preferences.ts`). Settings has the Dark mode switch and "I'm learning"; the booking form's lesson language defaults to it when the student has no earlier booking.

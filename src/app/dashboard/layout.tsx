@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
 import { getSiteLanguage } from "@/i18n/server";
+import { unreadAlertCount } from "@/lib/alerts";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types";
 
@@ -33,6 +34,7 @@ export default async function DashboardLayout({
       learningLanguage={profile.learning_language}
       siteLanguage={await getSiteLanguage(profile.site_language)}
       profileSiteLanguage={profile.site_language}
+      unreadAlerts={await unreadAlertCount(supabase, profile.role)}
     >
       {children}
     </AppShell>

@@ -86,4 +86,18 @@ describe("AppShell", () => {
     await user.click(within(menu).getByRole("menuitem", { name: "Log out" }));
     expect(logout).toHaveBeenCalledOnce();
   });
+
+  it("shows admins a bell with the number of new alerts", () => {
+    render(
+      <AppShell role="admin" fullName="Trevor List" email="trevor@example.com" unreadAlerts={3}>
+        <p>Page content</p>
+      </AppShell>,
+    );
+    expect(screen.getByRole("link", { name: "Alerts, 3 new" })).toHaveAttribute("href", "/admin/alerts");
+  });
+
+  it("shows students no bell", () => {
+    renderShell("student");
+    expect(screen.queryByRole("link", { name: /^Alerts/ })).not.toBeInTheDocument();
+  });
 });
