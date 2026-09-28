@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { accessSummary, hasSubscription } from "@/lib/account-summary";
+import { accessSummary } from "@/lib/account-summary";
 
 const sub = {
   status: "active",
@@ -34,11 +34,6 @@ describe("accessSummary", () => {
     expect(
       accessSummary("student", "subscriber", { ...sub, status: "past_due" }),
     ).toMatch(/update your card/);
-  });
-
-  it("knows when there is a subscription to manage", () => {
-    expect(hasSubscription(sub)).toBe(true);
-    expect(hasSubscription(null)).toBe(false);
   });
 
   it("writes the summary and dates in the site language", () => {

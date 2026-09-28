@@ -71,7 +71,7 @@ describe("AccountSettings", () => {
     ]);
   });
 
-  it("has no Manage subscription button without a subscription", () => {
+  it("keeps Manage subscription, Delete account and Log out on view for every account", () => {
     render(
       <AccountSettings
         name="Ana"
@@ -81,9 +81,9 @@ describe("AccountSettings", () => {
         billing={null}
       />,
     );
-    expect(
-      screen.queryByRole("button", { name: "Manage subscription" }),
-    ).not.toBeInTheDocument();
+    for (const name of ["Manage subscription", "Delete account", "Log out"]) {
+      expect(screen.getByRole("button", { name }).closest("details")).toBeNull();
+    }
     expect(screen.getByText(/Student access from Trevor/)).toBeInTheDocument();
   });
 

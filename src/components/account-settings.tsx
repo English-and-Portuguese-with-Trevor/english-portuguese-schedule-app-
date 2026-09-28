@@ -24,7 +24,6 @@ import { LANDING_URL } from "@/components/app-shell";
 import { logout } from "@/lib/actions/auth";
 import {
   accessSummary,
-  hasSubscription,
   type BillingSummary,
 } from "@/lib/account-summary";
 import { useSiteLanguage, useT } from "@/i18n/client";
@@ -139,37 +138,45 @@ export function AccountSettings({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {hasSubscription(billing) && (
-              <Button onClick={manageSubscription} disabled={opening}>
-                {opening ? t("Opening…") : t("Manage subscription")}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="text-destructive"
-              onClick={() => setDeleteOpen(true)}
-            >
-              {t("Delete account")}
-            </Button>
-            <Button variant="outline" onClick={() => void logout()}>
-              {t("Log out")}
-            </Button>
-          </div>
-          {hasSubscription(billing) && (
-            <p className="-mt-3 text-xs text-muted-foreground">
-              {t(
-                "Change your card, see receipts, or cancel. Handled securely by Stripe.",
-              )}
-            </p>
-          )}
-          {billingError && (
-            <p role="alert" className="text-sm text-destructive">
-              {t(billingError)}
-            </p>
-          )}
         </CardContent>
       </Fold>
+
+      {/* Always on view, the same rows on every site's Settings. The Stripe
+          portal opens for any account (card, receipts, cancel). */}
+      <div className="flex flex-col gap-2">
+        <Button
+          variant="outline"
+          className="h-12 w-full justify-start"
+          onClick={manageSubscription}
+          disabled={opening}
+        >
+          {opening ? t("Opening…") : t("Manage subscription")}
+        </Button>
+        <Button
+          variant="outline"
+          className="h-12 w-full justify-start text-destructive"
+          onClick={() => setDeleteOpen(true)}
+        >
+          {t("Delete account")}
+        </Button>
+        <Button
+          variant="outline"
+          className="h-12 w-full justify-start"
+          onClick={() => void logout()}
+        >
+          {t("Log out")}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "Change your card, see receipts, or cancel. Handled securely by Stripe.",
+          )}
+        </p>
+        {billingError && (
+          <p role="alert" className="text-sm text-destructive">
+            {t(billingError)}
+          </p>
+        )}
+      </div>
 
       <DeleteAccountDialog
         open={deleteOpen}

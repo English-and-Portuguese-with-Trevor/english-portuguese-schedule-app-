@@ -54,11 +54,6 @@ export function accessSummary(
   );
 }
 
-/** Whether there is a Stripe subscription to manage (including an ended one, for receipts). */
-export function hasSubscription(billing: BillingSummary | null): boolean {
-  return Boolean(billing?.subscription_id);
-}
-
 export function isLiveSubscription(billing: BillingSummary | null): boolean {
   return LIVE.includes(billing?.status ?? "");
 }

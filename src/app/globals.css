@@ -28,6 +28,7 @@
   /* Landing page wordmark colors */
   --brand: #1b4332;
   --brand-accent: #c9970a;
+  --gold-text: #8a6508; /* gold lettering that reads on white */
 }
 
 @theme inline {
@@ -58,6 +59,7 @@
   --font-display: var(--font-dm-serif-display);
   --color-brand: var(--brand);
   --color-brand-accent: var(--brand-accent);
+  --color-gold-text: var(--gold-text);
 }
 
 /* Dark palette: the same forest greens as the other sites' dark mode. */
@@ -65,6 +67,7 @@
   color-scheme: dark;
   --brand: #8fd3ae;
   --brand-accent: #e4b84d;
+  --gold-text: #e4b84d;
   --background: #111915;
   --foreground: #e9efea;
   --card: #1a2520;
