@@ -26,5 +26,12 @@ Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): t
 ## DeepL translations
 DeepL translates only the lessons site's lesson text, through the shared `translate` edge function (flashcards-app repo). Every translation is saved keyed on the text alone, so nothing is paid for twice, each deploy may send at most 25,000 new characters, and Claude reviews new rows (see the lessons repo's CLAUDE.md). This site's own text is hand-written in `src/i18n/strings.ts`; don't wire DeepL into it without asking Trevor.
 
+## Keep it simple
+- Make the smallest change that does the job. No new dependency, helper, abstraction, option or setting unless this task needs it now; use what the browser, Node and the existing code already provide first.
+- Don't build for cases nobody asked for (fallbacks, flags, "future-proofing"). If the simple version leaves a real gap, say so in the reply instead of coding around it.
+- Before finishing, re-read the diff and take out anything the task didn't need.
+- Start every reply to Trevor with a fruit emoji (any fruit). It's a canary: if the fruit stops appearing, these instructions have dropped out of context, so read this file again.
+
 ## Workflow
 Trevor approved pushing straight to `main` (no branches or pull requests) for all changes. Run the tests and build first. Still ask before anything that needs a dashboard setting changed first, would log people out, or could charge anyone.
+A hook (`.claude/hooks/run-tests.sh`, wired in `.claude/settings.json`) runs the tests before every `git push` and at the end of any turn that leaves uncommitted changes; a red run blocks the push.
