@@ -22,11 +22,14 @@ do $$
 declare
   v_student uuid := gen_random_uuid();
   v_other   uuid := gen_random_uuid();
+  v_busy    uuid := gen_random_uuid();
   v_admin   uuid := gen_random_uuid();
   v_sat     date;
   v_booking uuid;
   v_pending uuid;
   v_late    uuid;
+  v_started uuid;
+  v_slot    uuid;
   v_soon    timestamptz;
   v_count   int;
   v_text    text;
@@ -49,9 +52,10 @@ begin
   values
     (v_student, 'db-test-student@example.com', '{"full_name":"Test Student"}', 'authenticated', 'authenticated'),
     (v_other,   'db-test-other@example.com',   '{"full_name":"Other Student"}', 'authenticated', 'authenticated'),
+    (v_busy,    'db-test-busy@example.com',    '{"full_name":"Busy Student"}',  'authenticated', 'authenticated'),
     (v_admin,   'db-test-admin@example.com',   '{"full_name":"Test Admin"}',   'authenticated', 'authenticated');
 
-  if (select count(*) from public.profiles where id in (v_student, v_other, v_admin) and role = 'student') <> 3 then
+  if (select count(*) from public.profiles where id in (v_student, v_other, v_busy, v_admin) and role = 'student') <> 4 then
     raise exception 'FAIL: new sign-ups get a student profile automatically';
   end if;
   update public.profiles set role = 'admin' where id = v_admin;
@@ -85,6 +89,22 @@ begin
   insert into public.bookings (session_slot_id, student_id, status)
   values ((select id from public.session_slots where start_time = now() + interval '2 hours'), v_student, 'CONFIRMED')
   returning id into v_late;
+
+  -- A confirmed class that started half an hour ago: too late to cancel.
+  insert into public.session_slots (start_time, end_time, status)
+  values (now() - interval '30 minutes', now() + interval '30 minutes', 'OPEN')
+  returning id into v_slot;
+  insert into public.bookings (session_slot_id, student_id, status)
+  values (v_slot, v_student, 'CONFIRMED')
+  returning id into v_started;
+
+  -- A student who already holds 10 upcoming classes (a month out, back to back).
+  for i in 1..10 loop
+    insert into public.session_slots (start_time, end_time, status)
+    values (now() + interval '30 days' + make_interval(hours => i), now() + interval '30 days' + make_interval(hours => i + 1), 'OPEN')
+    returning id into v_slot;
+    insert into public.bookings (session_slot_id, student_id, status) values (v_slot, v_busy, 'CONFIRMED');
+  end loop;
 
   ---------------------------------------------------------------------------
   -- As a student
@@ -195,6 +215,29 @@ begin
     raise exception 'FAIL: past times are refused (%)', v_msg;
   end if;
 
+  -- More than 60 days ahead is refused.
+  v_failed := false;
+  begin
+    perform public.request_individual_booking(v_10 + interval '70 days', v_11 + interval '70 days');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%60 days%' then
+    raise exception 'FAIL: classes more than 60 days ahead are refused (%)', v_msg;
+  end if;
+
+  -- A class that has already started can't be cancelled.
+  v_failed := false;
+  begin
+    perform public.cancel_my_booking(v_started);
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%already started%' then
+    raise exception 'FAIL: a class that has started can''t be cancelled (%)', v_msg;
+  end if;
+  if (select status from public.bookings where id = v_started) <> 'CONFIRMED' then
+    raise exception 'FAIL: a class that has started stays booked';
+  end if;
+
   -- Students cannot write slots, bookings, or availability directly.
   v_failed := false;
   begin
@@ -273,6 +316,19 @@ begin
   perform public.request_individual_booking(v_10, v_11);
 
   ---------------------------------------------------------------------------
+  -- As a student with 10 upcoming classes: no more until one is cancelled
+  ---------------------------------------------------------------------------
+  perform set_config('request.jwt.claims', json_build_object('sub', v_busy, 'role', 'authenticated')::text, true);
+  v_failed := false;
+  begin
+    perform public.request_individual_booking(v_10 + interval '14 days', v_11 + interval '14 days');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%10 upcoming classes%' then
+    raise exception 'FAIL: a student with 10 upcoming classes can''t book another (%)', v_msg;
+  end if;
+
+  ---------------------------------------------------------------------------
   -- As an admin
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
@@ -300,7 +356,7 @@ begin
   end if;
 
   select count(*) into v_count from public.bookings where student_id in (v_student, v_other);
-  if v_count < 3 then raise exception 'FAIL: admins can see every student''s bookings (saw %)', v_count; end if;
+  if v_count < 4 then raise exception 'FAIL: admins can see every student''s bookings (saw %)', v_count; end if;
 
   ---------------------------------------------------------------------------
   -- Signed out
