@@ -44,9 +44,7 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 
 /**
  * The account menu is the same on every site: the five sites, Settings, Log
- * out. Activities isn't open to students yet (see its CLAUDE.md), so it's
- * admin-only for now — remove `adminOnly` here (and in every other repo's
- * account menu) once it is.
+ * out. An entry with `adminOnly: true` is shown to admins only.
  */
 export const ACCOUNT_MENU_LINKS = [
   { href: LANDING_URL, label: tr("Home"), icon: Home, adminOnly: false },
@@ -66,7 +64,7 @@ export const ACCOUNT_MENU_LINKS = [
     href: "https://activities.englishandportuguesewithtrevor.com",
     label: tr("Activities"),
     icon: Dumbbell,
-    adminOnly: true,
+    adminOnly: false,
   },
   {
     href: "/dashboard",
