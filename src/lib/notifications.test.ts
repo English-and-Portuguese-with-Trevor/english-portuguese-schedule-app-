@@ -9,7 +9,9 @@ const google = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/google", () => ({ ...google, LESSON_TIMEZONE: "America/Denver" }));
 const recordGoogleStatus = vi.hoisted(() => vi.fn(async () => {}));
-vi.mock("@/lib/integration-status", () => ({ recordGoogleStatus }));
+// The server records Meet links with the job secret, through its own client.
+const jobRpc = vi.hoisted(() => vi.fn(async (): Promise<{ error: null | { code?: string; message?: string } }> => ({ error: null })));
+vi.mock("@/lib/integration-status", () => ({ recordGoogleStatus, createServerJobClient: () => ({ rpc: jobRpc }) }));
 
 import {
   afterAdminBooking,
@@ -45,6 +47,7 @@ const subjects = () => sentEmails().map((email) => email.subject);
 
 beforeEach(() => {
   vi.stubEnv("ADMIN_NOTIFY_EMAIL", "trevor@example.com");
+  vi.stubEnv("CRON_SECRET", "s3cret");
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -111,14 +114,37 @@ describe("a student booking", () => {
     expect(google.createLessonEvent).toHaveBeenCalledWith(
       expect.objectContaining({ bookingId: "b1", studentEmail: "ana@example.com", start: lesson.start }),
     );
+    expect(jobRpc).toHaveBeenCalledWith("set_booking_meeting", {
+      p_booking_id: "b1",
+      p_event_id: "evt1",
+      p_meet_link: "https://meet.google.com/abc-defg-hij",
+      p_secret: "s3cret",
+    });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toContain("New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    expect(subjects()).toContain("Lesson confirmed: Mon, Sep 28, 2:30 PM");
+  });
+
+  it("falls back to the older Meet-link function until the migration is applied", async () => {
+    jobRpc.mockResolvedValueOnce({ error: { code: "PGRST202", message: "Could not find the function" } });
+    await afterStudentBooking(supabase, lesson, false);
+
     expect(rpc).toHaveBeenCalledWith("set_booking_meeting", {
       p_booking_id: "b1",
       p_event_id: "evt1",
       p_meet_link: "https://meet.google.com/abc-defg-hij",
     });
+    expect(recordGoogleStatus).not.toHaveBeenCalledWith(false, expect.anything());
+  });
+
+  it("reports, but doesn't block, a Meet link it couldn't record", async () => {
+    jobRpc.mockResolvedValueOnce({ error: { code: "P0001", message: "Not allowed" } });
+    await afterStudentBooking(supabase, lesson, false);
+
+    expect(rpc).not.toHaveBeenCalled();
+    expect(recordGoogleStatus).toHaveBeenCalledWith(false, expect.stringContaining("create calendar event failed"));
     expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
-    expect(subjects()).toContain("New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM");
-    expect(subjects()).toContain("Lesson confirmed: Mon, Sep 28, 2:30 PM");
   });
 
   it("under 72 hours: no meeting yet; the student hears it's pending and the admin is asked to approve", async () => {

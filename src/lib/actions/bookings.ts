@@ -188,20 +188,9 @@ export async function requestBooking(
   const { supabase, profile } = await requireProfile();
 
   if (profile.role === "admin") {
-    const result = await bookIndividualSlot(supabase, {
-      start: new Date(startIso),
-      end: new Date(endIso),
-      studentId: profile.id,
-      status: "CONFIRMED",
-      isAdminOverride: true,
-      createdBy: profile.id,
-    });
-    if (result.error) return result;
-    const bookingId = result.bookingId!;
-    after(async () => {
-      const booking = await loadBooking(supabase, bookingId);
-      if (booking) await afterAdminBooking(supabase, booking.lesson);
-    });
+    // The dashboard calendar is read-only for the admin: booking here would
+    // make Trevor his own student. Manual bookings go through adminBookStudent.
+    return { error: "Admins book for students from the Bookings page." };
   } else {
     if (!answers?.language) return { error: tr("Please choose English or Portuguese.") };
     const whatsapp = answers.whatsapp.trim();

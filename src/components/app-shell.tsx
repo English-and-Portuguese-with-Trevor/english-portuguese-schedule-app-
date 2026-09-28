@@ -39,7 +39,7 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/admin/availability", label: "Availability", icon: CalendarClock },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/dashboard", label: "Book", icon: CalendarPlus },
+  { href: "/dashboard", label: "Calendar", icon: CalendarPlus },
 ];
 
 /**

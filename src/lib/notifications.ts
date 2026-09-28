@@ -10,7 +10,7 @@ import {
   LESSON_TIMEZONE,
   sendEmail,
 } from "@/lib/google";
-import { recordGoogleStatus } from "@/lib/integration-status";
+import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
 import type { createClient } from "@/lib/supabase/server";
 
 const SITE_URL = "https://schedule.englishandportuguesewithtrevor.com";
@@ -366,14 +366,34 @@ async function scheduleMeeting(supabase: Supabase, lesson: Lesson): Promise<stri
   await attempt("create calendar event", async () => {
     const event = await createLessonEvent({ ...lesson, studentName: lesson.studentName ?? "Student" });
     meetLink = event.meetLink;
-    const { error } = await supabase.rpc("set_booking_meeting", {
-      p_booking_id: lesson.bookingId,
-      p_event_id: event.eventId,
-      p_meet_link: event.meetLink ?? "",
-    });
-    if (error) throw error;
+    await recordMeeting(supabase, lesson.bookingId, event.eventId, event.meetLink ?? "");
   });
   return meetLink;
+}
+
+/**
+ * Records the meeting on the booking. Only the server may do this, so it
+ * proves itself with the job secret rather than the student's session.
+ */
+async function recordMeeting(supabase: Supabase, bookingId: string, eventId: string, meetLink: string) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) throw new Error("CRON_SECRET is not set, so the Meet link can't be recorded");
+  const { error } = await createServerJobClient().rpc("set_booking_meeting", {
+    p_booking_id: bookingId,
+    p_event_id: eventId,
+    p_meet_link: meetLink,
+    p_secret: secret,
+  });
+  if (!error) return;
+  // Until migration 20260928093000 is applied the database still has the
+  // older three-argument function; fall back to it. Remove once applied.
+  const missing = error.code === "PGRST202" || /could not find the function/i.test(error.message ?? "");
+  if (!missing) throw error;
+  const legacy = await (supabase.rpc as unknown as (name: string, args: Record<string, string>) => Promise<{ error: unknown }>)(
+    "set_booking_meeting",
+    { p_booking_id: bookingId, p_event_id: eventId, p_meet_link: meetLink },
+  );
+  if (legacy.error) throw legacy.error;
 }
 
 /** A student booked: confirmed right away (72h+ out) or pending approval. */

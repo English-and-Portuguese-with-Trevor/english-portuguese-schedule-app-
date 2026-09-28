@@ -162,6 +162,11 @@ export function SlotPicker({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{t("Times shown in {zone}.", { zone: tzLabel })}</p>
+      {isAdmin && (
+        // Admin-only text stays in English. The calendar is read-only for the
+        // admin; booking here would make Trevor his own student.
+        <p className="text-sm text-muted-foreground">Free times are shown. To book for a student, use Bookings › Manual booking.</p>
+      )}
 
       <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1">
         {days.map((day) => {
@@ -223,7 +228,7 @@ export function SlotPicker({
                       key={slot.start.toISOString()}
                       variant="outline"
                       size="sm"
-                      disabled={slot.blocked}
+                      disabled={slot.blocked || isAdmin}
                       aria-label={
                         showsApproval(slot)
                           ? t("{time}, needs approval", { time: formatDate(slot.start, "time", lang) })

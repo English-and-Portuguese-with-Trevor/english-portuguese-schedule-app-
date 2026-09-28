@@ -48,7 +48,7 @@ describe("AppShell", () => {
         "Availability",
         "Bookings",
         "Users",
-        "Book",
+        "Calendar",
       ]);
       expect(nav.className).not.toMatch(/overflow-x-auto/);
       expect(

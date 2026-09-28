@@ -59,6 +59,9 @@ begin
     raise exception 'FAIL: new sign-ups get a student profile automatically';
   end if;
   update public.profiles set role = 'admin' where id = v_admin;
+  -- The job secret the server uses to record Meet links (rolled back with the rest).
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+    on conflict (key) do update set value = excluded.value;
 
   update public.availability_rules set is_active = false;
   insert into public.availability_rules (day_of_week, start_time, end_time, slot_duration_minutes, timezone, created_by)
@@ -126,9 +129,19 @@ begin
     raise exception 'FAIL: a booking 72+ hours out is confirmed, not an override, and theirs (got %)', v_text;
   end if;
 
-  -- The server records the lesson's Meet link once; it can't be overwritten.
-  perform public.set_booking_meeting(v_booking, 'evt-1', 'https://meet.google.com/aaa');
-  perform public.set_booking_meeting(v_booking, 'evt-2', 'https://evil.example');
+  -- Only the server, with the job secret, records the lesson's Meet link; a
+  -- student's session can't, and it's recorded once and never overwritten.
+  v_failed := false;
+  begin
+    perform public.set_booking_meeting(v_booking, 'evt-0', 'https://meet.google.com/aaa', 'wrong-secret');
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'FAIL: recording a Meet link needs the job secret'; end if;
+  if (select google_event_id from public.bookings where id = v_booking) is not null then
+    raise exception 'FAIL: a call without the job secret must not record a Meet link';
+  end if;
+  perform public.set_booking_meeting(v_booking, 'evt-1', 'https://meet.google.com/aaa', 'test-secret');
+  perform public.set_booking_meeting(v_booking, 'evt-2', 'https://meet.google.com/bbb', 'test-secret');
   select google_event_id || ' ' || meet_link into v_text from public.bookings where id = v_booking;
   if v_text is distinct from 'evt-1 https://meet.google.com/aaa' then
     raise exception 'FAIL: a booking''s meeting is recorded once and never overwritten (got %)', v_text;
@@ -290,10 +303,15 @@ begin
   end;
   if not v_failed then raise exception 'FAIL: students cannot cancel someone else''s booking'; end if;
 
-  perform public.set_booking_meeting(v_pending, 'evt-x', 'https://evil.example');
+  v_failed := false;
+  begin
+    perform public.set_booking_meeting(v_pending, 'evt-x', 'https://evil.example', 'test-secret');
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'FAIL: only Google Meet links can be recorded'; end if;
   reset role;
   if (select meet_link from public.bookings where id = v_pending) is not null then
-    raise exception 'FAIL: students cannot set a meeting link on someone else''s booking';
+    raise exception 'FAIL: a link that isn''t Google Meet is never recorded';
   end if;
   set local role authenticated;
 

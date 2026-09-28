@@ -133,14 +133,17 @@ describe("SlotPicker", () => {
     });
   });
 
-  it("doesn't mark times as needing approval for admins, whose bookings are always confirmed", async () => {
-    const { user } = renderPicker("admin");
+  it("gives admins a read-only calendar: no approval markers, no booking dialog", async () => {
+    const { user, onBook } = renderPicker("admin");
     const soon = screen.getByRole("button", { name: "3:30 PM" });
     expect(soon).not.toHaveClass("border-dashed");
     expect(screen.queryByText(/Dashed times/)).not.toBeInTheDocument();
+    expect(screen.getByText(/To book for a student, use Bookings/)).toBeInTheDocument();
 
+    expect(soon).toBeDisabled();
     await user.click(soon);
-    expect(within(screen.getByRole("dialog")).getByText("Book this class?")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onBook).not.toHaveBeenCalled();
   });
 
   it("asks for confirmation, then books the exact hour picked", async () => {
@@ -215,14 +218,6 @@ describe("SlotPicker", () => {
       language: "ENGLISH",
       whatsapp: "+55 11 91234-5678",
     });
-  });
-
-  it("doesn't ask admins the booking questions", async () => {
-    const { user } = renderPicker("admin");
-    await user.click(screen.getByRole("button", { name: "3:30 PM" }));
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).queryByLabelText("WhatsApp number")).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Book" })).toBeEnabled();
   });
 
   it("in reschedule mode, asks no questions and makes clear the old lesson stays until approved", async () => {

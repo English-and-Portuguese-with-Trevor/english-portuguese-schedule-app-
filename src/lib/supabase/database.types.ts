@@ -451,7 +451,7 @@ export type Database = {
         Returns: string
       }
       set_booking_meeting: {
-        Args: { p_booking_id: string; p_event_id: string; p_meet_link: string }
+        Args: { p_booking_id: string; p_event_id: string; p_meet_link: string; p_secret: string }
         Returns: undefined
       }
     }
