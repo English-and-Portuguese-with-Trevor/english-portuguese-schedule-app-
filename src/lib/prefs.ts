@@ -10,12 +10,13 @@ export const PREFS_COOKIE = "ept-prefs";
 const SITE_DOMAIN = "englishandportuguesewithtrevor.com";
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
-// Languages the sites' own text is available in, with each one's own name.
+// Languages the sites' own text is available in, with each one's own name and
+// the flag shown next to it in the language menus.
 export const SITE_LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "es", label: "Español" },
-  { code: "pt", label: "Português" },
-  { code: "fr", label: "Français" },
+  { code: "en", label: "English", flag: "🇺🇸" },
+  { code: "es", label: "Español", flag: "🇲🇽" },
+  { code: "pt", label: "Português", flag: "🇧🇷" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
 ] as const;
 export type SiteLanguage = (typeof SITE_LANGUAGES)[number]["code"];
 const SITE_CODES: readonly string[] = SITE_LANGUAGES.map((l) => l.code);

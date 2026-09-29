@@ -257,7 +257,7 @@ function PreferencesCard() {
           >
             {SITE_LANGUAGES.map((l) => (
               <option key={l.code} value={l.code} lang={l.code}>
-                {l.label}
+                {l.flag} {l.label}
               </option>
             ))}
           </select>
@@ -308,8 +308,8 @@ function PreferencesCard() {
             <option value="" disabled>
               {t("Choose…")}
             </option>
-            <option value="Portuguese">{t("Portuguese")}</option>
-            <option value="English">{t("English")}</option>
+            <option value="Portuguese">🇧🇷 {t("Portuguese")}</option>
+            <option value="English">🇺🇸 {t("English")}</option>
           </select>
         </div>
       </CardContent>
