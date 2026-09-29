@@ -105,7 +105,7 @@ export default function PrivacyPage() {
             <li>
               To let Trevor know what&apos;s happening: he gets an email and a phone notification when someone
               creates an account or starts a subscription, and an email whenever a class is booked, moved or
-              cancelled.
+              canceled.
             </li>
             <li>If you give your WhatsApp number, so Trevor can contact you about your classes.</li>
           </ul>
