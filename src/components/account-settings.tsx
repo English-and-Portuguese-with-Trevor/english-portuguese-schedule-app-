@@ -32,26 +32,15 @@ import { tr } from "@/i18n/translate";
 import {
   setLearningLanguage,
   setSiteLanguage,
-  setStartPage,
   setTheme,
 } from "@/lib/preferences";
 import {
   readPrefs,
   SITE_LANGUAGES,
-  START_PAGES,
   type LearningLanguage,
   type Prefs,
   type SiteLanguage,
-  type StartPage,
 } from "@/lib/prefs";
-
-// Settings > Preferences > "Open the app on": where the installed app starts.
-const START_LABELS: Record<StartPage, string> = {
-  lessons: tr("Lessons"),
-  flashcards: tr("Flashcards"),
-  activities: tr("Activities"),
-  dailies: tr("Daily puzzles"),
-};
 import { createClient } from "@/lib/supabase/client";
 import type { LessonAccess, Role } from "@/lib/types";
 
@@ -326,31 +315,6 @@ function PreferencesCard() {
             }}
           />
         </div>
-        <div className="flex items-center justify-between gap-4 py-3">
-          <label htmlFor="start-page" className="text-sm font-medium">
-            {t("Open the app on")}
-          </label>
-          <select
-            id="start-page"
-            value={prefs.start ?? ""}
-            onChange={(e) => {
-              const start = e.target.value as StartPage;
-              setStartPage(start);
-              setPrefs((p) => ({ ...p, start }));
-            }}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          >
-            {!prefs.start && <option value="">{t("Choose…")}</option>}
-            {START_PAGES.map((p) => (
-              <option key={p} value={p}>
-                {t(START_LABELS[p])}
-              </option>
-            ))}
-          </select>
-        </div>
-        <p className="pt-3 text-sm text-muted-foreground">
-          {t("Where the app opens when started from its icon.")}
-        </p>
       </CardContent>
     </Card>
   );

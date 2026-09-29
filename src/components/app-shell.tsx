@@ -2,6 +2,7 @@
 
 import {
   Bell,
+  Check,
   BookOpen,
   CalendarClock,
   CalendarDays,
@@ -19,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 import {
@@ -34,7 +36,8 @@ import {
 import { PrefsSync } from "@/components/prefs-sync";
 import { SiteLanguageProvider, useT } from "@/i18n/client";
 import { tr, translate } from "@/i18n/translate";
-import type { SiteLanguage } from "@/lib/prefs";
+import { readPrefs, START_PAGES, type SiteLanguage, type StartPage } from "@/lib/prefs";
+import { setStartPage } from "@/lib/preferences";
 import { logout } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
@@ -72,6 +75,14 @@ export const LEARN_LINKS = [
   },
 ] as const;
 
+// "Open the app on": where the installed app starts (the shared `start` preference).
+const START_LABELS: Record<StartPage, string> = {
+  lessons: tr("Lessons"),
+  flashcards: tr("Flashcards"),
+  activities: tr("Activities"),
+  dailies: tr("Daily puzzles"),
+};
+
 function firstName(name: string | null, email: string | null) {
   // No name on the profile: the part of the email before the @ will do.
   return (name?.trim() || email?.split("@")[0] || "").split(/\s+/)[0];
@@ -80,6 +91,12 @@ function firstName(name: string | null, email: string | null) {
 function AccountMenu({ fullName, email }: { fullName: string | null; email: string | null }) {
   const first = firstName(fullName, email);
   const t = useT();
+  // The cookie is only readable in the browser; read it after hydration.
+  const [start, setStart] = useState<StartPage | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only cookie
+    setStart(readPrefs().start ?? null);
+  }, []);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="max-w-44 shrink-0 truncate rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
@@ -123,6 +140,27 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
             {t("Schedule a class")}
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <SettingsIcon />
+            {t("Open the app on")}
+            {start && <span className="ml-auto text-muted-foreground">{t(START_LABELS[start])}</span>}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            {START_PAGES.map((page) => (
+              <DropdownMenuItem
+                key={page}
+                onSelect={() => {
+                  setStartPage(page);
+                  setStart(page);
+                }}
+              >
+                {page === start ? <Check /> : <span className="size-4" />}
+                {t(START_LABELS[page])}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link href="/settings">
