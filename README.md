@@ -81,6 +81,17 @@ Supabase. To rotate it, generate a new value and update both:
 update private.app_settings set value = '<new secret>' where key = 'cron_secret';
 ```
 
+## Admin calendar
+
+`/admin/calendar` shows every class (waiting, confirmed, canceled, late
+cancellations, past ones too) and the weekly open hours, by month or by week
+(`?view=week&date=2026-09-29`), in the device's time zone. Clicking a day opens
+it: approve, decline or cancel its classes, book a student, or turn a weekly
+window off. It uses the same server actions as the Bookings and Availability
+pages (`src/components/admin/booking-parts.tsx` holds what the two booking
+pages share), so every change sends the usual emails. Hours can't be changed
+for a single date yet; windows are weekly.
+
 ## Alerts: new sign-ups and new subscribers
 
 The bell in the admin header counts alerts not seen yet; `/admin/alerts` lists
@@ -118,6 +129,9 @@ npm run test:watch   # rerun on save
 - `src/lib/slots.test.ts`: the slot engine. Covers 15-minute starts, the
   end-of-window cutoff, the 72-hour approval rule, daylight saving, and overlap
   blocking. Runs in UTC, like the server on Vercel.
+- `src/lib/calendar.test.ts`: the admin calendar's month and week days (weeks
+  start Monday), open-hours windows across time zones and daylight saving, and
+  side-by-side placement of overlapping classes.
 - `src/lib/display-names.test.ts`: "First L." names and duplicate numbering.
 - `src/components/slot-picker.test.tsx`: the booking picker as a student and
   as an admin, in a Mountain Time browser.
