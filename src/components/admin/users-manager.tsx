@@ -76,6 +76,13 @@ export function UsersManager({
     ) {
       return;
     }
+    if (
+      (user.lesson_access === "granted" && access === "none") ||
+      (user.lesson_access === "lifetime" && access === "granted")
+    ) {
+      const what = access === "none" ? "lesson access" : "lifetime access";
+      if (!window.confirm(`Remove ${what} from ${displayNames[user.id] ?? user.email}?`)) return;
+    }
     const previous = user.lesson_access;
     setError(null);
     setUsers((prev) =>

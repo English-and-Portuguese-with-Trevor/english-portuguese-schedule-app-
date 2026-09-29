@@ -82,7 +82,7 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
   const t = useT();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="shrink-0 rounded-full bg-brand px-4 py-2 text-sm font-semibold whitespace-nowrap text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
+      <DropdownMenuTrigger className="max-w-44 shrink-0 truncate rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
         {first ? t("Hi, {name}", { name: first }) : t("Account")}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -130,7 +130,10 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
             {t("Settings")}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void logout()}>
+        <DropdownMenuItem
+          onSelect={() => void logout()}
+          className="mt-1 border border-logout-border bg-logout text-logout-foreground focus:bg-logout-hover focus:text-logout-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <LogOut />
           {t("Log out")}
         </DropdownMenuItem>

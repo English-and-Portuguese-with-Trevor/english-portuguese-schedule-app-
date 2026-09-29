@@ -178,7 +178,11 @@ export function BookingItem({
           <Button size="sm" onClick={() => onConfirm(b.id)}>
             {b.reschedule_of ? "Approve move" : "Confirm"}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onCancel(b.id)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.confirm(`Decline ${name}'s request for ${start}?`) && onCancel(b.id)}
+          >
             Decline
           </Button>
         </div>
@@ -205,7 +209,13 @@ export function BookingItem({
           </a>
         )}
         {b.is_admin_override && <Badge variant="secondary">Override</Badge>}
-        <Button variant="outline" size="sm" onClick={() => onCancel(b.id)}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            window.confirm(`Cancel ${name}'s class on ${start}? This can't be undone.`) && onCancel(b.id)
+          }
+        >
           Cancel
         </Button>
       </div>

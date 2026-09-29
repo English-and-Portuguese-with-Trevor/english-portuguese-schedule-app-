@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const setLessonAccess = vi.fn();
 vi.mock("@/lib/actions/users", () => ({
@@ -10,6 +10,7 @@ vi.mock("@/lib/actions/users", () => ({
   setClassTracking: (...args: unknown[]) => setClassTracking(...args),
 }));
 const setClassTracking = vi.fn();
+afterEach(() => vi.restoreAllMocks());
 
 import { UsersManager } from "@/components/admin/users-manager";
 import type { Profile } from "@/lib/types";
@@ -50,6 +51,7 @@ describe("UsersManager lesson access", () => {
 
   it("puts the old value back and says why when the change fails", async () => {
     setLessonAccess.mockResolvedValue({ error: "permission denied" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(
       <UsersManager
         initialUsers={[profile("s1", "granted")]}
@@ -65,6 +67,24 @@ describe("UsersManager lesson access", () => {
     await waitFor(() =>
       expect(screen.getByText("Lesson access")).toBeInTheDocument(),
     );
+  });
+
+  it("asks before removing lesson access, and keeps it on Cancel", () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(
+      <UsersManager
+        initialUsers={[profile("s1", "granted")]}
+        displayNames={{ s1: "Ana" }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove lesson access" }),
+    );
+
+    expect(confirm).toHaveBeenCalledWith("Remove lesson access from Ana?");
+    expect(setLessonAccess).not.toHaveBeenCalled();
+    expect(screen.getByText("Lesson access")).toBeInTheDocument();
   });
 
   it("leaves paying subscribers' access alone apart from lifetime", () => {

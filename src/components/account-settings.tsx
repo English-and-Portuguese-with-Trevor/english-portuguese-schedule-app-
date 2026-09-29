@@ -189,7 +189,7 @@ export function AccountSettings({
         </Button>
         <Button
           variant="outline"
-          className="h-12 w-full justify-start"
+          className="h-12 w-full justify-start border-logout-border bg-logout text-logout-foreground hover:bg-logout-hover hover:text-logout-foreground"
           onClick={() => void logout()}
         >
           {t("Log out")}

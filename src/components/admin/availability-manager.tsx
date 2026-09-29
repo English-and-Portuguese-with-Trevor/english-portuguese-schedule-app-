@@ -99,6 +99,14 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
 
   function handleDelete(id: string) {
     const removed = rules.find((r) => r.id === id);
+    if (
+      removed &&
+      !window.confirm(
+        `Delete the ${DAY_NAMES[removed.day_of_week]} window ${removed.start_time.slice(0, 5)}–${removed.end_time.slice(0, 5)}? This can't be undone.`,
+      )
+    ) {
+      return;
+    }
     setError(null);
     setRules((prev) => prev.filter((r) => r.id !== id));
     startTransition(async () => {

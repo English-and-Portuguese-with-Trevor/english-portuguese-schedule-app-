@@ -29,6 +29,11 @@
   --brand: #1b4332;
   --brand-accent: #c9970a;
   --gold-text: #8a6508; /* gold lettering that reads on white */
+  /* Log out: a soft blue, the same on every site */
+  --logout: #e6f0f7;
+  --logout-foreground: #1b5e8a;
+  --logout-border: #b9d3e6;
+  --logout-hover: #d6e7f3;
 }
 
 @theme inline {
@@ -60,6 +65,10 @@
   --color-brand: var(--brand);
   --color-brand-accent: var(--brand-accent);
   --color-gold-text: var(--gold-text);
+  --color-logout: var(--logout);
+  --color-logout-foreground: var(--logout-foreground);
+  --color-logout-border: var(--logout-border);
+  --color-logout-hover: var(--logout-hover);
 }
 
 /* Dark palette: the same forest greens as the other sites' dark mode. */
@@ -87,6 +96,10 @@
   --border: #2f4038;
   --input: #3a4d43;
   --ring: #7bc8a0;
+  --logout: #1c2e3a;
+  --logout-foreground: #9cc8e8;
+  --logout-border: #2f4a5c;
+  --logout-hover: #243b4a;
 }
 
 body {
