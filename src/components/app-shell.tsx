@@ -56,17 +56,17 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
  */
 export const LEARN_LINKS = [
   {
-    href: "https://lessons.englishandportuguesewithtrevor.com",
+    href: "https://englishandportuguesewithtrevor.com/lessons/",
     label: tr("Lessons"),
     icon: BookOpen,
   },
   {
-    href: "https://flashcards.englishandportuguesewithtrevor.com",
+    href: "https://englishandportuguesewithtrevor.com/flashcards/",
     label: tr("Flashcards"),
     icon: Layers,
   },
   {
-    href: "https://activities.englishandportuguesewithtrevor.com",
+    href: "https://englishandportuguesewithtrevor.com/activities/",
     label: tr("Activities"),
     icon: Dumbbell,
   },
@@ -96,7 +96,7 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
           asChild
           className="font-semibold text-gold-text focus:text-gold-text"
         >
-          <a href="https://dailies.englishandportuguesewithtrevor.com">
+          <a href="https://englishandportuguesewithtrevor.com/dailies/">
             <Puzzle />
             {t("Daily puzzles")}
           </a>
@@ -150,6 +150,7 @@ export function AppShell({
   learningLanguage = null,
   siteLanguage = "en",
   profileSiteLanguage = null,
+  startPage = null,
   unreadAlerts = 0,
   children,
 }: {
@@ -159,6 +160,7 @@ export function AppShell({
   /** The profile's saved preferences, shared with the other sites. */
   theme?: string | null;
   learningLanguage?: string | null;
+  startPage?: string | null;
   /** The language to show the site in (see i18n/server.ts). */
   siteLanguage?: SiteLanguage;
   profileSiteLanguage?: string | null;
@@ -175,6 +177,7 @@ export function AppShell({
         theme={theme}
         learningLanguage={learningLanguage}
         siteLanguage={profileSiteLanguage}
+        startPage={startPage}
       />
       <div className="flex min-h-svh flex-col">
         <header className="border-b">

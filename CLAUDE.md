@@ -37,6 +37,9 @@ one list, and never run from a Portuguese activity straight into an English
 one. (The activities site does this with `catalogFor(learning)`; see its
 CLAUDE.md.)
 
+## One address, one app
+The other sites share `englishandportuguesewithtrevor.com` (`/lessons/`, `/flashcards/`, `/activities/`, `/dailies/`, one installed app from the landing repo's manifest); this app stays at `schedule.englishandportuguesewithtrevor.com`, so links to it open outside the installed app. Settings > Preferences has "Open the app on" (`start` in `ept-prefs`, `profiles.start_page` via `set_start_page`, `START_PAGES` in `prefs.ts`): the section the installed app starts on.
+
 ## Keep it simple
 - Make the smallest change that does the job. No new dependency, helper, abstraction, option or setting unless this task needs it now; use what the browser, Node and the existing code already provide first.
 - Don't build for cases nobody asked for (fallbacks, flags, "future-proofing"). If the simple version leaves a real gap, say so in the reply instead of coding around it.

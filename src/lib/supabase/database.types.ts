@@ -313,6 +313,7 @@ export type Database = {
           full_name: string | null
           id: string
           learning_language: string | null
+          start_page: string | null
           site_language: string | null
           lesson_access: string
           phone: string | null
@@ -329,6 +330,7 @@ export type Database = {
           full_name?: string | null
           id: string
           learning_language?: string | null
+          start_page?: string | null
           site_language?: string | null
           lesson_access?: string
           phone?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           learning_language?: string | null
+          start_page?: string | null
           site_language?: string | null
           lesson_access?: string
           phone?: string | null
@@ -481,6 +484,7 @@ export type Database = {
         Returns: string
       }
       set_learning_language: { Args: { lang: string }; Returns: undefined }
+      set_start_page: { Args: { page: string }; Returns: undefined }
       set_site_language: { Args: { lang: string }; Returns: undefined }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
       set_theme: { Args: { theme: string }; Returns: undefined }

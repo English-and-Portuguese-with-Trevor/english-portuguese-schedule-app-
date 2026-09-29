@@ -3,7 +3,7 @@
 // shown in), the language being learned, and the translation language.
 // They live in one cookie on the parent domain, so they survive logging out
 // and follow the person from site to site. When someone is logged in, their
-// profile (theme, site_language, learning_language, translation_language) is the source of
+// profile (theme, site_language, learning_language, translation_language, start_page) is the source of
 // truth and each site copies it into this cookie. Same logic as prefs.js in
 // the other repos; keep them in step.
 export const PREFS_COOKIE = "ept-prefs";
@@ -23,11 +23,16 @@ const SITE_CODES: readonly string[] = SITE_LANGUAGES.map((l) => l.code);
 
 export type Theme = "light" | "dark";
 export type LearningLanguage = "Portuguese" | "English";
+// The sections the installed app can open on (Settings > Preferences > "Open
+// the app on"); each is a folder of englishandportuguesewithtrevor.com.
+export const START_PAGES = ["lessons", "flashcards", "activities", "dailies"] as const;
+export type StartPage = (typeof START_PAGES)[number];
 export interface Prefs {
   theme?: Theme;
   site?: SiteLanguage;
   learning?: LearningLanguage;
   translation?: string;
+  start?: StartPage;
 }
 type Patch = { [K in keyof Prefs]?: Prefs[K] | null };
 
@@ -36,6 +41,7 @@ const valid: Record<keyof Prefs, (v: unknown) => boolean> = {
   site: (v) => typeof v === "string" && SITE_CODES.includes(v),
   learning: (v) => v === "Portuguese" || v === "English",
   translation: (v) => typeof v === "string" && /^[A-Z][A-Za-z]{1,29}$/.test(v),
+  start: (v) => typeof v === "string" && (START_PAGES as readonly string[]).includes(v),
 };
 
 function clean(prefs: Record<string, unknown> | null | undefined): Prefs {

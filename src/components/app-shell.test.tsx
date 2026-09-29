@@ -77,7 +77,7 @@ describe("AppShell", () => {
 
     expect(
       within(menu).getByRole("menuitem", { name: "Daily puzzles" }),
-    ).toHaveAttribute("href", "https://dailies.englishandportuguesewithtrevor.com");
+    ).toHaveAttribute("href", "https://englishandportuguesewithtrevor.com/dailies/");
 
     // Learn folds the learning sites into a sub-menu.
     await user.click(within(menu).getByRole("menuitem", { name: "Learn" }));

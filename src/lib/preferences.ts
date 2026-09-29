@@ -6,6 +6,8 @@ import {
   type LearningLanguage,
   type Prefs,
   type SiteLanguage,
+  type StartPage,
+  START_PAGES,
   type Theme,
 } from "@/lib/prefs";
 
@@ -14,7 +16,7 @@ import {
 // The profile wins; a choice made before it had one is saved to it.
 
 function save(
-  fn: "set_theme" | "set_learning_language" | "set_site_language",
+  fn: "set_theme" | "set_learning_language" | "set_site_language" | "set_start_page",
   args: Record<string, string>,
 ) {
   return Promise.resolve()
@@ -31,6 +33,7 @@ export function syncFromProfile(profile: {
   theme: string | null;
   learning_language: string | null;
   site_language?: string | null;
+  start_page?: string | null;
 }): Prefs {
   const saved = readPrefs();
   const patch: Prefs = {};
@@ -52,6 +55,9 @@ export function syncFromProfile(profile: {
   )
     patch.site = profile.site_language;
   else if (saved.site) save("set_site_language", { lang: saved.site });
+  if ((START_PAGES as readonly string[]).includes(profile.start_page ?? ""))
+    patch.start = profile.start_page as StartPage;
+  else if (saved.start) save("set_start_page", { page: saved.start });
   const next = writePrefs(patch);
   applyThemeAttribute(next.theme);
   return next;
@@ -67,6 +73,12 @@ export function setTheme(theme: Theme) {
 export function setSiteLanguage(language: SiteLanguage): Promise<unknown> {
   writePrefs({ site: language });
   return save("set_site_language", { lang: language });
+}
+
+/** Which section the installed app opens on (Settings > Preferences > "Open the app on"). */
+export function setStartPage(page: StartPage) {
+  writePrefs({ start: page });
+  save("set_start_page", { page });
 }
 
 export function setLearningLanguage(language: LearningLanguage) {
