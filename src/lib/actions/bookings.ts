@@ -123,7 +123,7 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
     end: string;
     eventId: string | null;
     meetLink: string | null;
-    /** The student cancelled the original while the request was pending. */
+    /** The student canceled the original while the request was pending. */
     cancelled: boolean;
   } | null = null;
   if (data.reschedule_of) {
@@ -307,12 +307,12 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
     const booking = await loadBooking(supabase, bookingId);
     const original = booking?.original;
     if (original?.cancelled) {
-      // The original lesson was cancelled while this request waited, and its
+      // The original lesson was canceled while this request waited, and its
       // calendar event with it: approving books the new time as a fresh lesson.
       after(() => afterApproval(supabase, booking!.lesson));
     } else if (original) {
       // Approving a reschedule replaces the original lesson. Its calendar
-      // event moves to the new time rather than being cancelled.
+      // event moves to the new time rather than being canceled.
       const { error: cancelError } = await supabase
         .from("bookings")
         .update({ status: "CANCELLED", cancelled_at: new Date().toISOString(), cancellation_reason: "Rescheduled" })

@@ -24,7 +24,7 @@ export interface CancellableBooking {
 }
 
 /**
- * Only a confirmed session counts when cancelled late; a request that was
+ * Only a confirmed session counts when canceled late; a request that was
  * never approved can always be withdrawn.
  */
 export function isLateCancellation(booking: CancellableBooking, now = new Date()) {
@@ -95,7 +95,7 @@ export function CancelBookingDialog({
           </Button>
           <Button variant="destructive" disabled={isPending} onClick={confirm}>
             {isPending
-              ? t("Cancelling…")
+              ? t("Canceling…")
               : booking?.status === "PENDING"
                 ? t("Withdraw request")
                 : late

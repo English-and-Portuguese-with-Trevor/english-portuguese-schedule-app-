@@ -6,7 +6,7 @@ import { setMyTimezone } from "@/lib/actions/profile";
 
 /**
  * Keeps the saved time zone in step with this device, so emails show times
- * where the admin actually is (e.g. after travelling).
+ * where the admin actually is (e.g. after traveling).
  */
 export function TimezoneSync({ saved }: { saved: string | null }) {
   useEffect(() => {

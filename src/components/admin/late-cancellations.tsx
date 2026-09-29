@@ -34,7 +34,7 @@ export function LateCancellations({
     <section>
       <h2 className="text-lg font-semibold">Late cancellations ({rows.length})</h2>
       <p className="mb-3 text-sm text-muted-foreground">
-        Confirmed sessions a student cancelled less than {LATE_CANCEL_HOURS} hours ahead. These still count as
+        Confirmed sessions a student canceled less than {LATE_CANCEL_HOURS} hours ahead. These still count as
         a class. Each one clears after {LATE_CANCEL_LIST_DAYS} days.
       </p>
       <div className="flex flex-col gap-2">
@@ -45,7 +45,7 @@ export function LateCancellations({
             {isClient && b.session_slots && (
               <p className="text-sm text-muted-foreground">
                 {format(new Date(b.session_slots.start_time), "EEE, MMM d 'at' h:mm a")}
-                {b.cancelled_at && ` · cancelled ${noticeGiven(b.cancelled_at, b.session_slots.start_time)} before`}
+                {b.cancelled_at && ` · canceled ${noticeGiven(b.cancelled_at, b.session_slots.start_time)} before`}
               </p>
             )}
           </div>

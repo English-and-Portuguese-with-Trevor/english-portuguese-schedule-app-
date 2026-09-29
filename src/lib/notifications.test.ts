@@ -208,12 +208,12 @@ describe("cancellation", () => {
     ]);
   });
 
-  it("by the admin cancelling a confirmed lesson: removes the event, tells the student, copies the admin", async () => {
+  it("by the admin canceling a confirmed lesson: removes the event, tells the student, copies the admin", async () => {
     await afterCancellation(lesson, { by: "admin", wasPending: false, late: false, eventId: "evt1" });
     expect(google.deleteLessonEvent).toHaveBeenCalledWith("evt1");
     expect(subjects()).toEqual([
-      "Lesson cancelled: Mon, Sep 28, 2:30 PM",
-      "You cancelled: Ana Pereira, Mon, Sep 28, 2:30 PM",
+      "Lesson canceled: Mon, Sep 28, 2:30 PM",
+      "You canceled: Ana Pereira, Mon, Sep 28, 2:30 PM",
     ]);
   });
 });
@@ -254,7 +254,7 @@ describe("booking questions", () => {
 });
 
 describe("the admin's own time zone", () => {
-  it("shows the admin's time where they are, e.g. while travelling", async () => {
+  it("shows the admin's time where they are, e.g. while traveling", async () => {
     await afterStudentBooking(supabase, { ...lesson, adminTimezone: "Europe/Lisbon" }, true);
     const admin = sentEmails().find((e) => e.to === "trevor@example.com")!;
     expect(admin.subject).toBe("Approval needed: Ana Pereira, Mon, Sep 28, 9:30 PM");
@@ -318,7 +318,7 @@ describe("reschedules", () => {
     expect(google.deleteLessonEvent).not.toHaveBeenCalled();
   });
 
-  it("a withdrawn request tells the admin, not as a cancelled lesson", async () => {
+  it("a withdrawn request tells the admin, not as a canceled lesson", async () => {
     await afterCancellation(request, { by: "student", wasPending: true, late: false, eventId: null });
     expect(subjects()).toEqual(["Reschedule withdrawn: Ana Pereira, Wed, Sep 30, 3:00 PM"]);
   });

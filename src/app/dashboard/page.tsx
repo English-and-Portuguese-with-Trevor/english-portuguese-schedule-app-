@@ -47,7 +47,7 @@ export default async function DashboardPage() {
       .eq("status", "OPEN")
       .gt("end_time", now.toISOString()) // include a session already in progress
       .lte("start_time", rangeEnd.toISOString()),
-    // Upcoming only: a session that's over can't be cancelled.
+    // Upcoming only: a session that's over can't be canceled.
     supabase
       .from("bookings")
       .select("*, session_slots!inner(start_time, end_time)")
@@ -97,7 +97,7 @@ export default async function DashboardPage() {
     },
   );
 
-  // Every OPEN slot is taken: cancelling a booking cancels its slot, so a
+  // Every OPEN slot is taken: canceling a booking cancels its slot, so a
   // slot only stays OPEN while it has an active booking.
   const busySlots = (slots ?? []).map((s) => ({
     start: s.start_time,

@@ -114,7 +114,7 @@ export function BookingBoard({
   async function handleCancel(bookingId: string) {
     const result = await cancelBooking(bookingId);
     if (result.error) return t(result.error);
-    setNotice({ kind: "success", text: t("Booking cancelled.") });
+    setNotice({ kind: "success", text: t("Booking canceled.") });
     return null;
   }
 

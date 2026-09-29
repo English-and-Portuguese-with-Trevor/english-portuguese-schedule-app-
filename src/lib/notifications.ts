@@ -185,7 +185,7 @@ export const emails = {
       ],
       location: meet(meetLink),
       button: { label: "View or cancel your lesson", url: SITE_URL },
-      footerNote: "Cancelling less than 24 hours before the lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before the lesson still counts as a class.",
     });
   },
 
@@ -232,7 +232,7 @@ export const emails = {
       details: studentDetails(lesson),
       location: meet(meetLink),
       button: { label: "View or cancel your lesson", url: SITE_URL },
-      footerNote: "Cancelling less than 24 hours before the lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before the lesson still counts as a class.",
     });
   },
 
@@ -279,7 +279,7 @@ export const emails = {
       details: studentDetails(lesson),
       location: meet(meetLink),
       button: { label: "View or cancel your lesson", url: SITE_URL },
-      footerNote: "Cancelling less than 24 hours before the lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before the lesson still counts as a class.",
     });
   },
 
@@ -293,8 +293,8 @@ export const emails = {
   },
 
   cancelledByTeacher(lesson: Lesson): Email | null {
-    return studentEmail(lesson, "Lesson cancelled", {
-      heading: "Your lesson was cancelled",
+    return studentEmail(lesson, "Lesson canceled", {
+      heading: "Your lesson was canceled",
       intro: `Hi ${firstName(lesson.studentName)}, Trevor had to cancel this lesson. Sorry about that! You can book another time.`,
       details: studentDetails(lesson),
       button: { label: "Book another time", url: SITE_URL },
@@ -327,9 +327,9 @@ export const emails = {
         details: adminDetails(lesson),
       });
     }
-    return toAdmin(lesson, how.late ? "Late cancellation" : "Lesson cancelled", {
-      heading: how.late ? "Late cancellation: this lesson still counts" : "A lesson was cancelled",
-      intro: how.late ? "The student cancelled less than 24 hours before the start, so it still counts as a class." : undefined,
+    return toAdmin(lesson, how.late ? "Late cancellation" : "Lesson canceled", {
+      heading: how.late ? "Late cancellation: this lesson still counts" : "A lesson was canceled",
+      intro: how.late ? "The student canceled less than 24 hours before the start, so it still counts as a class." : undefined,
       details: adminDetails(lesson),
       button: { label: "Open bookings", url: `${SITE_URL}/admin/bookings` },
     });
@@ -389,8 +389,8 @@ export const emails = {
         details: adminDetails(lesson),
       });
     }
-    return toAdmin(lesson, "You cancelled", {
-      heading: "You cancelled a lesson",
+    return toAdmin(lesson, "You canceled", {
+      heading: "You canceled a lesson",
       intro: "The calendar event was removed and the student has been emailed.",
       details: adminDetails(lesson),
       button: { label: "Open bookings", url: `${SITE_URL}/admin/bookings` },

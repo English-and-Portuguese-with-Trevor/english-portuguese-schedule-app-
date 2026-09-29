@@ -41,7 +41,7 @@ notifications go out through that account's Gmail (see
 The admin gets an email for every scheduling change: the ones students make
 (new lesson, approval needed, reschedule requested or withdrawn,
 cancellations) and a copy of the ones the admin makes ("You approved", "You
-booked", "You moved", "You declined", "You cancelled"), plus new sign-ups and
+booked", "You moved", "You declined", "You canceled"), plus new sign-ups and
 subscribers (see "Alerts" below).
 
 This needs four environment variables in Vercel (see `.env.example`). Without
@@ -135,8 +135,8 @@ npm run test:watch   # rerun on save
 - `src/lib/display-names.test.ts`: "First L." names and duplicate numbering.
 - `src/components/slot-picker.test.tsx`: the booking picker as a student and
   as an admin, in a Mountain Time browser.
-- `src/components/cancel-booking-dialog.test.tsx`: cancelling, and the warning
-  that a confirmed session cancelled less than 24 hours ahead still counts.
+- `src/components/cancel-booking-dialog.test.tsx`: canceling, and the warning
+  that a confirmed session canceled less than 24 hours ahead still counts.
 - `src/components/admin/late-cancellations.test.tsx`: the admin's late
   cancellations list.
 - `src/lib/notifications.test.ts` and `src/lib/google.test.ts`: which emails

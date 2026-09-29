@@ -147,11 +147,11 @@ describe("markOpenSlots", () => {
     expect(labels(open)).toEqual(["3:00 PM", "5:00 PM"]); // back-to-back is fine
   });
 
-  it("ignores a slot whose only booking was cancelled", () => {
+  it("ignores a slot whose only booking was canceled", () => {
     expect(markOpenSlots(wednesday, [booked], {})).toHaveLength(wednesday.length);
   });
 
-  it("ignores a cancelled slot", () => {
+  it("ignores a canceled slot", () => {
     const cancelled = { ...booked, status: "CANCELLED" as const };
     expect(markOpenSlots(wednesday, [cancelled], { [booked.id]: 1 })).toHaveLength(wednesday.length);
   });

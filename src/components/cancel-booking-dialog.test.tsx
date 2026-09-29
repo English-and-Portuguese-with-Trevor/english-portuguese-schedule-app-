@@ -74,7 +74,7 @@ describe("CancelBookingDialog", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("shows the error and stays open if cancelling fails", async () => {
+  it("shows the error and stays open if canceling fails", async () => {
     const onCancel = vi.fn(async () => "Booking not found.");
     const { user, onClose } = renderDialog({ id: "b1", startTime: hoursFromNow(48), status: "CONFIRMED" }, onCancel);
     await user.click(screen.getByRole("button", { name: "Cancel class" }));

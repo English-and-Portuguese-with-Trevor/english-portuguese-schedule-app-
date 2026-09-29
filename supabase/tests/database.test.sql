@@ -238,14 +238,14 @@ begin
     raise exception 'FAIL: classes more than 60 days ahead are refused (%)', v_msg;
   end if;
 
-  -- A class that has already started can't be cancelled.
+  -- A class that has already started can't be canceled.
   v_failed := false;
   begin
     perform public.cancel_my_booking(v_started);
   exception when others then v_failed := true; v_msg := sqlerrm;
   end;
   if not v_failed or v_msg not like '%already started%' then
-    raise exception 'FAIL: a class that has started can''t be cancelled (%)', v_msg;
+    raise exception 'FAIL: a class that has started can''t be canceled (%)', v_msg;
   end if;
   if (select status from public.bookings where id = v_started) <> 'CONFIRMED' then
     raise exception 'FAIL: a class that has started stays booked';
@@ -316,25 +316,25 @@ begin
   set local role authenticated;
 
   ---------------------------------------------------------------------------
-  -- Back as the first student: cancelling frees the time
+  -- Back as the first student: canceling frees the time
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_student, 'role', 'authenticated')::text, true);
   perform public.cancel_my_booking(v_booking);
   if (select late_cancellation from public.bookings where id = v_booking) then
-    raise exception 'FAIL: cancelling with 24+ hours notice is not a late cancellation';
+    raise exception 'FAIL: canceling with 24+ hours notice is not a late cancellation';
   end if;
 
-  -- Cancelling a confirmed session under 24 hours out is flagged as late.
+  -- Canceling a confirmed session under 24 hours out is flagged as late.
   perform public.cancel_my_booking(v_late);
   if not (select late_cancellation from public.bookings where id = v_late) then
-    raise exception 'FAIL: cancelling under 24 hours before a confirmed session is a late cancellation';
+    raise exception 'FAIL: canceling under 24 hours before a confirmed session is a late cancellation';
   end if;
 
   perform set_config('request.jwt.claims', json_build_object('sub', v_other, 'role', 'authenticated')::text, true);
   perform public.request_individual_booking(v_10, v_11);
 
   ---------------------------------------------------------------------------
-  -- As a student with 10 upcoming classes: no more until one is cancelled
+  -- As a student with 10 upcoming classes: no more until one is canceled
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_busy, 'role', 'authenticated')::text, true);
   v_failed := false;
@@ -367,7 +367,7 @@ begin
     raise exception 'FAIL: a session can only hold one active booking (sqlstate %)', v_msg;
   end if;
 
-  -- An admin cancelling never marks it as the student's late cancellation.
+  -- An admin canceling never marks it as the student's late cancellation.
   update public.bookings set status = 'CANCELLED', cancelled_at = now() where id = v_pending;
   if (select late_cancellation from public.bookings where id = v_pending) then
     raise exception 'FAIL: admin cancellations are not late cancellations';
@@ -462,8 +462,8 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
   perform public.cancel_my_booking(v_b);
   reset role;
-  -- Pending requests are only resolved by the admin, even if the lesson is cancelled.
-  if (select status from public.bookings where id = v_r) <> 'PENDING' then raise exception 'FAIL: cancelling the lesson leaves its reschedule request for the admin'; end if;
+  -- Pending requests are only resolved by the admin, even if the lesson is canceled.
+  if (select status from public.bookings where id = v_r) <> 'PENDING' then raise exception 'FAIL: canceling the lesson leaves its reschedule request for the admin'; end if;
   if (select s.status from public.session_slots s join public.bookings b on b.session_slot_id = s.id where b.id = v_r) <> 'OPEN' then raise exception 'FAIL: the pending request keeps its time'; end if;
   if (select timezone from public.profiles where id = v_s) <> 'Europe/Lisbon' then raise exception 'FAIL: set_my_timezone'; end if;
 end $$;

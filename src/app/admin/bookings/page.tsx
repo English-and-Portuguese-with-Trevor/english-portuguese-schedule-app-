@@ -15,7 +15,7 @@ export default async function AdminBookingsPage() {
     await Promise.all([
       // Upcoming only (a class in progress included): a request for a time
       // that has passed can't be approved any more, and a finished class
-      // needs no cancelling.
+      // needs no canceling.
       supabase
         .from("bookings")
         .select("*, session_slots!inner(start_time, end_time)")

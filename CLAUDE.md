@@ -10,7 +10,7 @@
 - Every alert is emailed to `ADMIN_NOTIFY_EMAIL` and pushed: DB (pg_net) -> `/api/alerts/push` (Bearer `CRON_SECRET`) -> `emails.adminAlerts` + `web-push` (`src/lib/admin-push.ts`); the daily job sends any the DB call missed. The VAPID keys live in `private.app_settings`, made once by the server; never replace them. See the README's "Alerts" section. Admin-only, so English only.
 
 ## Admin emails
-Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): the students' changes, and a copy of his own ("You approved", "You booked", "You moved", "You declined", "You cancelled"). A new scheduling action needs both its student email and an admin email.
+Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): the students' changes, and a copy of his own ("You approved", "You booked", "You moved", "You declined", "You canceled"). A new scheduling action needs both its student email and an admin email.
 
 ## Dark mode and shared preferences
 - Dark mode and the language being learned are shared by all four sites through the `ept-prefs` cookie (`src/lib/prefs.ts`, same logic as `prefs.js` in the other repos; kept through log out). `THEME_SCRIPT` in the root layout's `<head>` sets `<html data-theme="dark">` before paint; don't read cookies in the root layout (that would stop static pages from prerendering).
@@ -22,12 +22,13 @@ Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): t
 - The layouts pick it on the server (`getSiteLanguage()` in `src/i18n/server.ts`: profile, then cookie, then Accept-Language) and pass it to `AppShell`, which provides it to client components (`useT()` / `useSiteLanguage()` from `src/i18n/client.tsx`). Don't call `getSiteLanguage()` from the root layout or static pages (it reads cookies).
 - Write text in English inside `t("…")` or `tr("…")` and add it to `src/i18n/strings.ts` under `es`, `pt` and `fr`; `src/i18n/i18n.test.ts` fails otherwise. Dates and times go through `formatDate()` in `src/i18n/format.ts` (English keeps the date-fns patterns). Server errors students can see are listed in `src/i18n/server-messages.ts`.
 - Trevor's admin pages, the privacy page and the emails stay in English.
+- Write English the American way (spelling and words: color, canceled, vacation, apartment), in the site's text and in English teaching content.
 
 ## DeepL translations
 DeepL translates only the lessons site's lesson text, through the shared `translate` edge function (flashcards-app repo). Every translation is saved keyed on the text alone, so nothing is paid for twice, each deploy may send at most 25,000 new characters, and Claude reviews new rows (see the lessons repo's CLAUDE.md). This site's own text is hand-written in `src/i18n/strings.ts`; don't wire DeepL into it without asking Trevor.
 
 ## Portuguese and English stay separate
-Trevor's rule for every site (2026-09-28): everything students practise is
+Trevor's rule for every site (2026-09-28): everything students practice is
 split by the language they're learning, the "I'm learning" preference
 (`learning` in the shared `ept-prefs` cookie; `profiles.learning_language`
 when logged in, which wins). Portuguese material appears only for Portuguese

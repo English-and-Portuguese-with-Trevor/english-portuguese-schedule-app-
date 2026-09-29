@@ -41,7 +41,7 @@ export const STRINGS = {
       "Primero elige la clase que quieres mover.",
     "Reschedule request sent — Trevor needs to approve it.":
       "Solicitud de cambio enviada: Trevor tiene que aprobarla.",
-    "Booking cancelled.": "Reserva cancelada.",
+    "Booking canceled.": "Reserva cancelada.",
     "your local time": "tu hora local",
     "Times shown in {zone}.": "Horarios en {zone}.",
     "{n} open": "{n} libres",
@@ -79,7 +79,7 @@ export const STRINGS = {
     "The time will open up for other students.":
       "El horario quedará libre para otros alumnos.",
     "Keep it": "Mantenerla",
-    "Cancelling…": "Cancelando…",
+    "Canceling…": "Cancelando…",
     "Withdraw request": "Retirar solicitud",
     "Cancel anyway": "Cancelar de todos modos",
     "Cancel class": "Cancelar clase",
@@ -221,7 +221,7 @@ export const STRINGS = {
     "Pick the class to move first.": "Primeiro escolha a aula que quer mudar.",
     "Reschedule request sent — Trevor needs to approve it.":
       "Pedido de remarcação enviado: o Trevor precisa aprovar.",
-    "Booking cancelled.": "Agendamento cancelado.",
+    "Booking canceled.": "Agendamento cancelado.",
     "your local time": "seu horário local",
     "Times shown in {zone}.": "Horários em {zone}.",
     "{n} open": "{n} livres",
@@ -260,7 +260,7 @@ export const STRINGS = {
     "The time will open up for other students.":
       "O horário fica livre para outros alunos.",
     "Keep it": "Manter",
-    "Cancelling…": "Cancelando…",
+    "Canceling…": "Cancelando…",
     "Withdraw request": "Retirar pedido",
     "Cancel anyway": "Cancelar mesmo assim",
     "Cancel class": "Cancelar aula",
@@ -402,7 +402,7 @@ export const STRINGS = {
     "Pick the class to move first.": "Choisissez d'abord le cours à déplacer.",
     "Reschedule request sent — Trevor needs to approve it.":
       "Demande de changement envoyée : Trevor doit l'approuver.",
-    "Booking cancelled.": "Réservation annulée.",
+    "Booking canceled.": "Réservation annulée.",
     "your local time": "votre heure locale",
     "Times shown in {zone}.": "Horaires en {zone}.",
     "{n} open": "{n} libres",
@@ -441,7 +441,7 @@ export const STRINGS = {
     "The time will open up for other students.":
       "Le créneau se libérera pour d'autres élèves.",
     "Keep it": "La garder",
-    "Cancelling…": "Annulation…",
+    "Canceling…": "Annulation…",
     "Withdraw request": "Retirer la demande",
     "Cancel anyway": "Annuler quand même",
     "Cancel class": "Annuler le cours",

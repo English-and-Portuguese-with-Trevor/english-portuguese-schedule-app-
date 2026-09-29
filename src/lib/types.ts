@@ -44,7 +44,7 @@ export const DAY_NAMES = [
 /** Student requests starting sooner than this need admin approval; later ones are confirmed automatically. */
 export const APPROVAL_WINDOW_HOURS = 72;
 
-/** A confirmed session cancelled with less than this much notice still counts as a class. */
+/** A confirmed session canceled with less than this much notice still counts as a class. */
 export const LATE_CANCEL_HOURS = 24;
 
 /** Late cancellations stay on the admin's Bookings page for this long. */
