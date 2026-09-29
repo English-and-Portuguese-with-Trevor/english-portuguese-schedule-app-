@@ -119,6 +119,10 @@ on and saved in `private.app_settings` (`vapid_public_key`,
 `vapid_private_key`); nothing needs setting in Vercel beyond `CRON_SECRET`.
 Don't replace the keys: every device would have to turn push on again.
 
+## Maintenance mode
+
+While you're changing something big, set `MAINTENANCE_MODE` to `on` in Vercel (Settings -> Environment Variables) and redeploy. Every page then shows "We're updating the site" (`/maintenance`) with a 503, instead of an error. Delete the variable (or set it to anything else) and redeploy to turn it off. Missing pages show "Page not found" and crashes show "Something went wrong", both with a button to recover.
+
 ## Tests
 
 ```bash

@@ -183,6 +183,22 @@ export const STRINGS = {
     "Please log in first.": "Primero inicia sesión.",
     "Something went wrong with billing. Please try again.":
       "Algo salió mal con la facturación. Inténtalo de nuevo.",
+    "Page not found":
+      "Página no encontrada",
+    "This page doesn't exist or has moved.":
+      "Esta página no existe o se ha movido.",
+    "Something went wrong":
+      "Algo salió mal",
+    "Please try again in a moment. If it keeps happening, let Trevor know.":
+      "Inténtalo de nuevo en un momento. Si sigue pasando, avísale a Trevor.",
+    "We're updating the site":
+      "Estamos actualizando el sitio",
+    "Scheduling will be back in a few minutes. Your bookings are safe.":
+      "La agenda volverá en unos minutos. Tus reservas están a salvo.",
+    "Try again":
+      "Intentar de nuevo",
+    "Go to the home page":
+      "Ir a la página de inicio",
   },
   pt: {
     "English & Portuguese with Trevor, main website":
@@ -364,6 +380,22 @@ export const STRINGS = {
     "Please log in first.": "Entre na sua conta primeiro.",
     "Something went wrong with billing. Please try again.":
       "Algo deu errado com a cobrança. Tente novamente.",
+    "Page not found":
+      "Página não encontrada",
+    "This page doesn't exist or has moved.":
+      "Esta página não existe ou mudou de endereço.",
+    "Something went wrong":
+      "Algo deu errado",
+    "Please try again in a moment. If it keeps happening, let Trevor know.":
+      "Tente de novo daqui a pouco. Se continuar acontecendo, avise o Trevor.",
+    "We're updating the site":
+      "Estamos atualizando o site",
+    "Scheduling will be back in a few minutes. Your bookings are safe.":
+      "A agenda volta em alguns minutos. Suas reservas estão seguras.",
+    "Try again":
+      "Tentar de novo",
+    "Go to the home page":
+      "Ir para a página inicial",
   },
   fr: {
     "English & Portuguese with Trevor, main website":
@@ -545,5 +577,21 @@ export const STRINGS = {
     "Please log in first.": "Connectez-vous d'abord.",
     "Something went wrong with billing. Please try again.":
       "Un problème est survenu avec la facturation. Veuillez réessayer.",
+    "Page not found":
+      "Page introuvable",
+    "This page doesn't exist or has moved.":
+      "Cette page n'existe pas ou a été déplacée.",
+    "Something went wrong":
+      "Une erreur s'est produite",
+    "Please try again in a moment. If it keeps happening, let Trevor know.":
+      "Réessayez dans un instant. Si le problème continue, prévenez Trevor.",
+    "We're updating the site":
+      "Nous mettons le site à jour",
+    "Scheduling will be back in a few minutes. Your bookings are safe.":
+      "L'agenda sera de retour dans quelques minutes. Vos réservations sont en sécurité.",
+    "Try again":
+      "Réessayer",
+    "Go to the home page":
+      "Aller à la page d'accueil",
   },
 } as const;
