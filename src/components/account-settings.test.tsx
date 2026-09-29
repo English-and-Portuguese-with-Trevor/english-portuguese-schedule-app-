@@ -73,6 +73,7 @@ describe("AccountSettings", () => {
       "Delete account",
       "Log out",
     ]);
+    expect(screen.getByRole("link", { name: "‹ Back" })).toHaveAttribute("href", "/dashboard");
     openPage("Preferences");
     expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete account" })).not.toBeInTheDocument();

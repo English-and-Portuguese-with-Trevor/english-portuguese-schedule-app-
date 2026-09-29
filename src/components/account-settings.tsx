@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
@@ -153,7 +154,11 @@ export function AccountSettings({
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
-      <h1 className="text-2xl font-semibold">{t("Settings")}</h1>
+      {/* Back to this site's home, like every site's Settings. */}
+      <Button variant="ghost" className="-ml-3 self-start" asChild>
+        <Link href={role === "admin" ? "/admin" : "/dashboard"}>‹ {t("Back")}</Link>
+      </Button>
+      <h1 className="-mt-4 text-2xl font-semibold">{t("Settings")}</h1>
 
       {/* The Stripe portal opens for any account (card, receipts, cancel). */}
       <div className="flex flex-col gap-2">
