@@ -4,6 +4,7 @@ import {
   Bell,
   BookOpen,
   CalendarClock,
+  CalendarDays,
   CalendarPlus,
   ClipboardList,
   Dumbbell,
@@ -44,8 +45,8 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/availability", label: "Availability", icon: CalendarClock },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
+  { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/admin/users", label: "Users", icon: Users },
-  { href: "/dashboard", label: "Calendar", icon: CalendarPlus },
 ];
 
 /**
