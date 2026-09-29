@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import {
@@ -126,42 +127,43 @@ export function UsersManager({
       <div>
         <h1 className="text-2xl font-semibold">Users</h1>
         <p className="text-sm text-muted-foreground">
-          Search and manage student and admin accounts. Lesson access opens
-          lessons 5 and up on the lessons site; new sign-ups start without it.
-          Set a student&apos;s class package to track their progress toward
-          lifetime access (three class sets). You decide when to give it.
+          Open a user to change their lesson access, class package or role.
+          Three finished class sets qualify a student for lifetime access; you
+          decide when to give it.
         </p>
       </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Input
         placeholder="Search by name or email..."
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
-        className="max-w-sm"
+        className="sm:max-w-sm"
       />
 
-      <div className="flex flex-col gap-2">
-        {users.map((user) => (
-          <UserRow
-            key={user.id}
-            user={user}
-            name={displayNames[user.id] ?? "Unknown"}
-            progress={progress[user.id]}
-            disabled={isPending}
-            isSelf={user.id === currentUserId}
-            onLessonAccess={(access) => handleLessonAccess(user, access)}
-            onClassTracking={(pkg, earlier) =>
-              handleClassTracking(user, pkg, earlier)
-            }
-            onRoleChange={(role) => handleRoleChange(user, role)}
-          />
-        ))}
-        {users.length === 0 && (
-          <p className="text-sm text-muted-foreground">No users found.</p>
-        )}
-      </div>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {users.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No users found.</p>
+      ) : (
+        <ul className="divide-y rounded-lg border">
+          {users.map((user) => (
+            <li key={user.id}>
+              <UserRow
+                user={user}
+                name={displayNames[user.id] ?? "Unknown"}
+                progress={progress[user.id]}
+                disabled={isPending}
+                isSelf={user.id === currentUserId}
+                onLessonAccess={(access) => handleLessonAccess(user, access)}
+                onClassTracking={(pkg, earlier) =>
+                  handleClassTracking(user, pkg, earlier)
+                }
+                onRoleChange={(role) => handleRoleChange(user, role)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -203,125 +205,165 @@ function UserRow({
     if (value !== user.earlier_classes) onClassTracking(classPackage, value);
   }
 
-  return (
-    <div className="flex flex-col gap-3 rounded-md border px-4 py-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium">{name}</p>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <LessonAccessBadge access={user.lesson_access} />
-          {user.lesson_access === "none" && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              onClick={() => onLessonAccess("granted")}
-            >
-              Give lesson access
-            </Button>
-          )}
-          {user.lesson_access === "granted" && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              onClick={() => onLessonAccess("none")}
-            >
-              Remove lesson access
-            </Button>
-          )}
-          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-            {user.role}
-          </Badge>
-          {!(isSelf && user.role === "admin") && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              onClick={() =>
-                onRoleChange(user.role === "admin" ? "student" : "admin")
-              }
-            >
-              Make {user.role === "admin" ? "student" : "admin"}
-            </Button>
-          )}
-        </div>
-      </div>
+  const showProgress =
+    progress && classPackage && user.lesson_access !== "lifetime";
 
-      {user.role === "student" && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t pt-3 text-sm">
-          <label className="flex items-center gap-2">
-            <span className="text-muted-foreground">Package</span>
-            <select
-              aria-label={`Class package for ${name}`}
-              className="h-8 rounded-md border bg-background px-2"
-              value={classPackage ?? ""}
-              disabled={disabled}
-              onChange={(e) =>
-                onClassTracking(
-                  e.target.value
-                    ? (Number(e.target.value) as ClassPackage)
-                    : null,
-                  user.earlier_classes ?? 0,
-                )
-              }
-            >
-              <option value="">Not set</option>
-              <option value="4">4 classes</option>
-              <option value="8">8 classes</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-2">
-            <span className="text-muted-foreground">
-              Classes before this app
-            </span>
-            <Input
-              aria-label={`Classes before this app for ${name}`}
-              type="number"
-              min={0}
-              max={1000}
-              inputMode="numeric"
-              className="h-8 w-20"
-              value={earlier}
-              disabled={disabled}
-              onChange={(e) => setEarlier(e.target.value)}
-              onBlur={saveEarlier}
-              onKeyDown={(e) => e.key === "Enter" && saveEarlier()}
-            />
-          </label>
-          {progress && classPackage && user.lesson_access !== "lifetime" && (
-            <span className="text-muted-foreground">
-              {Math.min(progress.completed, progress.needed ?? 0)} of{" "}
-              {progress.needed} classes toward lifetime
-            </span>
-          )}
-          {eligible && (
-            <Badge variant="default">Qualifies for lifetime access</Badge>
-          )}
-          {user.lesson_access === "lifetime" ? (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={disabled}
-              onClick={() => onLessonAccess("granted")}
-            >
-              Remove lifetime access
-            </Button>
-          ) : (
-            <Button
-              variant={eligible ? "default" : "outline"}
-              size="sm"
-              disabled={disabled}
-              onClick={() => onLessonAccess("lifetime")}
-            >
-              Give lifetime access
-            </Button>
-          )}
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 hover:bg-accent/50 [&::-webkit-details-marker]:hidden">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{name}</p>
+            <p className="truncate text-sm text-muted-foreground">
+              {user.email}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+            {eligible && (
+              <Badge variant="default">Qualifies for lifetime access</Badge>
+            )}
+            {user.role === "admin" && <Badge variant="secondary">admin</Badge>}
+            <LessonAccessBadge access={user.lesson_access} />
+          </div>
         </div>
-      )}
-    </div>
+        <ChevronDown
+          aria-hidden
+          className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+        />
+      </summary>
+
+      <div className="flex flex-col gap-4 border-t bg-muted/30 px-4 py-4 text-sm">
+        <div className="grid gap-1.5 sm:grid-cols-[10rem_1fr] sm:items-center sm:gap-6">
+          <span className="text-muted-foreground">Lessons</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {user.lesson_access === "none" && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={disabled}
+                onClick={() => onLessonAccess("granted")}
+              >
+                Give lesson access
+              </Button>
+            )}
+            {user.lesson_access === "granted" && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={disabled}
+                onClick={() => onLessonAccess("none")}
+              >
+                Remove lesson access
+              </Button>
+            )}
+            {user.role === "student" &&
+              (user.lesson_access === "lifetime" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => onLessonAccess("granted")}
+                >
+                  Remove lifetime access
+                </Button>
+              ) : (
+                <Button
+                  variant={eligible ? "default" : "outline"}
+                  size="sm"
+                  disabled={disabled}
+                  onClick={() => onLessonAccess("lifetime")}
+                >
+                  Give lifetime access
+                </Button>
+              ))}
+            <span className="text-muted-foreground">
+              Opens lessons 5 and up.
+            </span>
+          </div>
+        </div>
+
+        {user.role === "student" && (
+          <>
+            <div className="grid gap-1.5 sm:grid-cols-[10rem_1fr] sm:items-center sm:gap-6">
+              <label
+                htmlFor={`package-${user.id}`}
+                className="text-muted-foreground"
+              >
+                Class package
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  id={`package-${user.id}`}
+                  aria-label={`Class package for ${name}`}
+                  className="h-8 rounded-md border bg-background px-2"
+                  value={classPackage ?? ""}
+                  disabled={disabled}
+                  onChange={(e) =>
+                    onClassTracking(
+                      e.target.value
+                        ? (Number(e.target.value) as ClassPackage)
+                        : null,
+                      user.earlier_classes ?? 0,
+                    )
+                  }
+                >
+                  <option value="">Not set</option>
+                  <option value="4">4 classes</option>
+                  <option value="8">8 classes</option>
+                </select>
+                {showProgress && (
+                  <span className="text-muted-foreground">
+                    {Math.min(progress.completed, progress.needed ?? 0)} of{" "}
+                    {progress.needed} classes toward lifetime
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-1.5 sm:grid-cols-[10rem_1fr] sm:items-center sm:gap-6">
+              <label
+                htmlFor={`earlier-${user.id}`}
+                className="text-muted-foreground"
+              >
+                Classes before this app
+              </label>
+              <Input
+                id={`earlier-${user.id}`}
+                aria-label={`Classes before this app for ${name}`}
+                type="number"
+                min={0}
+                max={1000}
+                inputMode="numeric"
+                className="h-8 w-20"
+                value={earlier}
+                disabled={disabled}
+                onChange={(e) => setEarlier(e.target.value)}
+                onBlur={saveEarlier}
+                onKeyDown={(e) => e.key === "Enter" && saveEarlier()}
+              />
+            </div>
+          </>
+        )}
+
+        {!(isSelf && user.role === "admin") && (
+          <div className="grid gap-1.5 sm:grid-cols-[10rem_1fr] sm:items-center sm:gap-6">
+            <span className="text-muted-foreground">Role</span>
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={disabled}
+                onClick={() =>
+                  onRoleChange(user.role === "admin" ? "student" : "admin")
+                }
+              >
+                Make {user.role === "admin" ? "student" : "admin"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 
