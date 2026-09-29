@@ -348,6 +348,9 @@ function PreferencesCard() {
             ))}
           </select>
         </div>
+        <p className="pt-3 text-sm text-muted-foreground">
+          {t("Where the app opens when started from its icon.")}
+        </p>
       </CardContent>
     </Card>
   );
