@@ -83,7 +83,7 @@ describe("AppShell", () => {
     await user.click(within(menu).getByRole("menuitem", { name: "Learn" }));
     await screen.findByRole("menuitem", { name: "Lessons" });
     expect(screen.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(
-      expect.arrayContaining(["Lessons", "Flashcards", "Activities"]),
+      expect.arrayContaining(["Lessons", "Flashcards", "Activities", "Conversations"]),
     );
 
     await user.click(within(menu).getByRole("menuitem", { name: "Log out" }));

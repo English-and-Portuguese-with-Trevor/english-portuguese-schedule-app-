@@ -9,6 +9,7 @@ import {
   CalendarPlus,
   ClipboardList,
   Dumbbell,
+  MessagesSquare,
   GraduationCap,
   Home,
   Puzzle,
@@ -72,6 +73,11 @@ export const LEARN_LINKS = [
     href: "https://englishandportuguesewithtrevor.com/activities/",
     label: tr("Activities"),
     icon: Dumbbell,
+  },
+  {
+    href: "https://englishandportuguesewithtrevor.com/conversations/",
+    label: tr("Conversations"),
+    icon: MessagesSquare,
   },
 ] as const;
 
