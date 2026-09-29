@@ -75,7 +75,7 @@ export const LEARN_LINKS = [
   },
 ] as const;
 
-// "Open the app on": where the installed app starts (the shared `start` preference).
+// "Launch on": where the installed app starts (the shared `start` preference).
 const START_LABELS: Record<StartPage, string> = {
   lessons: tr("Lessons"),
   flashcards: tr("Flashcards"),
@@ -143,7 +143,7 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <SettingsIcon />
-            {t("Open the app on")}
+            {t("Launch on")}
             {start && <span className="ml-auto text-muted-foreground">{t(START_LABELS[start])}</span>}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
