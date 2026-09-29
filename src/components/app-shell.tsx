@@ -191,6 +191,7 @@ export function AppShell({
               )}
             >
               English <em className="text-brand-accent">&amp;</em> Portuguese
+              <br />
               with Trevor
             </a>
             <div className="flex shrink-0 items-center gap-2">
