@@ -38,7 +38,9 @@ export function StatusPage({
   const t = translator(lang);
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6">
+      {/* eslint-disable-next-line @next/next/no-img-element -- the plain logo file, shown even when the rest fails */}
+      <img src="/brand/logo-transparent.png" alt="" className="w-full max-w-72" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{t(title)}</CardTitle>
