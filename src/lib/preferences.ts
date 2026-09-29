@@ -75,7 +75,7 @@ export function setSiteLanguage(language: SiteLanguage): Promise<unknown> {
   return save("set_site_language", { lang: language });
 }
 
-/** Which section the installed app opens on (Settings > Preferences > "Open default"). */
+/** Which section the installed app opens on (Settings > Preferences > "App start"). */
 export function setStartPage(page: StartPage) {
   writePrefs({ start: page });
   save("set_start_page", { page });

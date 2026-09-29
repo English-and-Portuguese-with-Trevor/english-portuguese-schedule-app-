@@ -67,7 +67,7 @@ describe("AppShell", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Home", "Daily puzzles", "Learn", "Schedule a class", "Open default", "Settings", "Log out"]);
+    ).toEqual(["Home", "Daily puzzles", "Learn", "Schedule a class", "App start", "Settings", "Log out"]);
     expect(
       within(menu).getByRole("menuitem", { name: "Home" }),
     ).toHaveAttribute("href", LANDING_URL);

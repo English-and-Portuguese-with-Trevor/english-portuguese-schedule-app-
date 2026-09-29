@@ -1,7 +1,7 @@
 @AGENTS.md
 
 ## Account menu, Settings, lifetime access
-- The "Hi, name" account menu (`src/components/app-shell.tsx`) is the same on every site, in this order: Home, Daily puzzles (gold lettering, kept out of Learn so it stands out), Learn (a sub-menu: Lessons, Flashcards, Activities), Schedule a class, Open default (a folded sub-menu: Lessons, Flashcards, Activities, Daily puzzles; the current choice on the row), Settings, Log out.
+- The "Hi, name" account menu (`src/components/app-shell.tsx`) is the same on every site, in this order: Home, Daily puzzles (gold lettering, kept out of Learn so it stands out), Learn (a sub-menu: Lessons, Flashcards, Activities), Schedule a class, App start (a folded sub-menu: Lessons, Flashcards, Activities, Daily puzzles; the current choice on the row), Settings, Log out.
 - `/settings` (`src/components/account-settings.tsx`): a short menu of full-width rows, the same shape on every site: Preferences › and Account › each open their own page with nothing else under it (‹ Settings returns; Account holds the name, email and lesson access), then Manage subscription (Stripe portal via the `billing` edge function; it opens for any account), Delete account (the `delete-account` edge function) and Log out. Both functions live in the flashcards-app repo.
 - Lifetime lesson access: students qualify after three class sets (12 classes on the 4-class package, 24 on the 8-class package). Completed classes = past confirmed bookings + late cancellations + `profiles.earlier_classes`. The app only flags it (`my_class_progress` / `admin_class_progress` RPCs); Trevor gives `lifetime` by hand on the Users page. Never grant it automatically.
 
@@ -38,7 +38,7 @@ one. (The activities site does this with `catalogFor(learning)`; see its
 CLAUDE.md.)
 
 ## One address, one app
-The other sites share `englishandportuguesewithtrevor.com` (`/lessons/`, `/flashcards/`, `/activities/`, `/dailies/`, one installed app from the landing repo's manifest); this app stays at `schedule.englishandportuguesewithtrevor.com`, so links to it open outside the installed app. The account menu has "Open default" (`start` in `ept-prefs`, `profiles.start_page` via `set_start_page`, `START_PAGES` in `prefs.ts`; Trevor wants it in the main menu, not under Settings): the section the installed app starts on.
+The other sites share `englishandportuguesewithtrevor.com` (`/lessons/`, `/flashcards/`, `/activities/`, `/dailies/`, one installed app from the landing repo's manifest); this app stays at `schedule.englishandportuguesewithtrevor.com`, so links to it open outside the installed app. The account menu has "App start" (`start` in `ept-prefs`, `profiles.start_page` via `set_start_page`, `START_PAGES` in `prefs.ts`; Trevor wants it in the main menu, not under Settings): the section the installed app starts on.
 
 ## Brand in the header
 Every site's header shows the brand on two lines, "English & Portuguese" over
