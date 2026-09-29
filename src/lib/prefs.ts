@@ -13,10 +13,10 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
 // Languages the sites' own text is available in, with each one's own name and
 // the flag shown next to it in the language menus.
 export const SITE_LANGUAGES = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "es", label: "Español", flag: "🇲🇽" },
-  { code: "pt", label: "Português", flag: "🇧🇷" },
-  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "en", label: "English", flag: "/flags/us.svg" },
+  { code: "es", label: "Español", flag: "/flags/mx.svg" },
+  { code: "pt", label: "Português", flag: "/flags/br.svg" },
+  { code: "fr", label: "Français", flag: "/flags/fr.svg" },
 ] as const;
 export type SiteLanguage = (typeof SITE_LANGUAGES)[number]["code"];
 const SITE_CODES: readonly string[] = SITE_LANGUAGES.map((l) => l.code);

@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FlagSelect } from "@/components/flag-select";
 import { Input } from "@/components/ui/input";
 import { LANDING_URL } from "@/components/app-shell";
 import { logout } from "@/lib/actions/auth";
@@ -238,29 +239,28 @@ function PreferencesCard() {
       </CardHeader>
       <CardContent className="flex flex-col divide-y">
         <div className="flex items-center justify-between gap-4 py-3">
-          <label htmlFor="site-language" className="text-sm font-medium">
+          <span id="site-language-label" className="text-sm font-medium">
             {t("Site language")}
-          </label>
-          <select
+          </span>
+          <FlagSelect
             id="site-language"
-            className="h-9 rounded-md border bg-background px-2 text-sm"
+            labelId="site-language-label"
             value={siteLanguage}
+            options={SITE_LANGUAGES.map((l) => ({
+              value: l.code,
+              label: l.label,
+              flag: l.flag,
+              lang: l.code,
+            }))}
             disabled={savingLanguage}
-            onChange={(e) => {
-              const next = e.target.value as SiteLanguage;
+            onChange={(next: SiteLanguage) => {
               // Save first, then re-render the pages in the new language.
               startSavingLanguage(async () => {
                 await setSiteLanguage(next);
                 router.refresh();
               });
             }}
-          >
-            {SITE_LANGUAGES.map((l) => (
-              <option key={l.code} value={l.code} lang={l.code}>
-                {l.flag} {l.label}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <div className="flex items-center justify-between gap-4 py-3">
           <span id="dark-mode-label" className="text-sm font-medium">
@@ -292,25 +292,23 @@ function PreferencesCard() {
           </button>
         </div>
         <div className="flex items-center justify-between gap-4 py-3">
-          <label htmlFor="learning-language" className="text-sm font-medium">
+          <span id="learning-language-label" className="text-sm font-medium">
             {t("I'm learning")}
-          </label>
-          <select
+          </span>
+          <FlagSelect
             id="learning-language"
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={prefs.learning ?? ""}
-            onChange={(e) => {
-              const learning = e.target.value as LearningLanguage;
+            labelId="learning-language-label"
+            value={prefs.learning}
+            placeholder={t("Choose…")}
+            options={[
+              { value: "Portuguese", label: t("Portuguese"), flag: "/flags/br.svg" },
+              { value: "English", label: t("English"), flag: "/flags/us.svg" },
+            ]}
+            onChange={(learning: LearningLanguage) => {
               setLearningLanguage(learning);
               setPrefs((p) => ({ ...p, learning }));
             }}
-          >
-            <option value="" disabled>
-              {t("Choose…")}
-            </option>
-            <option value="Portuguese">🇧🇷 {t("Portuguese")}</option>
-            <option value="English">🇺🇸 {t("English")}</option>
-          </select>
+          />
         </div>
       </CardContent>
     </Card>

@@ -188,9 +188,8 @@ describe("Preferences", () => {
   it("saves the language being learned", async () => {
     renderSettings();
     openPage("Preferences");
-    fireEvent.change(screen.getByLabelText("I'm learning"), {
-      target: { value: "English" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /I'm learning/ }));
+    fireEvent.click(screen.getByRole("option", { name: "English" }));
     expect(decodeURIComponent(document.cookie)).toContain(
       '"learning":"English"',
     );
@@ -212,14 +211,41 @@ describe("Preferences", () => {
       />,
     );
     openPage("Preferences");
-    fireEvent.change(screen.getByLabelText("Site language"), {
-      target: { value: "es" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Site language/ }));
+    fireEvent.click(screen.getByRole("option", { name: "Español" }));
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith("set_site_language", { lang: "es" }),
     );
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     expect(decodeURIComponent(document.cookie)).toContain('"site":"es"');
+  });
+
+  it("opens the language menu from the keyboard, chooses, and closes on Escape", async () => {
+    renderSettings();
+    openPage("Preferences");
+    const button = screen.getByRole("button", { name: "Site language English" });
+    expect(button).toHaveAttribute("aria-haspopup", "listbox");
+    fireEvent.keyDown(button, { key: "ArrowDown" });
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    const english = screen.getByRole("option", { name: "English" });
+    expect(english).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => expect(english).toHaveFocus());
+
+    const list = screen.getByRole("listbox", { name: "Site language" });
+    fireEvent.keyDown(list, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(button).toHaveFocus();
+
+    fireEvent.keyDown(button, { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "End" });
+    await waitFor(() =>
+      expect(screen.getByRole("option", { name: "Français" })).toHaveFocus(),
+    );
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Enter" });
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_site_language", { lang: "fr" }),
+    );
   });
 
   it("shows the settings in the site language", () => {
