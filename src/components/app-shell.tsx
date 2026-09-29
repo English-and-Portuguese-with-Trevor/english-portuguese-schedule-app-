@@ -72,7 +72,8 @@ export const LEARN_LINKS = [
 ] as const;
 
 function firstName(name: string | null, email: string | null) {
-  return (name?.trim() || email || "").split(/\s+/)[0];
+  // No name on the profile: the part of the email before the @ will do.
+  return (name?.trim() || email?.split("@")[0] || "").split(/\s+/)[0];
 }
 
 function AccountMenu({ fullName, email }: { fullName: string | null; email: string | null }) {
