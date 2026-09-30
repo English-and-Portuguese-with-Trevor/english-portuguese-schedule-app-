@@ -110,7 +110,7 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, status, late_cancellation, google_event_id, meet_link, reschedule_of, student_timezone, lesson_language, whatsapp, session_slots(start_time, end_time), profiles(full_name, email)",
+      "id, status, late_cancellation, google_event_id, meet_link, reschedule_of, student_timezone, lesson_language, whatsapp, session_slots(start_time, end_time), profiles(full_name, email, timezone)",
     )
     .eq("id", bookingId)
     .single();
@@ -151,7 +151,9 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
     end: data.session_slots.end_time,
     studentName: data.profiles?.full_name ?? null,
     studentEmail: data.profiles?.email ?? null,
-    studentTimezone: data.student_timezone,
+    // A class Trevor booked has no booking time zone; the profile's (kept in
+    // step with the student's browser by TimezoneSync) is the next best.
+    studentTimezone: data.student_timezone ?? data.profiles?.timezone ?? null,
     language: data.lesson_language,
     whatsapp: data.whatsapp,
     adminTimezone,

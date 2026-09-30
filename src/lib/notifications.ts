@@ -301,6 +301,29 @@ export const emails = {
     });
   },
 
+  /** Several lessons Trevor booked at once (a weekly class): one email listing them all. */
+  seriesBooked(lessons: Lesson[], meetLinks: (string | null)[]): Email | null {
+    const [first] = lessons;
+    if (!first) return null;
+    const zone = studentZone(first);
+    const email = studentEmail(first, `${lessons.length} lessons booked, starting`, {
+      heading: `Your ${lessons.length} lessons are booked`,
+      intro:
+        `Hi ${firstName(first.studentName)}, Trevor booked your lessons! Each one has its own calendar invitation and ` +
+        `Google Meet link, on their way separately. Times are in ${formatInTimeZone(new Date(first.start), zone, "zzzz")}.`,
+      details: [["Lesson", lessonType(first)]],
+      sections: [
+        {
+          title: "Your lessons",
+          rows: lessons.map((l, i) => [shortTime(l.start, zone), meetLinks[i] ?? ""] as [string, string]),
+        },
+      ],
+      button: { label: "View or cancel your lessons", url: SITE_URL },
+      footerNote: "Canceling less than 24 hours before a lesson still counts as a class.",
+    });
+    return email;
+  },
+
   declined(lesson: Lesson): Email | null {
     return studentEmail(lesson, "Lesson request not available", {
       heading: "This time isn't available",
@@ -384,7 +407,7 @@ export const emails = {
       heading: `You booked ${lessons.length} classes for a student`,
       intro:
         "Each class has its own calendar event and Meet link, so the student can cancel or move one week without touching the rest. " +
-        "Google sends the student an invitation for each.",
+        "The student gets one email listing them all, and Google sends an invitation for each.",
       details: adminDetails(first).filter(([label]) => label !== "Your time" && label !== "Student's time"),
       sections: [
         { title: "Booked", rows: lessons.map((l) => [shortTime(l.start, zone), ""] as [string, string]) },
@@ -582,14 +605,17 @@ export async function afterApproval(supabase: Supabase, lesson: Lesson) {
 export async function afterAdminBooking(supabase: Supabase, lesson: Lesson) {
   if (!configured()) return;
   const meetLink = await scheduleMeeting(supabase, lesson);
-  await send(emails.adminBooked(lesson, meetLink));
+  await Promise.all([send(emails.confirmed(lesson, meetLink)), send(emails.adminBooked(lesson, meetLink))]);
 }
 
-/** A run of classes the admin booked at once: a calendar invite for each, one email to the admin. */
+/** A run of classes the admin booked at once: a calendar invite for each, one email to the student, one to the admin. */
 export async function afterAdminSeries(supabase: Supabase, lessons: Lesson[], skipped: { start: string; reason: string }[]) {
   if (!configured()) return;
-  for (const lesson of lessons) await scheduleMeeting(supabase, lesson);
-  await send(emails.adminBookedSeries(lessons, skipped));
+  const meetLinks: (string | null)[] = [];
+  for (const lesson of lessons) meetLinks.push(await scheduleMeeting(supabase, lesson));
+  // One branded email to the student listing every lesson (Google's own invite comes for each too).
+  const toStudent = lessons.length === 1 ? emails.confirmed(lessons[0], meetLinks[0]) : emails.seriesBooked(lessons, meetLinks);
+  await Promise.all([send(toStudent), send(emails.adminBookedSeries(lessons, skipped))]);
 }
 
 /** A student asked to move a confirmed lesson; it waits for approval. */
