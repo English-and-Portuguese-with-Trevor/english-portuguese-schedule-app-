@@ -436,6 +436,10 @@ export type Database = {
         Args: never
         Returns: string | null
       }
+      test_push_target: {
+        Args: { p_endpoint: string; p_secret: string }
+        Returns: Json
+      }
       admin_class_progress: {
         Args: never
         Returns: {

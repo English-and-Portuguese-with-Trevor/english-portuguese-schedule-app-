@@ -1,8 +1,10 @@
+import { sendTestPush } from "@/lib/admin-push";
 import { adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
 import { createClient } from "@/lib/supabase/server";
 
 // The admin dashboard on the landing site (englishandportuguesewithtrevor.com/admin/)
-// approves, cancels and books classes through this route, so the emails and
+// approves, cancels and books classes through this route (and sends a test
+// notification to the device it's open on), so the emails and
 // calendar invites keep coming from here. The login cookie is shared across
 // the domain, so the same session check as the admin pages applies; the
 // dashboard's origin is the only one allowed to call it from a browser.
@@ -19,7 +21,8 @@ const CORS = {
 type Body =
   | { action: "confirm"; bookingId: string }
   | { action: "cancel"; bookingId: string; reason?: string }
-  | { action: "book"; studentId: string; start: string; end: string };
+  | { action: "book"; studentId: string; start: string; end: string }
+  | { action: "test-push"; endpoint: string; title?: string; body: string };
 
 function json(body: unknown, status = 200) {
   return Response.json(body, { status, headers: CORS });
@@ -60,6 +63,14 @@ export async function POST(request: Request) {
           return json({ error: "Bad time." }, 400);
         }
         return json(await adminBookStudent(String(body.studentId), start.toISOString(), end.toISOString()));
+      }
+      case "test-push": {
+        const secret = process.env.CRON_SECRET;
+        if (!secret) return json({ error: "Push isn't set up on the server (CRON_SECRET is missing)." }, 500);
+        const title = String(body.title ?? "").trim().slice(0, 80) || "Test notification";
+        const text = String(body.body ?? "").trim().slice(0, 300);
+        if (!text) return json({ error: "Type a message first." }, 400);
+        return json(await sendTestPush(secret, String(body.endpoint), title, text));
       }
       default:
         return json({ error: "Unknown action." }, 400);

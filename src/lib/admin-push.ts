@@ -96,3 +96,32 @@ export async function sendFlagDigest(secret: string) {
   await sendNotification(emails.flagDigest(flags));
   return { flags: flags.length };
 }
+
+/**
+ * A test notification from the admin dashboard to one device that already
+ * turned push on (looked up by its endpoint, so nothing else can be reached).
+ */
+export async function sendTestPush(secret: string, endpoint: string, title: string, body: string) {
+  const { data, error } = await createServerJobClient().rpc("test_push_target", {
+    p_secret: secret,
+    p_endpoint: endpoint,
+  });
+  if (error) throw new Error(`test_push_target: ${error.message}`);
+  const target = data as unknown as { endpoint: string; p256dh: string; auth: string; vapid_public_key: string | null; vapid_private_key: string | null } | null;
+  if (!target) return { error: "This device isn't turned on for push. Turn it on above, then try again." };
+  if (!target.vapid_public_key || !target.vapid_private_key) return { error: "The push keys are missing." };
+  try {
+    await webpush.sendNotification(
+      { endpoint: target.endpoint, keys: { p256dh: target.p256dh, auth: target.auth } },
+      JSON.stringify({ title, body, tag: `test-${Date.now()}` }),
+      {
+        vapidDetails: { subject: VAPID_SUBJECT, publicKey: target.vapid_public_key, privateKey: target.vapid_private_key },
+        TTL: 60 * 5,
+      },
+    );
+  } catch (err) {
+    const status = (err as { statusCode?: number }).statusCode;
+    return { error: `The push service refused it${status ? ` (${status})` : ""}. Turn push off and on again on this device.` };
+  }
+  return { error: null };
+}

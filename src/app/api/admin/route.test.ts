@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   confirmBooking: vi.fn(async () => ({ error: null })),
   cancelBooking: vi.fn(async () => ({ error: null })),
   adminBookStudent: vi.fn(async () => ({ error: null })),
+  sendTestPush: vi.fn(async () => ({ error: null })),
 }));
+vi.mock("@/lib/admin-push", () => ({ sendTestPush: mocks.sendTestPush }));
 vi.mock("@/lib/actions/bookings", () => ({
   confirmBooking: mocks.confirmBooking,
   cancelBooking: mocks.cancelBooking,
@@ -59,6 +61,14 @@ describe("POST /api/admin", () => {
     expect(mocks.cancelBooking).toHaveBeenCalledWith("b2", "Sick");
     await post({ action: "book", studentId: "s1", start: "2026-10-01T16:00:00.000Z", end: "2026-10-01T17:00:00.000Z" });
     expect(mocks.adminBookStudent).toHaveBeenCalledWith("s1", "2026-10-01T16:00:00.000Z", "2026-10-01T17:00:00.000Z");
+  });
+
+  it("sends a test notification to the calling device only, with a message", async () => {
+    vi.stubEnv("CRON_SECRET", "s3cret");
+    expect((await post({ action: "test-push", endpoint: "https://push/e1", body: "  " })).status).toBe(400);
+    await post({ action: "test-push", endpoint: "https://push/e1", title: "", body: " Hello " });
+    expect(mocks.sendTestPush).toHaveBeenCalledWith("s3cret", "https://push/e1", "Test notification", "Hello");
+    vi.unstubAllEnvs();
   });
 
   it("rejects a bad time or unknown action", async () => {
