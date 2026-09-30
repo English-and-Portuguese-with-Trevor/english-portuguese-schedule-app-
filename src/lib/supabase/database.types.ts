@@ -492,6 +492,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      my_announcements: {
+        Args: { p_learning?: string }
+        Returns: { id: number; message: string; created_at: string }[]
+      }
       record_integration_status: {
         Args: { p_message: string; p_ok: boolean; p_secret: string; p_service: string }
         Returns: undefined

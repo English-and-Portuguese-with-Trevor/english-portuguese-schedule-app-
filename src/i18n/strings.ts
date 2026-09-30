@@ -216,6 +216,8 @@ export const STRINGS = {
       "Intentar de nuevo",
     "Go to the home page":
       "Ir a la página de inicio",
+    Notices: "Avisos",
+    Dismiss: "Cerrar",
   },
   pt: {
     "English & Portuguese with Trevor, main website":
@@ -430,6 +432,8 @@ export const STRINGS = {
       "Tentar de novo",
     "Go to the home page":
       "Ir para a página inicial",
+    Notices: "Avisos",
+    Dismiss: "Fechar",
   },
   fr: {
     "English & Portuguese with Trevor, main website":
@@ -644,5 +648,7 @@ export const STRINGS = {
       "Réessayer",
     "Go to the home page":
       "Aller à la page d'accueil",
+    Notices: "Annonces",
+    Dismiss: "Fermer",
   },
 } as const;

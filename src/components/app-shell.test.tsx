@@ -9,6 +9,7 @@ import type { Role } from "@/lib/types";
 const logout = vi.fn();
 vi.mock("@/lib/actions/auth", () => ({ logout: () => logout() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/admin/bookings" }));
+vi.mock("@/components/notices", () => ({ Notices: () => null }));
 
 function renderShell(role: Role) {
   render(

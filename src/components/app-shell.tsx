@@ -34,6 +34,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Notices } from "@/components/notices";
 import { PrefsSync } from "@/components/prefs-sync";
 import { SiteLanguageProvider, useT } from "@/i18n/client";
 import { tr, translate } from "@/i18n/translate";
@@ -283,6 +284,7 @@ export function AppShell({
             </nav>
           )}
         </header>
+        <Notices />
 
         <main
           className={cn(
