@@ -527,6 +527,69 @@ begin
   if exists (select 1 from public.admin_alerts where user_id = v_s) then raise exception 'FAIL: deleting an account deletes its alerts'; end if;
 end $$;
 
+-- Class flags: only students with lesson access Trevor gave, one per class
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_o uuid := gen_random_uuid();
+  v_past uuid;
+  v_old uuid;
+  v_ok boolean;
+  -- 3 AM Mountain, when no real class is booked.
+  v_2days timestamptz := (date_trunc('day', now() at time zone 'America/Denver') - interval '2 days' + interval '3 hours') at time zone 'America/Denver';
+  v_20days timestamptz := v_2days - interval '18 days';
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-flag-student@example.com', '{"full_name":"Flag Student"}', 'authenticated', 'authenticated'),
+    (v_o, 'db-test-flag-other@example.com', '{"full_name":"Flag Other"}', 'authenticated', 'authenticated');
+  update public.profiles set lesson_access = 'none' where id = v_s;
+  update public.profiles set lesson_access = 'lifetime' where id = v_o;
+
+  insert into public.session_slots (start_time, end_time, status)
+  values (v_2days, v_2days + interval '1 hour', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+  values ((select id from public.session_slots where start_time = v_2days), v_s, 'CONFIRMED')
+  returning id into v_past;
+  insert into public.session_slots (start_time, end_time, status)
+  values (v_20days, v_20days + interval '1 hour', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+  values ((select id from public.session_slots where start_time = v_20days), v_s, 'CONFIRMED')
+  returning id into v_old;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.flag_my_class(v_past, 'connection'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students without lesson access cannot flag'; end if;
+  v_ok := false; begin update public.bookings set flag_reason = 'other' where id = v_past; if not found then v_ok := true; end if; exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot set a flag directly'; end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_o, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.flag_my_class(v_past, 'connection'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot flag someone else''s class'; end if;
+
+  reset role;
+  update public.profiles set lesson_access = 'granted' where id = v_s;
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.flag_my_class(v_past, 'bad'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a flag needs one of the set reasons'; end if;
+  v_ok := false; begin perform public.flag_my_class(v_old, 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a class over a week ago cannot be flagged'; end if;
+  perform public.flag_my_class(v_past, 'connection');
+  v_ok := false; begin perform public.flag_my_class(v_past, 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a class is flagged only once'; end if;
+  reset role;
+
+  if (select flag_reason from public.bookings where id = v_past) is distinct from 'connection' then
+    raise exception 'FAIL: flagging saves the reason on the booking';
+  end if;
+  if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'flag' and reason = 'connection'
+      and class_start = v_2days and name = 'Flag Student') <> 1 then
+    raise exception 'FAIL: flagging a class makes one admin alert';
+  end if;
+end $$;
+
 select 'ALL DATABASE TESTS PASSED' as result;
 
 rollback;

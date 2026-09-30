@@ -17,6 +17,8 @@ export const SERVER_MESSAGES = [
   tr("That time has already passed."),
   tr("This lesson has already started."),
   tr("You already asked to reschedule this lesson."),
+  tr("You already flagged this class."),
+  tr("Please pick a reason."),
   tr("You already have 10 upcoming classes. Cancel one to book another."),
   tr("Admin accounts can't be self-deleted from the app."),
   tr(

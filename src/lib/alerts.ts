@@ -1,19 +1,36 @@
-/** Alerts for the admin (new sign-ups, new subscribers): shared by the Alerts page and the push sender. */
+/** Alerts for the admin (new sign-ups, new subscribers, flagged classes): shared by the Alerts page and the push sender. */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatInTimeZone } from "date-fns-tz";
 
 import type { Database } from "@/lib/supabase/database.types";
+import { FLAG_REASONS, type FlagReason } from "@/lib/types";
 
 export type AlertRow = {
   id: number;
-  kind: "signup" | "subscriber";
+  kind: "signup" | "subscriber" | "flag";
   name: string | null;
   email: string | null;
   created_at: string;
+  /** Flags only: the reason the student picked and when the class was. */
+  reason?: string | null;
+  class_start?: string | null;
 };
 
 export function alertTitle(kind: AlertRow["kind"]) {
+  if (kind === "flag") return "Class flagged";
   return kind === "subscriber" ? "New subscriber" : "New sign-up";
+}
+
+/** "Connection or Meet problem · class Mon, Sep 28, 2:30 PM MDT", in the admin's (Mountain) time. */
+export function flagDetails(alert: Pick<AlertRow, "reason" | "class_start">) {
+  return [
+    FLAG_REASONS[alert.reason as FlagReason] ?? alert.reason,
+    alert.class_start &&
+      `class ${formatInTimeZone(new Date(alert.class_start), "America/Denver", "EEE, MMM d, h:mm a zzz")}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function who(alert: Pick<AlertRow, "name" | "email">) {
@@ -28,16 +45,19 @@ export function pushMessage(alerts: AlertRow[]) {
     return {
       title: alertTitle(alert.kind),
       body:
-        alert.kind === "subscriber"
-          ? `${who(alert)} subscribed to the lessons.`
-          : `${who(alert)} created an account.`,
+        alert.kind === "flag"
+          ? `${who(alert)}: ${flagDetails(alert)}`
+          : alert.kind === "subscriber"
+            ? `${who(alert)} subscribed to the lessons.`
+            : `${who(alert)} created an account.`,
       tag: `alert-${alert.id}`,
       url: "/admin/alerts",
     };
   }
-  const signups = alerts.filter((a) => a.kind === "signup").length;
-  const subscribers = alerts.length - signups;
+  const count = (kind: AlertRow["kind"]) => alerts.filter((a) => a.kind === kind).length;
+  const [signups, subscribers, flags] = [count("signup"), count("subscriber"), count("flag")];
   const parts = [
+    flags && `${flags} flagged class${flags === 1 ? "" : "es"}`,
     signups && `${signups} new sign-up${signups === 1 ? "" : "s"}`,
     subscribers && `${subscribers} new subscriber${subscribers === 1 ? "" : "s"}`,
   ].filter(Boolean);

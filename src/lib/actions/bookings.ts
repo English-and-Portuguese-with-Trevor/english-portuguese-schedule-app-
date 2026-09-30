@@ -13,7 +13,7 @@ import {
   type Lesson,
 } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
-import { WHATSAPP_PATTERN, type BookingAnswers } from "@/lib/types";
+import { WHATSAPP_PATTERN, type BookingAnswers, type FlagReason } from "@/lib/types";
 import { tr } from "@/i18n/translate";
 
 type ActionResult = { error: string | null };
@@ -286,6 +286,15 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 
   revalidatePath("/dashboard");
   revalidatePath("/admin/bookings");
+  return { error: null };
+}
+
+/** Student flags one of their classes; the database makes the admin alert (flag_my_class). */
+export async function flagClass(bookingId: string, reason: FlagReason): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("flag_my_class", { p_booking_id: bookingId, p_reason: reason });
+  if (error) return { error: friendlyDbError(error) };
+  revalidatePath("/dashboard");
   return { error: null };
 }
 

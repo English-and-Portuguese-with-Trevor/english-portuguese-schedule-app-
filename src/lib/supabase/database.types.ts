@@ -17,10 +17,12 @@ export type Database = {
           created_at: string
           email: string | null
           id: number
-          kind: "signup" | "subscriber"
+          class_start: string | null
+          kind: "signup" | "subscriber" | "flag"
           name: string | null
           pushed_at: string | null
           read_at: string | null
+          reason: string | null
           user_id: string | null
         }
         Insert: never
@@ -109,6 +111,7 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           created_at: string
+          flag_reason: string | null
           google_event_id: string | null
           id: string
           is_admin_override: boolean
@@ -128,6 +131,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          flag_reason?: string | null
           google_event_id?: string | null
           id?: string
           is_admin_override?: boolean
@@ -147,6 +151,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          flag_reason?: string | null
           google_event_id?: string | null
           id?: string
           is_admin_override?: boolean
@@ -453,6 +458,7 @@ export type Database = {
       }
       admin_timezone: { Args: never; Returns: string }
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      flag_my_class: { Args: { p_booking_id: string; p_reason: string }; Returns: undefined }
       claim_student_reminders: {
         Args: { p_secret: string }
         Returns: {

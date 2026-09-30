@@ -56,6 +56,15 @@ describe("pushMessage", () => {
     });
   });
 
+  it("says which class was flagged and why", () => {
+    const flag: AlertRow = { ...signup, id: 4, kind: "flag", reason: "connection", class_start: "2026-09-28T20:30:00Z" };
+    expect(pushMessage([flag])).toMatchObject({
+      title: "Class flagged",
+      body: "Ana Pereira (ana@example.com): Connection or Meet problem · class Mon, Sep 28, 2:30 PM MDT",
+    });
+    expect(pushMessage([flag, signup]).body).toBe("1 flagged class, 1 new sign-up");
+  });
+
   it("sums up several alerts in one notification", () => {
     expect(pushMessage([signup, { ...signup, id: 3 }, subscriber])).toMatchObject({
       title: "3 new alerts",

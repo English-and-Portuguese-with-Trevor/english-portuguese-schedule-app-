@@ -1,3 +1,4 @@
+import { tr } from "@/i18n/translate";
 import type { Tables } from "@/lib/supabase/database.types";
 
 export type Role = "admin" | "student";
@@ -49,6 +50,20 @@ export const LATE_CANCEL_HOURS = 24;
 
 /** Late cancellations stay on the admin's Bookings page for this long. */
 export const LATE_CANCEL_LIST_DAYS = 7;
+
+/**
+ * Why a student flags a class (flag_my_class): set reasons, no notes. Only
+ * students with lesson access Trevor gave by hand can flag.
+ */
+export const FLAG_REASONS = {
+  connection: tr("Connection or Meet problem"),
+  booking: tr("Time or booking problem"),
+  other: tr("Something else"),
+} as const;
+export type FlagReason = keyof typeof FLAG_REASONS;
+
+/** How long after a class it can still be flagged (flag_my_class). */
+export const FLAG_DAYS = 7;
 
 export type LessonLanguage = "ENGLISH" | "PORTUGUESE";
 

@@ -92,7 +92,7 @@ pages (`src/components/admin/booking-parts.tsx` holds what the two booking
 pages share), so every change sends the usual emails. Hours can't be changed
 for a single date yet; windows are weekly.
 
-## Alerts: new sign-ups and new subscribers
+## Alerts: new sign-ups, new subscribers, flagged classes
 
 The bell in the admin header counts alerts not seen yet; `/admin/alerts` lists
 them (newest first) and marks them read. The database makes them
@@ -100,6 +100,13 @@ them (newest first) and marks them read. The database makes them
 `profiles` for every new account, and one on `billing` when a Stripe
 subscription starts (or starts again after ending; a payment retry going
 from past_due back to active is not new).
+
+Flagged classes: students whose lesson access is `granted` or `lifetime` see a
+flag on each confirmed class on their dashboard (upcoming ones, and a "Recent
+classes" list for the past week). Tapping it asks for one of three set
+reasons (connection or Meet, time or booking, something else; no notes), and
+`flag_my_class` saves it on the booking and makes a `flag` alert. One flag per
+class (`supabase/migrations/20260930113255_class_flags.sql`).
 
 Each alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
 one email), through the same Gmail connection as the booking emails.

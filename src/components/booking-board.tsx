@@ -1,19 +1,21 @@
 "use client";
 
+import { Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { cancelBooking, requestBooking, requestReschedule } from "@/lib/actions/bookings";
+import { cancelBooking, flagClass, requestBooking, requestReschedule } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CancelBookingDialog, type CancellableBooking } from "@/components/cancel-booking-dialog";
+import { FlagClassDialog } from "@/components/flag-class-dialog";
 import { SlotPicker, timeZoneLabel, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
 import { createClient } from "@/lib/supabase/client";
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import { cn } from "@/lib/utils";
-import type { Booking, BookingAnswers, Role } from "@/lib/types";
+import type { Booking, BookingAnswers, FlagReason, Role } from "@/lib/types";
 
 type BookingRow = Booking & {
   session_slots: {
@@ -31,16 +33,23 @@ export function BookingBoard({
   candidates,
   busySlots,
   myBookings,
+  recentClasses = [],
+  canFlag = false,
   previousAnswers,
 }: {
   role: Role;
   candidates: CandidateSlotDTO[];
   busySlots: BusySlotDTO[];
   myBookings: BookingRow[];
+  /** Confirmed classes of the last few days, which can still be flagged. */
+  recentClasses?: BookingRow[];
+  /** Students with lesson access Trevor gave by hand can flag their classes. */
+  canFlag?: boolean;
   previousAnswers?: Partial<BookingAnswers>;
 }) {
   const router = useRouter();
   const [cancelling, setCancelling] = useState<CancellableBooking | null>(null);
+  const [flagging, setFlagging] = useState<{ id: string; startTime: string } | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const t = useT();
   const lang = useSiteLanguage();
@@ -118,6 +127,32 @@ export function BookingBoard({
     return null;
   }
 
+  async function handleFlag(bookingId: string, reason: FlagReason) {
+    const result = await flagClass(bookingId, reason);
+    if (result.error) return t(result.error);
+    setNotice({ kind: "success", text: t("Thanks. Trevor will get in touch.") });
+    return null;
+  }
+
+  // The flag at the top right of a confirmed class, or "Flagged" once it's sent.
+  function flagControl(b: BookingRow) {
+    if (!canFlag || b.status !== "CONFIRMED" || !b.session_slots) return null;
+    if (b.flag_reason) return <Badge variant="secondary">{t("Flagged")}</Badge>;
+    const startTime = b.session_slots.start_time;
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="-mr-2 -mt-2 size-8 shrink-0 text-muted-foreground"
+        title={t("Flag a problem")}
+        aria-label={t("Flag a problem")}
+        onClick={() => setFlagging({ id: b.id, startTime })}
+      >
+        <Flag className="size-4" aria-hidden />
+      </Button>
+    );
+  }
+
   if (!isClient) {
     return <p className="text-sm text-muted-foreground">{t("Loading…")}</p>;
   }
@@ -134,9 +169,12 @@ export function BookingBoard({
             {myBookings.map((b) => (
               <Card key={b.id}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">
-                    {b.reschedule_of ? t("Reschedule request") : t("English / Portuguese class")}
-                  </CardTitle>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base">
+                      {b.reschedule_of ? t("Reschedule request") : t("English / Portuguese class")}
+                    </CardTitle>
+                    {flagControl(b)}
+                  </div>
                   <CardDescription>
                     {b.session_slots && formatDate(b.session_slots.start_time, "dayAtTime", lang)}
                     {b.reschedule_of && startById.get(b.reschedule_of) && (
@@ -188,6 +226,30 @@ export function BookingBoard({
         )}
       </section>
 
+      {canFlag && recentClasses.length > 0 && (
+        <section>
+          <h2 className="mb-1 text-lg font-semibold">{t("Recent classes")}</h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            {t("Something wrong with a class? Tap its flag to let Trevor know.")}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {recentClasses.map((b) => (
+              <Card key={b.id}>
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base">{t("English / Portuguese class")}</CardTitle>
+                    {flagControl(b)}
+                  </div>
+                  <CardDescription>
+                    {b.session_slots && formatDate(b.session_slots.start_time, "dayAtTime", lang)}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section ref={pickerRef} className="scroll-mt-4">
         <h2 className="mb-3 text-lg font-semibold">{rescheduling ? t("Pick a new time") : t("Book a class")}</h2>
         {rescheduling && (
@@ -213,6 +275,7 @@ export function BookingBoard({
       </section>
 
       <CancelBookingDialog booking={cancelling} onClose={() => setCancelling(null)} onCancel={handleCancel} />
+      <FlagClassDialog booking={flagging} onClose={() => setFlagging(null)} onFlag={handleFlag} />
 
       {notice && (
         <div

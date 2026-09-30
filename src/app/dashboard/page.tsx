@@ -1,4 +1,4 @@
-import { addDays } from "date-fns";
+import { addDays, subDays } from "date-fns";
 
 import { BookingBoard } from "@/components/booking-board";
 import { ClassProgressCard } from "@/components/class-progress-card";
@@ -6,6 +6,7 @@ import { getDisplayNames } from "@/lib/display-names";
 import { learningToLessonLanguage } from "@/lib/prefs";
 import { generateUpcomingSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
+import { FLAG_DAYS } from "@/lib/types";
 import type {
   AvailabilityRule,
   Booking,
@@ -29,6 +30,8 @@ export default async function DashboardPage() {
     .eq("id", user!.id)
     .single();
   const isAdmin = profile!.role === "admin";
+  // Students with lesson access Trevor gave by hand can flag their classes.
+  const canFlag = !isAdmin && ["granted", "lifetime"].includes(profile!.lesson_access);
 
   const now = new Date();
   const rangeEnd = addDays(now, LOOKAHEAD_DAYS);
@@ -39,6 +42,7 @@ export default async function DashboardPage() {
     { data: myBookings },
     { data: lastAnswers },
     { data: progressRows },
+    { data: recentClasses },
   ] = await Promise.all([
     supabase.from("availability_rules").select("*").eq("is_active", true),
     supabase
@@ -65,6 +69,16 @@ export default async function DashboardPage() {
       .maybeSingle(),
     // Progress toward lifetime lesson access (three class sets).
     supabase.rpc("my_class_progress"),
+    // Classes of the last FLAG_DAYS days, which can still be flagged.
+    canFlag
+      ? supabase
+          .from("bookings")
+          .select("*, session_slots!inner(start_time, end_time)")
+          .eq("student_id", profile!.id)
+          .eq("status", "CONFIRMED")
+          .lte("session_slots.end_time", now.toISOString())
+          .gt("session_slots.end_time", subDays(now, FLAG_DAYS).toISOString())
+      : { data: [] },
   ]);
   const progress = ((progressRows ?? []) as ClassProgress[])[0] ?? null;
 
@@ -127,6 +141,12 @@ export default async function DashboardPage() {
             learningToLessonLanguage(profile!.learning_language),
           whatsapp: lastAnswers?.whatsapp ?? undefined,
         }}
+        canFlag={canFlag}
+        recentClasses={
+          (recentClasses ?? []).sort((a, b) =>
+            b.session_slots.start_time.localeCompare(a.session_slots.start_time),
+          ) as (Booking & { session_slots: { start_time: string; end_time: string } })[]
+        }
         myBookings={
           (myBookings ?? []).sort((a, b) =>
             a.session_slots.start_time.localeCompare(

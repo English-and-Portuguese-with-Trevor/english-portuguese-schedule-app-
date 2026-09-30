@@ -1,7 +1,7 @@
 import { differenceInMinutes } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
-import { alertTitle, type AlertRow } from "@/lib/alerts";
+import { alertTitle, flagDetails, type AlertRow } from "@/lib/alerts";
 import { renderEmail, type EmailContent } from "@/lib/email-template";
 import {
   createLessonEvent,
@@ -397,13 +397,13 @@ export const emails = {
     });
   },
 
-  /** New sign-ups and subscribers (admin_alerts), one email per batch. */
+  /** New sign-ups, subscribers and flagged classes (admin_alerts), one email per batch. */
   adminAlerts(alerts: AlertRow[]): Email | null {
     const to = adminEmail();
     if (!to || alerts.length === 0) return null;
     const row = (a: AlertRow): [string, string] => [
       a.name || "No name",
-      [a.email, formatInTimeZone(new Date(a.created_at), LESSON_TIMEZONE, "MMM d, h:mm a zzz")].filter(Boolean).join(" · "),
+      [a.kind === "flag" && flagDetails(a), a.email, formatInTimeZone(new Date(a.created_at), LESSON_TIMEZONE, "MMM d, h:mm a zzz")].filter(Boolean).join(" · "),
     ];
     const button = { label: "Open alerts", url: `${SITE_URL}/admin/alerts` };
     if (alerts.length === 1) {
@@ -412,15 +412,22 @@ export const emails = {
         to,
         subject: `${alertTitle(alert.kind)}: ${alert.name || alert.email || "someone"}`,
         ...renderEmail({
-          heading: alert.kind === "subscriber" ? "Someone subscribed to the lessons" : "Someone created an account",
+          heading:
+            alert.kind === "flag"
+              ? "A student flagged a class"
+              : alert.kind === "subscriber"
+                ? "Someone subscribed to the lessons"
+                : "Someone created an account",
           details: [
             ["Name", alert.name || "No name"],
             ...(alert.email ? ([["Email", alert.email]] as [string, string][]) : []),
+            ...(alert.kind === "flag" ? ([["Flag", flagDetails(alert)]] as [string, string][]) : []),
           ],
           button,
         }),
       };
     }
+    const flags = alerts.filter((a) => a.kind === "flag");
     const signups = alerts.filter((a) => a.kind === "signup");
     const subscribers = alerts.filter((a) => a.kind === "subscriber");
     return {
@@ -430,6 +437,7 @@ export const emails = {
         heading: `${alerts.length} new alerts`,
         details: [],
         sections: [
+          { title: "Flagged classes", rows: flags.map(row) },
           { title: "New subscribers", rows: subscribers.map(row) },
           { title: "New sign-ups", rows: signups.map(row) },
         ],
