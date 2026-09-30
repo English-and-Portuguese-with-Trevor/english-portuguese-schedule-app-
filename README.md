@@ -106,7 +106,9 @@ flag on each confirmed class on their dashboard (upcoming ones, and a "Recent
 classes" list for the past week). Tapping it asks for one of three set
 reasons (connection or Meet, time or booking, something else; no notes), and
 `flag_my_class` saves it on the booking and makes a `flag` alert. One flag per
-class (`supabase/migrations/20260930113255_class_flags.sql`). A flag is pushed
+class (`supabase/migrations/20260930113255_class_flags.sql`); tapping
+"Flagged" takes it back (`unflag_my_class`), which deletes its alert too, so it
+never reaches the morning email if that hasn't gone out yet. A flag is pushed
 and listed at once, but emailed only in the morning: `/api/cron/flags` runs at
 12:30 and 13:30 UTC (`vercel.json`), and the run that falls at 6 AM in Denver
 emails every flag not emailed yet (`claim_flag_digest`), so the email arrives

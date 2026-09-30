@@ -464,6 +464,7 @@ export type Database = {
       admin_timezone: { Args: never; Returns: string }
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
       flag_my_class: { Args: { p_booking_id: string; p_reason: string }; Returns: undefined }
+      unflag_my_class: { Args: { p_booking_id: string }; Returns: undefined }
       claim_student_reminders: {
         Args: { p_secret: string }
         Returns: {

@@ -298,6 +298,15 @@ export async function flagClass(bookingId: string, reason: FlagReason): Promise<
   return { error: null };
 }
 
+/** Student takes back their flag on a class (unflag_my_class), which also removes its alert. */
+export async function unflagClass(bookingId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unflag_my_class", { p_booking_id: bookingId });
+  if (error) return { error: friendlyDbError(error) };
+  revalidatePath("/dashboard");
+  return { error: null };
+}
+
 /** Admin-only: confirm a pending booking. */
 export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();

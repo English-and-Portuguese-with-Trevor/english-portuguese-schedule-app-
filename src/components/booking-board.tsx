@@ -4,7 +4,7 @@ import { Flag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { cancelBooking, flagClass, requestBooking, requestReschedule } from "@/lib/actions/bookings";
+import { cancelBooking, flagClass, requestBooking, requestReschedule, unflagClass } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,10 +134,28 @@ export function BookingBoard({
     return null;
   }
 
-  // The flag at the top right of a confirmed class, or "Flagged" once it's sent.
+  async function handleUnflag(bookingId: string) {
+    const result = await unflagClass(bookingId);
+    setNotice(result.error ? { kind: "error", text: t(result.error) } : { kind: "success", text: t("Flag removed.") });
+  }
+
+  // The flag at the top right of a confirmed class; once sent, "Flagged", which takes it back.
   function flagControl(b: BookingRow) {
     if (!canFlag || b.status !== "CONFIRMED" || !b.session_slots) return null;
-    if (b.flag_reason) return <Badge variant="secondary">{t("Flagged")}</Badge>;
+    if (b.flag_reason) {
+      return (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="-mr-2 -mt-2 shrink-0"
+          title={t("Remove flag")}
+          onClick={() => handleUnflag(b.id)}
+        >
+          <Flag className="size-4 fill-current" aria-hidden />
+          {t("Flagged")}
+        </Button>
+      );
+    }
     const startTime = b.session_slots.start_time;
     return (
       <Button

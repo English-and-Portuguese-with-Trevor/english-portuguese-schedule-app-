@@ -602,6 +602,24 @@ begin
   if jsonb_array_length(public.claim_flag_digest('test-secret')) <> 0 then
     raise exception 'FAIL: a flag is emailed only once';
   end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_o, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.unflag_my_class(v_past); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot take back someone else''s flag'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  perform public.unflag_my_class(v_past);
+  reset role;
+  if (select flag_reason from public.bookings where id = v_past) is not null
+     or exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'flag') then
+    raise exception 'FAIL: taking back a flag clears it and its alert';
+  end if;
+  set local role authenticated;
+  perform public.flag_my_class(v_past, 'other');
+  reset role;
+  if (select flag_reason from public.bookings where id = v_past) is distinct from 'other' then
+    raise exception 'FAIL: a class can be flagged again after taking the flag back';
+  end if;
 end $$;
 
 select 'ALL DATABASE TESTS PASSED' as result;
