@@ -19,7 +19,8 @@ export type Database = {
           emailed_at: string | null
           id: number
           class_start: string | null
-          kind: "signup" | "subscriber" | "flag"
+          item: string | null
+          kind: "signup" | "subscriber" | "flag" | "report"
           name: string | null
           pushed_at: string | null
           read_at: string | null

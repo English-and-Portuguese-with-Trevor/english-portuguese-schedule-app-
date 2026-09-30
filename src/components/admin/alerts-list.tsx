@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { CreditCard, Flag, UserPlus } from "lucide-react";
+import { CreditCard, Flag, MessageSquareWarning, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,8 @@ export function AlertsList({ alerts }: { alerts: Alert[] }) {
   return (
     <ul className="divide-y rounded-lg border">
       {alerts.map((alert) => {
-        const Icon = alert.kind === "flag" ? Flag : alert.kind === "subscriber" ? CreditCard : UserPlus;
+        const Icon =
+          alert.kind === "flag" ? Flag : alert.kind === "report" ? MessageSquareWarning : alert.kind === "subscriber" ? CreditCard : UserPlus;
         return (
           <li key={alert.id} className="flex items-start gap-3 p-4">
             <Icon className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
@@ -39,7 +40,7 @@ export function AlertsList({ alerts }: { alerts: Alert[] }) {
                 {alert.name || "No name"}
                 {alert.email && <span className="text-muted-foreground"> · {alert.email}</span>}
               </p>
-              {alert.kind === "flag" && <p className="text-sm">{flagDetails(alert)}</p>}
+              {(alert.kind === "flag" || alert.kind === "report") && <p className="text-sm">{flagDetails(alert)}</p>}
             </div>
             <time
               dateTime={alert.created_at}

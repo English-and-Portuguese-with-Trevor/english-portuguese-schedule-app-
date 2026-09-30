@@ -37,8 +37,10 @@ export async function sendAlerts(secret: string) {
   const claimed = data as unknown as Claimed;
   if (!claimed.alerts.length) return { alerts: 0, emailed: false, sent: 0 };
 
-  // Flagged classes are pushed now but emailed in the morning (sendFlagDigest).
-  const email = isGoogleConfigured() ? emails.adminAlerts(claimed.alerts.filter((a) => a.kind !== "flag")) : null;
+  // Flagged classes and reported issues are pushed now but emailed in the morning (sendFlagDigest).
+  const email = isGoogleConfigured()
+    ? emails.adminAlerts(claimed.alerts.filter((a) => a.kind !== "flag" && a.kind !== "report"))
+    : null;
   const [sent] = await Promise.all([pushAlerts(secret, claimed), sendNotification(email)]);
   return { alerts: claimed.alerts.length, emailed: email !== null, sent };
 }

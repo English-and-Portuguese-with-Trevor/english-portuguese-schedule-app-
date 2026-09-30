@@ -641,6 +641,50 @@ begin
   if v_claimed not like '%db-test-wait@example.com%' then raise exception 'FAIL: sign-ups are still pushed at once'; end if;
 end $$;
 
+-- Reported issues (lessons and activities sites)
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_n uuid := gen_random_uuid();
+  v_ok boolean;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-report@example.com', '{"full_name":"Report Student"}', 'authenticated', 'authenticated'),
+    (v_n, 'db-test-report-none@example.com', '{"full_name":"No Access"}', 'authenticated', 'authenticated');
+  update public.profiles set lesson_access = 'subscriber' where id = v_s;
+  update public.profiles set lesson_access = 'none' where id = v_n;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_n, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.report_issue('lessons', 'Regular -AR verbs › 1.2', 'mistake'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students without lesson access cannot report'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.report_issue('lessons', 'x', 'bad'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a report needs a set reason'; end if;
+  v_ok := false; begin perform public.report_issue('elsewhere', 'x', 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: only the lessons and activities sites'; end if;
+  perform public.report_issue('lessons', 'Regular -AR verbs › 1.2', 'mistake');
+  v_ok := false; begin perform public.report_issue('lessons', 'Regular -AR verbs › 1.2', 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: one report per item'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_n, 'role', 'authenticated')::text, true);
+  if exists (select 1 from public.content_reports) then raise exception 'FAIL: students cannot read others'' reports'; end if;
+  reset role;
+  if not exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'report' and reason = 'mistake'
+                 and item = 'Lessons: Regular -AR verbs › 1.2') then
+    raise exception 'FAIL: a report makes an admin alert';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  perform public.unreport_issue('lessons', 'Regular -AR verbs › 1.2');
+  reset role;
+  if exists (select 1 from public.content_reports where user_id = v_s)
+     or exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'report') then
+    raise exception 'FAIL: taking back a report clears it and its alert';
+  end if;
+end $$;
+
 select 'ALL DATABASE TESTS PASSED' as result;
 
 rollback;

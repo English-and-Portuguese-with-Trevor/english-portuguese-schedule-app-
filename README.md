@@ -112,7 +112,14 @@ never reaches the morning email if that hasn't gone out yet. A flag waits a
 minute before it's pushed (`20260930115740_flag_push_wait.sql`): the flag is
 skipped by `claim_alert_pushes` until then, and a pg_cron job
 (`push-waiting-flags`, every minute) asks for the push once it has waited, so
-a flag taken back within the minute never makes a notification. A flag is pushed
+a flag taken back within the minute never makes a notification.
+
+Reported issues: the lessons and activities sites have the same kind of flag
+on each lesson section, each activity question and at the bottom of their
+pages ("Report an issue"), with four set reasons. `report_issue` saves it in
+`content_reports` (one per student per item; `unreport_issue` takes it back)
+and makes a `report` alert, handled exactly like a class flag
+(`20260930122136_content_reports.sql`). A flag is pushed
 and listed at once, but emailed only in the morning: `/api/cron/flags` runs at
 12:30 and 13:30 UTC (`vercel.json`), and the run that falls at 6 AM in Denver
 emails every flag not emailed yet (`claim_flag_digest`), so the email arrives

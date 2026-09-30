@@ -64,6 +64,11 @@ describe("pushMessage", () => {
       body: "Ana Pereira (ana@example.com): Connection or Meet problem · class Mon, Sep 28, 2:30 PM MDT",
     });
     expect(pushMessage([flag, signup]).body).toBe("1 flagged class, 1 new sign-up");
+    const report: AlertRow = { ...signup, id: 6, kind: "report", reason: "answer", item: "Activities: Present tense › Question 3" };
+    expect(pushMessage([report])).toMatchObject({
+      title: "Issue reported",
+      body: "Ana Pereira (ana@example.com): Wrong answer or grading · Activities: Present tense › Question 3",
+    });
   });
 
   it("sums up several alerts in one notification", () => {
@@ -164,7 +169,7 @@ describe("GET /api/cron/flags", () => {
     }
     expect(mocks.rpc).toHaveBeenCalledWith("claim_flag_digest", { p_secret: "s3cret" });
     expect(mocks.sendEmail).toHaveBeenCalledTimes(2);
-    expect(mocks.sendEmail.mock.calls[0][0]).toMatchObject({ subject: "1 class flagged" });
+    expect(mocks.sendEmail.mock.calls[0][0]).toMatchObject({ subject: "1 new flag" });
   });
 
   it("skips the other run, and sends nothing without flags", async () => {

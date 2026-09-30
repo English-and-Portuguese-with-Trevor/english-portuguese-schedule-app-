@@ -415,11 +415,12 @@ export const emails = {
     });
   },
 
-  /** Classes flagged since the last one, sent each morning (see /api/cron/flags). */
+  /** Classes flagged and issues reported since the last one, sent each morning (see /api/cron/flags). */
   flagDigest(flags: AlertRow[]): Email | null {
     const to = adminEmail();
     if (!to || flags.length === 0) return null;
-    const title = flags.length === 1 ? "1 class flagged" : `${flags.length} classes flagged`;
+    const title = flags.length === 1 ? "1 new flag" : `${flags.length} new flags`;
+    const row = (f: AlertRow): [string, string] => [f.name || f.email || "No name", [flagDetails(f), f.email].filter(Boolean).join(" · ")];
     return {
       to,
       subject: title,
@@ -427,10 +428,8 @@ export const emails = {
         heading: title,
         details: [],
         sections: [
-          {
-            title: "Flagged classes",
-            rows: flags.map((f) => [f.name || f.email || "No name", [flagDetails(f), f.email].filter(Boolean).join(" · ")]),
-          },
+          { title: "Flagged classes", rows: flags.filter((f) => f.kind === "flag").map(row) },
+          { title: "Reported issues", rows: flags.filter((f) => f.kind === "report").map(row) },
         ],
         button: { label: "Open alerts", url: `${SITE_URL}/admin/alerts` },
       }),
