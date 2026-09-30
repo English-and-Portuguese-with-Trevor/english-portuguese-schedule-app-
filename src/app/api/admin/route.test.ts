@@ -14,7 +14,6 @@ vi.mock("@/lib/actions/bookings", () => ({
   cancelBooking: mocks.cancelBooking,
   adminBookStudent: mocks.adminBookStudent,
   adminBookSeries: mocks.adminBookSeries,
-  MAX_SERIES: 26,
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({

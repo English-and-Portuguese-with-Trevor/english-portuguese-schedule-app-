@@ -253,8 +253,8 @@ export async function adminBookStudent(
   return { error: null };
 }
 
-/** The most classes one series can book (half a year of weekly classes). */
-export const MAX_SERIES = 26;
+/** The most classes one series can book (half a year of weekly classes). Not exported: a "use server" file may export only async functions. */
+const MAX_SERIES = 26;
 
 /**
  * Admin-only: book a run of classes for one student at once (a weekly class).

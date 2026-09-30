@@ -1,5 +1,5 @@
 import { sendTestPush } from "@/lib/admin-push";
-import { adminBookSeries, adminBookStudent, cancelBooking, confirmBooking, MAX_SERIES } from "@/lib/actions/bookings";
+import { adminBookSeries, adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
 import { createClient } from "@/lib/supabase/server";
 
 // The admin dashboard on the landing site (englishandportuguesewithtrevor.com/admin/)
@@ -17,6 +17,9 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
   Vary: "Origin",
 };
+
+/** The most classes one series can book (adminBookSeries checks it too). */
+const MAX_SERIES = 26;
 
 type Body =
   | { action: "confirm"; bookingId: string }
