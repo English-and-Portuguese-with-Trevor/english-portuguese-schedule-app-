@@ -15,6 +15,7 @@ vi.mock("@/lib/integration-status", () => ({ recordGoogleStatus, createServerJob
 
 import {
   afterAdminBooking,
+  afterAdminSeries,
   afterApproval,
   afterCancellation,
   afterRescheduleApproval,
@@ -179,6 +180,19 @@ describe("admin booking a student in", () => {
     expect(google.createLessonEvent).toHaveBeenCalledOnce();
     expect(sentTo()).toEqual(["trevor@example.com"]);
     expect(subjects()).toEqual(["You booked: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+  });
+});
+
+describe("admin booking a weekly series", () => {
+  it("creates an event per class and sends the admin one summary, with what was skipped", async () => {
+    const second = { ...lesson, bookingId: "b2", start: "2026-10-05T20:30:00Z", end: "2026-10-05T21:30:00Z" };
+    await afterAdminSeries(supabase, [lesson, second], [{ start: "2026-10-12T20:30:00Z", reason: "That time was just taken. Please pick another." }]);
+    expect(google.createLessonEvent).toHaveBeenCalledTimes(2);
+    expect(subjects()).toEqual(["You booked 2 classes: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+    const [email] = sentEmails();
+    expect(email.text).toContain("Mon, Oct 5, 2:30 PM");
+    expect(email.text).toContain("Not booked");
+    expect(email.text).toContain("Mon, Oct 12, 2:30 PM");
   });
 });
 

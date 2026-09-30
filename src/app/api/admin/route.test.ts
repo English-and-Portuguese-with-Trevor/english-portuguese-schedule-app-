@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   confirmBooking: vi.fn(async () => ({ error: null })),
   cancelBooking: vi.fn(async () => ({ error: null })),
   adminBookStudent: vi.fn(async () => ({ error: null })),
+  adminBookSeries: vi.fn(async () => ({ error: null, booked: 2, skipped: [] })),
   sendTestPush: vi.fn(async () => ({ error: null })),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendTestPush: mocks.sendTestPush }));
@@ -12,6 +13,8 @@ vi.mock("@/lib/actions/bookings", () => ({
   confirmBooking: mocks.confirmBooking,
   cancelBooking: mocks.cancelBooking,
   adminBookStudent: mocks.adminBookStudent,
+  adminBookSeries: mocks.adminBookSeries,
+  MAX_SERIES: 26,
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
@@ -69,6 +72,18 @@ describe("POST /api/admin", () => {
     await post({ action: "test-push", endpoint: "https://push/e1", title: "", body: " Hello " });
     expect(mocks.sendTestPush).toHaveBeenCalledWith("s3cret", "https://push/e1", "Test notification", "Hello");
     vi.unstubAllEnvs();
+  });
+
+  it("books a weekly series in one call, within the limit", async () => {
+    const slots = [
+      { start: "2026-10-01T16:00:00.000Z", end: "2026-10-01T17:00:00.000Z" },
+      { start: "2026-10-08T16:00:00.000Z", end: "2026-10-08T17:00:00.000Z" },
+    ];
+    expect(await (await post({ action: "book-series", studentId: "s1", slots })).json()).toEqual({ error: null, booked: 2, skipped: [] });
+    expect(mocks.adminBookSeries).toHaveBeenCalledWith("s1", slots);
+    expect((await post({ action: "book-series", studentId: "s1", slots: [] })).status).toBe(400);
+    expect((await post({ action: "book-series", studentId: "s1", slots: Array(27).fill(slots[0]) })).status).toBe(400);
+    expect((await post({ action: "book-series", studentId: "s1", slots: [{ start: "x", end: "y" }] })).status).toBe(400);
   });
 
   it("rejects a bad time or unknown action", async () => {

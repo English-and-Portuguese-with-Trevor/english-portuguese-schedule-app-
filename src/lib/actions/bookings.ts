@@ -5,6 +5,7 @@ import { after } from "next/server";
 
 import {
   afterAdminBooking,
+  afterAdminSeries,
   afterApproval,
   afterCancellation,
   afterRescheduleApproval,
@@ -250,6 +251,54 @@ export async function adminBookStudent(
   revalidatePath("/admin/bookings");
   revalidatePath("/dashboard");
   return { error: null };
+}
+
+/** The most classes one series can book (half a year of weekly classes). */
+export const MAX_SERIES = 26;
+
+/**
+ * Admin-only: book a run of classes for one student at once (a weekly class).
+ * Each is booked like adminBookStudent; a time that's taken is skipped and
+ * reported, the rest still book. The student gets a calendar invite per
+ * class, the admin one summary email.
+ */
+export async function adminBookSeries(
+  studentId: string,
+  slots: { start: string; end: string }[],
+): Promise<ActionResult & { booked?: number; skipped?: { start: string; reason: string }[] }> {
+  const { supabase, profile } = await requireProfile();
+  if (profile.role !== "admin") return { error: "Admin only." };
+  if (slots.length < 1 || slots.length > MAX_SERIES) return { error: `Book between 1 and ${MAX_SERIES} classes at a time.` };
+
+  const bookedIds: string[] = [];
+  const skipped: { start: string; reason: string }[] = [];
+  for (const slot of slots) {
+    const result = await bookIndividualSlot(supabase, {
+      start: new Date(slot.start),
+      end: new Date(slot.end),
+      studentId,
+      status: "CONFIRMED",
+      isAdminOverride: true,
+      createdBy: profile.id,
+    });
+    if (result.error) skipped.push({ start: slot.start, reason: result.error });
+    else bookedIds.push(result.bookingId!);
+  }
+
+  if (bookedIds.length) {
+    after(async () => {
+      const lessons = [];
+      for (const id of bookedIds) {
+        const booking = await loadBooking(supabase, id);
+        if (booking) lessons.push(booking.lesson);
+      }
+      await afterAdminSeries(supabase, lessons, skipped);
+    });
+  }
+
+  revalidatePath("/admin/bookings");
+  revalidatePath("/dashboard");
+  return { error: null, booked: bookedIds.length, skipped };
 }
 
 export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {

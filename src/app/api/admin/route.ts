@@ -1,5 +1,5 @@
 import { sendTestPush } from "@/lib/admin-push";
-import { adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
+import { adminBookSeries, adminBookStudent, cancelBooking, confirmBooking, MAX_SERIES } from "@/lib/actions/bookings";
 import { createClient } from "@/lib/supabase/server";
 
 // The admin dashboard on the landing site (englishandportuguesewithtrevor.com/admin/)
@@ -22,6 +22,7 @@ type Body =
   | { action: "confirm"; bookingId: string }
   | { action: "cancel"; bookingId: string; reason?: string }
   | { action: "book"; studentId: string; start: string; end: string }
+  | { action: "book-series"; studentId: string; slots: { start: string; end: string }[] }
   | { action: "test-push"; endpoint: string; title?: string; body: string };
 
 function json(body: unknown, status = 200) {
@@ -63,6 +64,18 @@ export async function POST(request: Request) {
           return json({ error: "Bad time." }, 400);
         }
         return json(await adminBookStudent(String(body.studentId), start.toISOString(), end.toISOString()));
+      }
+      case "book-series": {
+        const slots = Array.isArray(body.slots) ? body.slots : [];
+        if (slots.length < 1 || slots.length > MAX_SERIES) return json({ error: `Book between 1 and ${MAX_SERIES} classes at a time.` }, 400);
+        const clean = [];
+        for (const slot of slots) {
+          const start = new Date(slot?.start);
+          const end = new Date(slot?.end);
+          if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return json({ error: "Bad time." }, 400);
+          clean.push({ start: start.toISOString(), end: end.toISOString() });
+        }
+        return json(await adminBookSeries(String(body.studentId), clean));
       }
       case "test-push": {
         const secret = process.env.CRON_SECRET;

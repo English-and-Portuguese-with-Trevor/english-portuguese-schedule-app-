@@ -375,6 +375,27 @@ export const emails = {
     });
   },
 
+  /** One email for a run of classes booked at once (a weekly class), instead of one per class. */
+  adminBookedSeries(lessons: Lesson[], skipped: { start: string; reason: string }[]): Email | null {
+    const [first] = lessons;
+    if (!first) return null;
+    const zone = first.adminTimezone || LESSON_TIMEZONE;
+    return toAdmin(first, `You booked ${lessons.length} classes`, {
+      heading: `You booked ${lessons.length} classes for a student`,
+      intro:
+        "Each class has its own calendar event and Meet link, so the student can cancel or move one week without touching the rest. " +
+        "Google sends the student an invitation for each.",
+      details: adminDetails(first).filter(([label]) => label !== "Your time" && label !== "Student's time"),
+      sections: [
+        { title: "Booked", rows: lessons.map((l) => [shortTime(l.start, zone), ""] as [string, string]) },
+        ...(skipped.length
+          ? [{ title: "Not booked", rows: skipped.map((s) => [shortTime(s.start, zone), s.reason] as [string, string]) }]
+          : []),
+      ],
+      button: { label: "Open bookings", url: `${SITE_URL}/admin/bookings` },
+    });
+  },
+
   adminRescheduled(lesson: Lesson, meetLink: string | null): Email | null {
     const from = lesson.rescheduledFrom;
     const adminZone = lesson.adminTimezone || LESSON_TIMEZONE;
@@ -562,6 +583,13 @@ export async function afterAdminBooking(supabase: Supabase, lesson: Lesson) {
   if (!configured()) return;
   const meetLink = await scheduleMeeting(supabase, lesson);
   await send(emails.adminBooked(lesson, meetLink));
+}
+
+/** A run of classes the admin booked at once: a calendar invite for each, one email to the admin. */
+export async function afterAdminSeries(supabase: Supabase, lessons: Lesson[], skipped: { start: string; reason: string }[]) {
+  if (!configured()) return;
+  for (const lesson of lessons) await scheduleMeeting(supabase, lesson);
+  await send(emails.adminBookedSeries(lessons, skipped));
 }
 
 /** A student asked to move a confirmed lesson; it waits for approval. */
