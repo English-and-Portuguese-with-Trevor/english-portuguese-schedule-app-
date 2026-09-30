@@ -96,14 +96,3 @@ export async function sendFlagDigest(secret: string) {
   await sendNotification(emails.flagDigest(flags));
   return { flags: flags.length };
 }
-
-/** Makes a push key pair and saves it, unless one is saved already (set_vapid_keys never replaces one). */
-export async function createVapidKeys(secret: string) {
-  const keys = webpush.generateVAPIDKeys();
-  const { error } = await createServerJobClient().rpc("set_vapid_keys", {
-    p_secret: secret,
-    p_public: keys.publicKey,
-    p_private: keys.privateKey,
-  });
-  if (error) throw new Error(`set_vapid_keys: ${error.message}`);
-}

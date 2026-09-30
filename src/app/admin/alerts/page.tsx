@@ -1,5 +1,4 @@
 import { AlertsList } from "@/components/admin/alerts-list";
-import { PushToggle } from "@/components/admin/push-toggle";
 import type { AlertRow } from "@/lib/alerts";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,7 +16,13 @@ export default async function AlertsPage() {
         <h1 className="text-2xl font-semibold">Alerts</h1>
         <p className="text-sm text-muted-foreground">Flagged classes, reported issues, new sign-ups and new subscribers, newest first.</p>
       </div>
-      <PushToggle />
+      <p className="text-sm text-muted-foreground">
+        Push notifications are turned on from the{" "}
+        <a className="underline" href="https://englishandportuguesewithtrevor.com/admin/#/alerts">
+          admin dashboard
+        </a>
+        , so each device gets one set.
+      </p>
       <AlertsList alerts={(alerts ?? []) as (AlertRow & { read_at: string | null })[]} />
     </div>
   );

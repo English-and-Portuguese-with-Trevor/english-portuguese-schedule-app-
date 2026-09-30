@@ -128,8 +128,10 @@ at 6:30 AM Mountain, summer or winter. No flags, no email.
 Each alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
 one email), through the same Gmail connection as the booking emails.
 
-Push notifications: on `/admin/alerts`, **Turn on push notifications** on each
-phone or computer that should get them. On an iPhone, first add the site to
+Push notifications: on the admin dashboard's Alerts tab
+(`englishandportuguesewithtrevor.com/admin/#/alerts`, landing repo), **Turn on
+push notifications** on each phone or computer that should get them. This app
+has no switch of its own, so each device gets one set. On an iPhone, first add the site to
 the home screen (Share > Add to Home Screen) and open it from there; iOS only
 allows push for installed sites. After that, each new alert makes the
 database call `/api/alerts/push` (pg_net, with the `cron_secret` from
@@ -138,8 +140,7 @@ device saved in `push_subscriptions`. Devices the push service reports as gone
 are removed. If that call is missed (say, during a deploy), the daily job
 sends the alert the next morning.
 
-The push key pair (VAPID) is made by the server the first time push is turned
-on and saved in `private.app_settings` (`vapid_public_key`,
+The push key pair (VAPID) is saved in `private.app_settings` (`vapid_public_key`,
 `vapid_private_key`); nothing needs setting in Vercel beyond `CRON_SECRET`.
 Don't replace the keys: every device would have to turn push on again.
 
