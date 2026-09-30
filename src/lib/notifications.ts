@@ -397,13 +397,35 @@ export const emails = {
     });
   },
 
-  /** New sign-ups, subscribers and flagged classes (admin_alerts), one email per batch. */
+  /** Classes flagged since the last one, sent each morning (see /api/cron/flags). */
+  flagDigest(flags: AlertRow[]): Email | null {
+    const to = adminEmail();
+    if (!to || flags.length === 0) return null;
+    const title = flags.length === 1 ? "1 class flagged" : `${flags.length} classes flagged`;
+    return {
+      to,
+      subject: title,
+      ...renderEmail({
+        heading: title,
+        details: [],
+        sections: [
+          {
+            title: "Flagged classes",
+            rows: flags.map((f) => [f.name || f.email || "No name", [flagDetails(f), f.email].filter(Boolean).join(" · ")]),
+          },
+        ],
+        button: { label: "Open alerts", url: `${SITE_URL}/admin/alerts` },
+      }),
+    };
+  },
+
+  /** New sign-ups and subscribers (admin_alerts), one email per batch. Flags wait for the morning email. */
   adminAlerts(alerts: AlertRow[]): Email | null {
     const to = adminEmail();
     if (!to || alerts.length === 0) return null;
     const row = (a: AlertRow): [string, string] => [
       a.name || "No name",
-      [a.kind === "flag" && flagDetails(a), a.email, formatInTimeZone(new Date(a.created_at), LESSON_TIMEZONE, "MMM d, h:mm a zzz")].filter(Boolean).join(" · "),
+      [a.email, formatInTimeZone(new Date(a.created_at), LESSON_TIMEZONE, "MMM d, h:mm a zzz")].filter(Boolean).join(" · "),
     ];
     const button = { label: "Open alerts", url: `${SITE_URL}/admin/alerts` };
     if (alerts.length === 1) {
@@ -412,22 +434,15 @@ export const emails = {
         to,
         subject: `${alertTitle(alert.kind)}: ${alert.name || alert.email || "someone"}`,
         ...renderEmail({
-          heading:
-            alert.kind === "flag"
-              ? "A student flagged a class"
-              : alert.kind === "subscriber"
-                ? "Someone subscribed to the lessons"
-                : "Someone created an account",
+          heading: alert.kind === "subscriber" ? "Someone subscribed to the lessons" : "Someone created an account",
           details: [
             ["Name", alert.name || "No name"],
             ...(alert.email ? ([["Email", alert.email]] as [string, string][]) : []),
-            ...(alert.kind === "flag" ? ([["Flag", flagDetails(alert)]] as [string, string][]) : []),
           ],
           button,
         }),
       };
     }
-    const flags = alerts.filter((a) => a.kind === "flag");
     const signups = alerts.filter((a) => a.kind === "signup");
     const subscribers = alerts.filter((a) => a.kind === "subscriber");
     return {
@@ -437,7 +452,6 @@ export const emails = {
         heading: `${alerts.length} new alerts`,
         details: [],
         sections: [
-          { title: "Flagged classes", rows: flags.map(row) },
           { title: "New subscribers", rows: subscribers.map(row) },
           { title: "New sign-ups", rows: signups.map(row) },
         ],

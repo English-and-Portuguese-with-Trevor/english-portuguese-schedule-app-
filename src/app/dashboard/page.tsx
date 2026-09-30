@@ -30,8 +30,8 @@ export default async function DashboardPage() {
     .eq("id", user!.id)
     .single();
   const isAdmin = profile!.role === "admin";
-  // Students with lesson access Trevor gave by hand can flag their classes.
-  const canFlag = !isAdmin && ["granted", "lifetime"].includes(profile!.lesson_access);
+  // Students with lesson access can flag their classes.
+  const canFlag = !isAdmin && ["granted", "subscriber", "lifetime"].includes(profile!.lesson_access);
 
   const now = new Date();
   const rangeEnd = addDays(now, LOOKAHEAD_DAYS);

@@ -53,7 +53,7 @@ export const LATE_CANCEL_LIST_DAYS = 7;
 
 /**
  * Why a student flags a class (flag_my_class): set reasons, no notes. Only
- * students with lesson access Trevor gave by hand can flag.
+ * students with lesson access can flag.
  */
 export const FLAG_REASONS = {
   connection: tr("Connection or Meet problem"),

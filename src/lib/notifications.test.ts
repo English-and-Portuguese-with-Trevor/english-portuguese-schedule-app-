@@ -336,10 +336,13 @@ describe("sign-up and subscriber alerts", () => {
     expect(email.text).toContain("/admin/alerts");
   });
 
-  it("emails a flagged class with its reason and time", () => {
-    const email = emails.adminAlerts([{ ...signup, kind: "flag", reason: "booking", class_start: "2026-09-28T20:30:00Z" }])!;
-    expect(email.subject).toBe("Class flagged: Ana Pereira");
-    expect(email.text).toContain("Time or booking problem · class Mon, Sep 28, 2:30 PM MDT");
+  it("emails the morning's flagged classes with their reasons and times", () => {
+    const flag = { ...signup, kind: "flag" as const, reason: "booking", class_start: "2026-09-28T20:30:00Z" };
+    const email = emails.flagDigest([flag, { ...flag, id: 3, name: "Bo Silva", reason: "connection" }])!;
+    expect(email.subject).toBe("2 classes flagged");
+    expect(email.text).toContain("Ana Pereira: Time or booking problem · class Mon, Sep 28, 2:30 PM MDT · ana@example.com");
+    expect(email.text).toContain("Bo Silva: Connection or Meet problem");
+    expect(emails.flagDigest([])).toBeNull();
   });
 
   it("lists several alerts in one email", () => {

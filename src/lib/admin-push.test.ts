@@ -17,6 +17,7 @@ vi.mock("web-push", () => ({
 }));
 
 import { POST } from "@/app/api/alerts/push/route";
+import { GET as flagsCron } from "@/app/api/cron/flags/route";
 import { sendAlerts } from "@/lib/admin-push";
 import { pushMessage, type AlertRow } from "@/lib/alerts";
 
@@ -113,6 +114,13 @@ describe("sendAlerts", () => {
     expect(mocks.sendEmail).toHaveBeenCalledTimes(2);
   });
 
+  it("pushes a flagged class at once but leaves its email for the morning", async () => {
+    const flag: AlertRow = { ...signup, id: 5, kind: "flag", reason: "other", class_start: "2026-09-28T20:30:00Z" };
+    mocks.rpc.mockResolvedValueOnce({ data: claimed([flag]), error: null });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: false, sent: 2 });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
   it("still pushes when Gmail isn't set up", async () => {
     mocks.isGoogleConfigured.mockReturnValueOnce(false);
     mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
@@ -139,5 +147,37 @@ describe("POST /api/alerts/push", () => {
     );
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ alerts: 1, emailed: true, sent: 2 });
+  });
+});
+
+describe("GET /api/cron/flags", () => {
+  const call = () => flagsCron(new Request("http://x/api/cron/flags", { headers: { authorization: "Bearer s3cret" } }));
+  const flag: AlertRow = { ...signup, kind: "flag", reason: "connection", class_start: "2026-09-28T20:30:00Z" };
+
+  afterEach(() => vi.useRealTimers());
+
+  it("emails the flags at 6:30 AM in Denver, summer or winter", async () => {
+    for (const utc of ["2026-09-30T12:30:00Z", "2026-12-01T13:30:00Z"]) {
+      vi.useFakeTimers({ now: new Date(utc), toFake: ["Date"] });
+      mocks.rpc.mockResolvedValueOnce({ data: [flag], error: null });
+      expect(await (await call()).json()).toEqual({ flags: 1 });
+    }
+    expect(mocks.rpc).toHaveBeenCalledWith("claim_flag_digest", { p_secret: "s3cret" });
+    expect(mocks.sendEmail).toHaveBeenCalledTimes(2);
+    expect(mocks.sendEmail.mock.calls[0][0]).toMatchObject({ subject: "1 class flagged" });
+  });
+
+  it("skips the other run, and sends nothing without flags", async () => {
+    vi.useFakeTimers({ now: new Date("2026-09-30T13:30:00Z"), toFake: ["Date"] }); // 7:30 AM in summer
+    expect(await (await call()).json()).toEqual({ skipped: "not 6 AM in Denver" });
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    vi.useFakeTimers({ now: new Date("2026-09-30T12:30:00Z"), toFake: ["Date"] });
+    mocks.rpc.mockResolvedValueOnce({ data: [], error: null });
+    expect(await (await call()).json()).toEqual({ flags: 0 });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("refuses a request without the job secret", async () => {
+    expect((await flagsCron(new Request("http://x/api/cron/flags"))).status).toBe(401);
   });
 });

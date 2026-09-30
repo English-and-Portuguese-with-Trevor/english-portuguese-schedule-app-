@@ -101,12 +101,16 @@ them (newest first) and marks them read. The database makes them
 subscription starts (or starts again after ending; a payment retry going
 from past_due back to active is not new).
 
-Flagged classes: students whose lesson access is `granted` or `lifetime` see a
+Flagged classes: students whose lesson access is `granted`, `subscriber` or `lifetime` see a
 flag on each confirmed class on their dashboard (upcoming ones, and a "Recent
 classes" list for the past week). Tapping it asks for one of three set
 reasons (connection or Meet, time or booking, something else; no notes), and
 `flag_my_class` saves it on the booking and makes a `flag` alert. One flag per
-class (`supabase/migrations/20260930113255_class_flags.sql`).
+class (`supabase/migrations/20260930113255_class_flags.sql`). A flag is pushed
+and listed at once, but emailed only in the morning: `/api/cron/flags` runs at
+12:30 and 13:30 UTC (`vercel.json`), and the run that falls at 6 AM in Denver
+emails every flag not emailed yet (`claim_flag_digest`), so the email arrives
+at 6:30 AM Mountain, summer or winter. No flags, no email.
 
 Each alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
 one email), through the same Gmail connection as the booking emails.

@@ -527,7 +527,7 @@ begin
   if exists (select 1 from public.admin_alerts where user_id = v_s) then raise exception 'FAIL: deleting an account deletes its alerts'; end if;
 end $$;
 
--- Class flags: only students with lesson access Trevor gave, one per class
+-- Class flags: only students with lesson access, one per class, emailed once
 do $$
 declare
   v_s uuid := gen_random_uuid();
@@ -569,7 +569,7 @@ begin
   if not v_ok then raise exception 'FAIL: students cannot flag someone else''s class'; end if;
 
   reset role;
-  update public.profiles set lesson_access = 'granted' where id = v_s;
+  update public.profiles set lesson_access = 'subscriber' where id = v_s;
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
   v_ok := false; begin perform public.flag_my_class(v_past, 'bad'); exception when others then v_ok := true; end;
@@ -587,6 +587,20 @@ begin
   if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'flag' and reason = 'connection'
       and class_start = v_2days and name = 'Flag Student') <> 1 then
     raise exception 'FAIL: flagging a class makes one admin alert';
+  end if;
+
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+  on conflict (key) do update set value = excluded.value;
+  set local role authenticated;
+  v_ok := false; begin perform public.claim_flag_digest('wrong'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: the morning flag email needs the job secret'; end if;
+  reset role;
+  if not exists (select 1 from jsonb_array_elements(public.claim_flag_digest('test-secret')) f
+                 where f ->> 'name' = 'Flag Student' and f ->> 'reason' = 'connection') then
+    raise exception 'FAIL: the morning email gets the new flags';
+  end if;
+  if jsonb_array_length(public.claim_flag_digest('test-secret')) <> 0 then
+    raise exception 'FAIL: a flag is emailed only once';
   end if;
 end $$;
 

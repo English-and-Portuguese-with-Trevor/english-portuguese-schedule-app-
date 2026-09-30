@@ -16,6 +16,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          emailed_at: string | null
           id: number
           class_start: string | null
           kind: "signup" | "subscriber" | "flag"
@@ -407,6 +408,10 @@ export type Database = {
     }
     Functions: {
       claim_alert_pushes: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      claim_flag_digest: {
         Args: { p_secret: string }
         Returns: Json
       }

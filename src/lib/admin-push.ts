@@ -6,8 +6,9 @@ import { createServerJobClient } from "@/lib/integration-status";
 import { emails, sendNotification } from "@/lib/notifications";
 
 /**
- * Email and push notifications to the admin for new sign-ups and new
- * subscribers. The database makes the alerts (see the admin_alerts
+ * Email and push notifications to the admin for new sign-ups, new
+ * subscribers and flagged classes (flags are pushed at once but emailed
+ * each morning). The database makes the alerts (see the admin_alerts
  * migration) and asks /api/alerts/push to send them; the daily job sends any
  * it missed. The devices and the VAPID keys come from claim_alert_pushes,
  * guarded by CRON_SECRET.
@@ -36,7 +37,8 @@ export async function sendAlerts(secret: string) {
   const claimed = data as unknown as Claimed;
   if (!claimed.alerts.length) return { alerts: 0, emailed: false, sent: 0 };
 
-  const email = isGoogleConfigured() ? emails.adminAlerts(claimed.alerts) : null;
+  // Flagged classes are pushed now but emailed in the morning (sendFlagDigest).
+  const email = isGoogleConfigured() ? emails.adminAlerts(claimed.alerts.filter((a) => a.kind !== "flag")) : null;
   const [sent] = await Promise.all([pushAlerts(secret, claimed), sendNotification(email)]);
   return { alerts: claimed.alerts.length, emailed: email !== null, sent };
 }
@@ -81,6 +83,16 @@ async function pushAlerts(secret: string, claimed: Claimed) {
     }),
   );
   return sent;
+}
+
+/** Emails the classes flagged since the last morning email; claim_flag_digest marks them emailed. */
+export async function sendFlagDigest(secret: string) {
+  if (!isGoogleConfigured()) return { flags: 0 };
+  const { data, error } = await createServerJobClient().rpc("claim_flag_digest", { p_secret: secret });
+  if (error) throw new Error(`claim_flag_digest: ${error.message}`);
+  const flags = (data ?? []) as unknown as AlertRow[];
+  await sendNotification(emails.flagDigest(flags));
+  return { flags: flags.length };
 }
 
 /** Makes a push key pair and saves it, unless one is saved already (set_vapid_keys never replaces one). */

@@ -43,7 +43,7 @@ export function BookingBoard({
   myBookings: BookingRow[];
   /** Confirmed classes of the last few days, which can still be flagged. */
   recentClasses?: BookingRow[];
-  /** Students with lesson access Trevor gave by hand can flag their classes. */
+  /** Students with lesson access can flag their classes. */
   canFlag?: boolean;
   previousAnswers?: Partial<BookingAnswers>;
 }) {
