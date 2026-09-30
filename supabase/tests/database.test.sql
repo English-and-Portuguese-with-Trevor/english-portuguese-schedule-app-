@@ -622,6 +622,25 @@ begin
   end if;
 end $$;
 
+-- A flag waits a minute before it's pushed
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_claimed text;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values (v_s, 'db-test-wait@example.com', '{"full_name":"Wait Student"}', 'authenticated', 'authenticated');
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+  on conflict (key) do update set value = excluded.value;
+  insert into public.admin_alerts (kind, user_id, name, reason) values ('flag', v_s, 'Fresh flag', 'other');
+  insert into public.admin_alerts (kind, user_id, name, reason, created_at)
+  values ('flag', v_s, 'Old flag', 'other', now() - interval '2 minutes');
+  v_claimed := (public.claim_alert_pushes('test-secret') -> 'alerts')::text;
+  if v_claimed like '%Fresh flag%' then raise exception 'FAIL: a flag waits a minute before it is pushed'; end if;
+  if v_claimed not like '%Old flag%' then raise exception 'FAIL: a flag that waited a minute is pushed'; end if;
+  if v_claimed not like '%db-test-wait@example.com%' then raise exception 'FAIL: sign-ups are still pushed at once'; end if;
+end $$;
+
 select 'ALL DATABASE TESTS PASSED' as result;
 
 rollback;

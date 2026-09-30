@@ -108,7 +108,11 @@ reasons (connection or Meet, time or booking, something else; no notes), and
 `flag_my_class` saves it on the booking and makes a `flag` alert. One flag per
 class (`supabase/migrations/20260930113255_class_flags.sql`); tapping
 "Flagged" takes it back (`unflag_my_class`), which deletes its alert too, so it
-never reaches the morning email if that hasn't gone out yet. A flag is pushed
+never reaches the morning email if that hasn't gone out yet. A flag waits a
+minute before it's pushed (`20260930115740_flag_push_wait.sql`): the flag is
+skipped by `claim_alert_pushes` until then, and a pg_cron job
+(`push-waiting-flags`, every minute) asks for the push once it has waited, so
+a flag taken back within the minute never makes a notification. A flag is pushed
 and listed at once, but emailed only in the morning: `/api/cron/flags` runs at
 12:30 and 13:30 UTC (`vercel.json`), and the run that falls at 6 AM in Denver
 emails every flag not emailed yet (`claim_flag_digest`), so the email arrives
