@@ -2,6 +2,10 @@ import { sendAlerts } from "@/lib/admin-push";
 import { checkGoogleConnection } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
 import { emails, sendNotification } from "@/lib/notifications";
+import { formatInTimeZone } from "date-fns-tz";
+
+/** The day of the month the DeepL reminder goes out (the allowance resets about a week later). */
+export const DEEPL_REMINDER_DAY = "20";
 
 /**
  * Runs once a day (see vercel.json): checks the Google connection, sends
@@ -16,10 +20,14 @@ export async function runDailyJob(secret: string) {
   const google = await checkGoogleConnection();
   await recordGoogleStatus(google.ok, google.ok ? "Daily check passed." : google.message);
   // Leave reminders unclaimed while Google is down, so tomorrow's run can still send them.
-  if (!google.ok) return { google: google.message, reminders: 0, agenda: false };
+  if (!google.ok) return { google: google.message, reminders: 0, agenda: false, deeplReminder: false };
 
   const supabase = createServerJobClient();
   const { data: adminZone } = await supabase.rpc("admin_timezone");
+  const zone = adminZone || "America/Denver";
+
+  const deeplReminder = formatInTimeZone(new Date(), zone, "d") === DEEPL_REMINDER_DAY;
+  if (deeplReminder) await sendNotification(emails.deeplReset());
 
   const { data: due, error: remindersError } = await supabase.rpc("claim_student_reminders", { p_secret: secret });
   if (remindersError) throw new Error(`claim_student_reminders: ${remindersError.message}`);
@@ -52,9 +60,9 @@ export async function runDailyJob(secret: string) {
       whatsapp: row.whatsapp,
       rescheduleFrom: row.reschedule_from,
     })),
-    adminZone || "America/Denver",
+    zone,
   );
   await sendNotification(agendaEmail);
 
-  return { google: "ok", reminders: due?.length ?? 0, agenda: agendaEmail !== null };
+  return { google: "ok", reminders: due?.length ?? 0, agenda: agendaEmail !== null, deeplReminder };
 }

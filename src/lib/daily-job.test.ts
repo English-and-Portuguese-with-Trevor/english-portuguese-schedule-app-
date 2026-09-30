@@ -61,7 +61,20 @@ describe("runDailyJob", () => {
     const sent = mocks.sendNotification.mock.calls.map(([email]) => email);
     expect(sent.map((e) => e?.to)).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(sent[0]?.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
-    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true });
+    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false });
+  });
+
+  it("on the 20th (admin's time zone) also reminds the admin that the DeepL allowance resets soon", async () => {
+    // 20th at 6:00 AM in Denver; still the 20th in UTC too.
+    vi.useFakeTimers({ now: new Date("2026-10-20T12:00:00Z"), toFake: ["Date"] });
+    try {
+      const result = await runDailyJob("s3cret");
+      const sent = mocks.sendNotification.mock.calls.map(([email]) => email);
+      expect(sent.map((e) => e?.subject)).toContain("DeepL credits reset in about a week");
+      expect(result.deeplReminder).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("sends sign-up and subscriber alerts the database's own call missed, even while Google is down", async () => {

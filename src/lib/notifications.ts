@@ -261,6 +261,24 @@ export const emails = {
     };
   },
 
+  /** Sent on the 20th of each month: use what's left of the DeepL allowance before it resets. */
+  deeplReset(): Email | null {
+    const to = adminEmail();
+    if (!to) return null;
+    return {
+      to,
+      subject: "DeepL credits reset in about a week",
+      ...renderEmail({
+        heading: "DeepL credits reset in about a week",
+        intro:
+          "Your DeepL character allowance for this period ends in about a week, and what's left doesn't carry over. " +
+          "If there's lesson text waiting to be translated, this is the week to run the lessons deploy with a higher character limit.",
+        details: [],
+        button: { label: "See DeepL usage", url: "https://englishandportuguesewithtrevor.com/admin/#/translations" },
+      }),
+    };
+  },
+
   requestReceived(lesson: Lesson): Email | null {
     return studentEmail(lesson, "Lesson request received", {
       heading: "Lesson request received",
