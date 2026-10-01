@@ -23,7 +23,8 @@ export interface CandidateSlot {
  */
 export function generateCandidateSlots(
   rules: AvailabilityRule[],
-  opts: { fromDate: string; days: number; now?: Date },
+  /** `minutes` replaces each window's class length (30 for new students). */
+  opts: { fromDate: string; days: number; now?: Date; minutes?: number },
 ): CandidateSlot[] {
   const now = opts.now ?? new Date();
   const autoConfirmFrom = addMinutes(now, APPROVAL_WINDOW_HOURS * 60);
@@ -41,8 +42,9 @@ export function generateCandidateSlots(
       let cursor = fromZonedTime(`${dateStr}T${rule.start_time}`, rule.timezone);
       const ruleEnd = fromZonedTime(`${dateStr}T${rule.end_time}`, rule.timezone);
 
-      while (addMinutes(cursor, rule.slot_duration_minutes) <= ruleEnd) {
-        const slotEnd = addMinutes(cursor, rule.slot_duration_minutes);
+      const minutes = opts.minutes ?? rule.slot_duration_minutes;
+      while (addMinutes(cursor, minutes) <= ruleEnd) {
+        const slotEnd = addMinutes(cursor, minutes);
         if (!isBefore(cursor, now)) {
           candidates.push({
             start: cursor,
@@ -68,12 +70,13 @@ export function generateCandidateSlots(
  */
 export function generateUpcomingSlots(
   rules: AvailabilityRule[],
-  opts: { now: Date; days: number },
+  opts: { now: Date; days: number; minutes?: number },
 ): CandidateSlot[] {
   return generateCandidateSlots(rules, {
     fromDate: format(addDays(opts.now, -1), "yyyy-MM-dd"),
     days: opts.days + 1,
     now: opts.now,
+    minutes: opts.minutes,
   });
 }
 

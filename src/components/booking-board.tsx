@@ -35,6 +35,7 @@ export function BookingBoard({
   myBookings,
   recentClasses = [],
   canFlag = false,
+  shortClasses = false,
   previousAnswers,
 }: {
   role: Role;
@@ -45,6 +46,8 @@ export function BookingBoard({
   recentClasses?: BookingRow[];
   /** Students with lesson access can flag their classes. */
   canFlag?: boolean;
+  /** Not marked as Trevor's student yet: the times are 30-minute classes. */
+  shortClasses?: boolean;
   previousAnswers?: Partial<BookingAnswers>;
 }) {
   const router = useRouter();
@@ -270,6 +273,11 @@ export function BookingBoard({
 
       <section ref={pickerRef} className="scroll-mt-4">
         <h2 className="mb-3 text-lg font-semibold">{rescheduling ? t("Pick a new time") : t("Book a class")}</h2>
+        {shortClasses && (
+          <p className="mb-4 text-sm text-muted-foreground">
+            {t("New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.")}
+          </p>
+        )}
         {rescheduling && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-secondary px-4 py-3 text-sm">
             <span>

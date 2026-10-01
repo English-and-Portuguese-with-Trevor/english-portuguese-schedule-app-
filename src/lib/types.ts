@@ -42,6 +42,17 @@ export const DAY_NAMES = [
   "Saturday",
 ] as const;
 
+/**
+ * Until Trevor marks someone as his student (lesson access granted or
+ * lifetime, or a class package), they book classes this long. The database
+ * checks the same rule (private.class_minutes).
+ */
+export const NEW_STUDENT_CLASS_MINUTES = 30;
+
+export function isClassStudent(profile: { lesson_access: string; class_package: number | null }) {
+  return ["granted", "lifetime"].includes(profile.lesson_access) || profile.class_package !== null;
+}
+
 /** Student requests starting sooner than this need admin approval; later ones are confirmed automatically. */
 export const APPROVAL_WINDOW_HOURS = 72;
 

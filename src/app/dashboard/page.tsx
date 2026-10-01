@@ -6,7 +6,7 @@ import { getDisplayNames } from "@/lib/display-names";
 import { learningToLessonLanguage } from "@/lib/prefs";
 import { generateUpcomingSlots } from "@/lib/slots";
 import { createClient } from "@/lib/supabase/server";
-import { FLAG_DAYS } from "@/lib/types";
+import { FLAG_DAYS, NEW_STUDENT_CLASS_MINUTES, isClassStudent } from "@/lib/types";
 import type {
   AvailabilityRule,
   Booking,
@@ -26,12 +26,14 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, role, full_name, lesson_access, learning_language")
+    .select("id, role, full_name, lesson_access, class_package, learning_language")
     .eq("id", user!.id)
     .single();
   const isAdmin = profile!.role === "admin";
   // Students with lesson access can flag their classes.
   const canFlag = !isAdmin && ["granted", "subscriber", "lifetime"].includes(profile!.lesson_access);
+  // Until Trevor marks them as his student, they book 30-minute classes.
+  const shortClasses = !isAdmin && !isClassStudent(profile!);
 
   const now = new Date();
   const rangeEnd = addDays(now, LOOKAHEAD_DAYS);
@@ -108,6 +110,7 @@ export default async function DashboardPage() {
     {
       now,
       days: LOOKAHEAD_DAYS,
+      minutes: shortClasses ? NEW_STUDENT_CLASS_MINUTES : undefined,
     },
   );
 
@@ -142,6 +145,7 @@ export default async function DashboardPage() {
           whatsapp: lastAnswers?.whatsapp ?? undefined,
         }}
         canFlag={canFlag}
+        shortClasses={shortClasses}
         recentClasses={
           (recentClasses ?? []).sort((a, b) =>
             b.session_slots.start_time.localeCompare(a.session_slots.start_time),

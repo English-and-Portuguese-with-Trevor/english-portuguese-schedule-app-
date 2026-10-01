@@ -69,6 +69,13 @@ describe("generateCandidateSlots", () => {
     }
   });
 
+  it("makes 30-minute classes for new students, with more starts in the same window", () => {
+    const tuesday = generateCandidateSlots(SCHEDULE, { fromDate: "2026-09-29", days: 1, now: LONG_AGO, minutes: 30 });
+    // Tuesday 2–3 PM: 2:00, 2:15 and 2:30 fit a half hour.
+    expect(tuesday.map((s) => formatInTimeZone(s.start, TZ, "h:mm a"))).toEqual(["2:00 PM", "2:15 PM", "2:30 PM"]);
+    for (const s of tuesday) expect(s.end.getTime() - s.start.getTime()).toBe(30 * 60 * 1000);
+  });
+
   it("gives a one-hour window exactly one start", () => {
     expect(startsOn("2026-09-29")).toEqual(["2:00 PM"]); // Tuesday 2–3 PM
   });

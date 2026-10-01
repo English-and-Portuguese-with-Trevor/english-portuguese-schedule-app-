@@ -34,6 +34,7 @@ export const STRINGS = {
     Cancel: "Cancelar",
     "Pick a new time": "Elige un nuevo horario",
     "Book a class": "Reservar una clase",
+    "New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.": "Los alumnos nuevos reservan clases de 30 minutos. Cuando Trevor te agregue como su alumno, podrás reservar clases de 1 hora.",
     "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Cambiando tu clase del {time}. Sigue reservada hasta que Trevor apruebe el nuevo horario.",
     Stop: "Dejar",
@@ -251,6 +252,7 @@ export const STRINGS = {
     Cancel: "Cancelar",
     "Pick a new time": "Escolha um novo horário",
     "Book a class": "Agendar uma aula",
+    "New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.": "Alunos novos agendam aulas de 30 minutos. Quando o Trevor adicionar você como aluno dele, você poderá agendar aulas de 1 hora.",
     "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Remarcando sua aula de {time}. Ela continua agendada até o Trevor aprovar o novo horário.",
     Stop: "Parar",
@@ -468,6 +470,7 @@ export const STRINGS = {
     Cancel: "Annuler",
     "Pick a new time": "Choisissez un nouvel horaire",
     "Book a class": "Réserver un cours",
+    "New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.": "Les nouveaux élèves réservent des cours de 30 minutes. Une fois que Trevor vous aura ajouté comme élève, vous pourrez réserver des cours d'une heure.",
     "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Déplacement de votre cours du {time}. Il reste réservé jusqu'à ce que Trevor approuve le nouvel horaire.",
     Stop: "Arrêter",

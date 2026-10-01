@@ -5,6 +5,9 @@
 - `/settings` (`src/components/account-settings.tsx`): a short menu of full-width rows, the same shape on every site: Preferences › and Account › each open their own page with nothing else under it (‹ Settings returns; Account holds the name, email and lesson access), then Manage subscription (Stripe portal via the `billing` edge function; it opens for any account), Delete account (the `delete-account` edge function) and Log out. Both functions live in the flashcards-app repo.
 - Lifetime lesson access: students qualify after three class sets (12 classes on the 4-class package, 24 on the 8-class package). Completed classes = past confirmed bookings + late cancellations + `profiles.earlier_classes`. The app only flags it (`my_class_progress` / `admin_class_progress` RPCs); Trevor gives `lifetime` by hand on the Users page. Never grant it automatically.
 
+## 30-minute classes for new students
+Trevor (2026-10-01): until he marks someone as his student (lesson access `granted` or `lifetime`, or a class package), they can only book 30-minute classes inside his availability windows; his students book the windows' length (1 hour). `isClassStudent` / `NEW_STUDENT_CLASS_MINUTES` in `src/lib/types.ts` pick the times on the dashboard, and `private.class_minutes` (used by `assert_lesson_time` for bookings and reschedules) enforces it in the database. Keep the two in step. Trevor's own bookings aren't limited.
+
 ## Notices banner
 `src/components/notices.tsx`, rendered under the header in `AppShell`, shows Trevor's notices from the `my_announcements` RPC (written on the admin dashboard, landing repo), exactly as written and never translated. Dismissals are per device in localStorage `ept-dismissed-notices`, separate from the other sites' because this app is its own origin.
 
