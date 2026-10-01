@@ -26,6 +26,12 @@ export default async function AdminLayout({
     .single();
 
   if (!profile || profile.role !== "admin") redirect("/dashboard");
+  // Admin rights need the Google Authenticator code once it's set up; it's
+  // entered on the admin dashboard, which shares this login.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+    redirect("https://englishandportuguesewithtrevor.com/admin/");
+  }
 
   return (
     <AppShell

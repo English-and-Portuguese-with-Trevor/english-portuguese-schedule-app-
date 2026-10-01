@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   role: "admin" as string | null,
+  aal: { currentLevel: "aal2", nextLevel: "aal2" },
   confirmBooking: vi.fn(async () => ({ error: null })),
   cancelBooking: vi.fn(async () => ({ error: null })),
   adminBookStudent: vi.fn(async () => ({ error: null })),
@@ -17,7 +18,10 @@ vi.mock("@/lib/actions/bookings", () => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: mocks.role ? { id: "u1" } : null } }) },
+    auth: {
+      getUser: async () => ({ data: { user: mocks.role ? { id: "u1" } : null } }),
+      mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: mocks.aal }) },
+    },
     from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { role: mocks.role } }) }) }) }),
   }),
 }));
@@ -36,6 +40,7 @@ const post = (body: unknown, origin = ORIGIN) =>
 
 afterEach(() => {
   mocks.role = "admin";
+  mocks.aal = { currentLevel: "aal2", nextLevel: "aal2" };
   vi.clearAllMocks();
 });
 
@@ -52,6 +57,12 @@ describe("POST /api/admin", () => {
     mocks.role = null;
     expect((await post({ action: "confirm", bookingId: "b1" })).status).toBe(401);
     mocks.role = "student";
+    expect((await post({ action: "confirm", bookingId: "b1" })).status).toBe(403);
+    expect(mocks.confirmBooking).not.toHaveBeenCalled();
+  });
+
+  it("refuses an admin who hasn't entered the Google Authenticator code", async () => {
+    mocks.aal = { currentLevel: "aal1", nextLevel: "aal2" };
     expect((await post({ action: "confirm", bookingId: "b1" })).status).toBe(403);
     expect(mocks.confirmBooking).not.toHaveBeenCalled();
   });

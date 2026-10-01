@@ -46,6 +46,12 @@ export async function POST(request: Request) {
   if (!user) return json({ error: "Not signed in." }, 401);
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
   if (profile?.role !== "admin") return json({ error: "Admin only." }, 403);
+  // Once Trevor has Google Authenticator set up, admin rights need a session
+  // that entered a code (the database's is_admin() checks the same).
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+    return json({ error: "Enter your Google Authenticator code first (reload the dashboard)." }, 403);
+  }
 
   let body: Body;
   try {
