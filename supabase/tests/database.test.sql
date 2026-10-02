@@ -24,6 +24,8 @@ declare
   v_other   uuid := gen_random_uuid();
   v_busy    uuid := gen_random_uuid();
   v_admin   uuid := gen_random_uuid();
+  v_new     uuid := gen_random_uuid();
+  v_granted uuid := gen_random_uuid();
   v_sat     date;
   v_booking uuid;
   v_pending uuid;
@@ -53,12 +55,18 @@ begin
     (v_student, 'db-test-student@example.com', '{"full_name":"Test Student"}', 'authenticated', 'authenticated'),
     (v_other,   'db-test-other@example.com',   '{"full_name":"Other Student"}', 'authenticated', 'authenticated'),
     (v_busy,    'db-test-busy@example.com',    '{"full_name":"Busy Student"}',  'authenticated', 'authenticated'),
-    (v_admin,   'db-test-admin@example.com',   '{"full_name":"Test Admin"}',   'authenticated', 'authenticated');
+    (v_admin,   'db-test-admin@example.com',   '{"full_name":"Test Admin"}',   'authenticated', 'authenticated'),
+    (v_new,     'db-test-new@example.com',     '{"full_name":"New Student"}',  'authenticated', 'authenticated'),
+    (v_granted, 'db-test-granted@example.com', '{"full_name":"Granted Student"}', 'authenticated', 'authenticated');
 
   if (select count(*) from public.profiles where id in (v_student, v_other, v_busy, v_admin) and role = 'student') <> 4 then
     raise exception 'FAIL: new sign-ups get a student profile automatically';
   end if;
   update public.profiles set role = 'admin' where id = v_admin;
+  -- Trevor's students (a class package, or lesson access he gave) book the
+  -- window's length; everyone else books 30 minutes (private.class_minutes).
+  update public.profiles set class_package = 4 where id in (v_student, v_other, v_busy);
+  update public.profiles set lesson_access = 'granted' where id = v_granted;
   -- The job secret the server uses to record Meet links (rolled back with the rest).
   insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
     on conflict (key) do update set value = excluded.value;
@@ -208,14 +216,15 @@ begin
     raise exception 'FAIL: a start off the 15-minute grid is refused (%)', v_msg;
   end if;
 
-  -- A session of the wrong length is refused.
+  -- A session of the wrong length is refused: Trevor's student books the
+  -- window's hour, not 30 minutes.
   v_failed := false;
   begin
     perform public.request_individual_booking(v_10 + interval '7 days', v_10 + interval '7 days 30 minutes');
   exception when others then v_failed := true; v_msg := sqlerrm;
   end;
   if not v_failed or v_msg not like '%no longer available%' then
-    raise exception 'FAIL: a session of the wrong length is refused (%)', v_msg;
+    raise exception 'FAIL: a class student''s 30-minute session is refused (%)', v_msg;
   end if;
 
   -- A time that has already started is refused.
@@ -347,6 +356,31 @@ begin
   end if;
 
   ---------------------------------------------------------------------------
+  -- New students book 30 minutes; Trevor's students book the window's length
+  ---------------------------------------------------------------------------
+  perform set_config('request.jwt.claims', json_build_object('sub', v_new, 'role', 'authenticated')::text, true);
+  v_booking := public.request_individual_booking((v_sat + 21 + time '10:00') at time zone 'America/Denver', (v_sat + 21 + time '10:30') at time zone 'America/Denver');
+  if (select s.end_time - s.start_time from public.bookings b join public.session_slots s on s.id = b.session_slot_id
+      where b.id = v_booking) is distinct from interval '30 minutes' then
+    raise exception 'FAIL: a new student can book a 30-minute class';
+  end if;
+  v_failed := false;
+  begin
+    perform public.request_individual_booking((v_sat + 21 + time '11:00') at time zone 'America/Denver', (v_sat + 21 + time '12:00') at time zone 'America/Denver');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%no longer available%' then
+    raise exception 'FAIL: a new student can''t book a 1-hour class (%)', v_msg;
+  end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_granted, 'role', 'authenticated')::text, true);
+  v_booking := public.request_individual_booking((v_sat + 21 + time '11:00') at time zone 'America/Denver', (v_sat + 21 + time '12:00') at time zone 'America/Denver');
+  if (select s.end_time - s.start_time from public.bookings b join public.session_slots s on s.id = b.session_slot_id
+      where b.id = v_booking) is distinct from interval '1 hour' then
+    raise exception 'FAIL: a student with lesson access from Trevor books the window''s length';
+  end if;
+
+  ---------------------------------------------------------------------------
   -- As an admin
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
@@ -407,6 +441,7 @@ begin
     (v_o, 'db-test-other2@example.com', '{"full_name":"T O"}', 'authenticated', 'authenticated'),
     (v_a, 'db-test-admin2@example.com', '{"full_name":"T A"}', 'authenticated', 'authenticated');
   update public.profiles set role = 'admin' where id = v_a;
+  update public.profiles set class_package = 4 where id = v_s; -- books the window's hour
   insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
     on conflict (key) do update set value = excluded.value;
   update public.availability_rules set is_active = false;

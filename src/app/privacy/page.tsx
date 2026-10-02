@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
       </a>
       <h1 className="mt-8 text-2xl font-semibold">Privacy Policy</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Last updated September 29, 2026</p>
+      <p className="mt-1 text-sm text-muted-foreground">Last updated October 2, 2026</p>
 
       <div className="mt-8 flex flex-col gap-6 text-sm leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_ul]:list-disc [&_ul]:pl-5">
         <p>
@@ -28,11 +28,12 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2>Which sites this covers</h2>
           <ul>
-            <li>englishandportuguesewithtrevor.com, including the login page (/login)</li>
-            <li>lessons.englishandportuguesewithtrevor.com</li>
-            <li>flashcards.englishandportuguesewithtrevor.com</li>
-            <li>activities.englishandportuguesewithtrevor.com</li>
-            <li>schedule.englishandportuguesewithtrevor.com</li>
+            <li>
+              englishandportuguesewithtrevor.com: the home page, the login page (/login), lessons (/lessons/),
+              flashcards (/flashcards/), activities (/activities/), daily puzzles (/dailies/) and conversations
+              (/conversations/)
+            </li>
+            <li>schedule.englishandportuguesewithtrevor.com, for booking classes</li>
           </ul>
           <p>
             You have one account for all of them, and everything is kept in one database, hosted by Supabase.
@@ -69,8 +70,8 @@ export default function PrivacyPage() {
           <ul>
             <li>
               <strong>Your account:</strong> your name and email, when you signed up and last signed in, and
-              your settings (dark mode, the language you&apos;re learning, the site language and the
-              translation language).
+              your settings (dark mode, the language you&apos;re learning, the site language, the
+              translation language and the section the app opens on).
             </li>
             <li>
               <strong>Lesson access:</strong> whether you have access to the paid lessons (none, given by
@@ -81,17 +82,35 @@ export default function PrivacyPage() {
               <strong>Classes:</strong> the classes you book, request, move or cancel and when, whether a
               cancellation was late, the lesson language you choose, your WhatsApp number if you choose to give
               it, your time zone (from your browser, so times are shown in your local time), and the Google
-              Meet link and calendar event for each class.
+              Meet link and calendar event for each class. If you flag a past class to tell Trevor about a
+              problem, the flag and the reason you picked are kept too.
             </li>
             <li>
               <strong>Flashcards:</strong> the decks, folders and cards you make, your favorite decks, which
               cards you&apos;ve marked &quot;Got it&quot; or &quot;Still learning&quot;, and a dated log of
-              those taps. Trevor can see your study progress so he can help you.
+              those taps.
             </li>
             <li>
-              <strong>Activities:</strong> nothing. Your drill answers and scores aren&apos;t saved.
+              <strong>Lessons:</strong> the lessons you mark as finished, and the knowledge-check questions you
+              missed on the first try (the question and how many tries it took).
+            </li>
+            <li>
+              <strong>Activities:</strong> the activities you finish and your scores, and the questions you
+              missed, with the date each one comes back for review.
+            </li>
+            <li>
+              <strong>Daily puzzles:</strong> when you&apos;re logged in, which puzzles you finished each day, whether you solved them, and
+              your Word of the day guesses, for your stats and streaks.
+            </li>
+            <li>
+              <strong>From Trevor:</strong> the lessons and activities he assigns you.
+            </li>
+            <li>
+              <strong>Reported issues:</strong> if you report a problem in a lesson or activity, which one and
+              the reason you picked.
             </li>
           </ul>
+          <p>Trevor can see your progress and practice results so he can help you.</p>
         </section>
 
         <section className="flex flex-col gap-2">
@@ -104,8 +123,9 @@ export default function PrivacyPage() {
             </li>
             <li>
               To let Trevor know what&apos;s happening: he gets an email and a phone notification when someone
-              creates an account or starts a subscription, and an email whenever a class is booked, moved or
-              canceled.
+              creates an account or starts a subscription, a phone notification and a morning email when
+              someone flags a class or reports a problem, and an email whenever a class is booked, moved or
+              canceled. Only Trevor&apos;s own devices are signed up for these notifications.
             </li>
             <li>If you give your WhatsApp number, so Trevor can contact you about your classes.</li>
           </ul>
@@ -125,20 +145,22 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2>Speaking and listening drills</h2>
+          <h2>Speaking and listening</h2>
           <p>
-            The Activities site reads sentences aloud and listens to you speak using your browser&apos;s
-            built-in speech features. In some browsers (Chrome, for example), your voice is sent to the
-            browser&apos;s maker to turn it into text. The sites themselves never record, receive or store
-            your voice.
+            The Activities site and some lessons read sentences aloud, and the Activities speaking drills
+            listen to you, using your browser&apos;s built-in speech features. In some browsers (Chrome, for
+            example), your voice is sent to the browser&apos;s maker to turn it into text. The sites
+            themselves never record, receive or store your voice, and no outside AI voice service is used.
           </p>
         </section>
 
         <section className="flex flex-col gap-2">
           <h2>Lesson translations</h2>
           <p>
-            Trevor&apos;s lesson explanations are translated by DeepL and checked by Anthropic&apos;s Claude.
-            Only the lesson text is sent, never anything about you.
+            Trevor&apos;s lesson explanations can be shown in your site language. Earlier translations were
+            made with DeepL and checked with Anthropic&apos;s Claude, and those saved translations are still
+            used. For now, new translations are added by hand instead. Only lesson text has ever been sent
+            for translation, never anything about you.
           </p>
         </section>
 
@@ -146,9 +168,9 @@ export default function PrivacyPage() {
           <h2>Hosting</h2>
           <p>
             The scheduling site is hosted on Vercel; the other sites are hosted on GitHub Pages. Your
-            account and data are stored with Supabase. Class events and emails go through Google. The
-            main site, lessons, flashcards and activities load their fonts from Google Fonts, so Google sees
-            your IP address when they load.
+            account and data are stored with Supabase. Class events and emails go through Google. Every
+            site except the scheduling site loads its fonts from Google Fonts, so Google sees your IP address
+            when they load.
           </p>
         </section>
 
@@ -160,13 +182,16 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>ept-prefs</strong> remembers dark mode, the language you&apos;re learning, the site
-              language and the translation language, so every site looks the same. It lasts up to a year and
+              language, the translation language and the section the app opens on, so every site looks the
+              same. It lasts up to a year and
               stays after you log out.
             </li>
             <li>
               Your browser&apos;s own storage keeps a few things on your device: your theme, the Activities
-              sound settings, and, while you&apos;re logged in, offline copies of your lessons and flashcards
-              so you can keep studying if the connection drops. Logging out clears the offline copies.
+              sound settings, today&apos;s daily puzzles and your puzzle stats, which of Trevor&apos;s notices
+              you&apos;ve closed, and, while you&apos;re logged in, offline copies of your lessons and
+              flashcards so you can keep studying if the connection drops. Logging out clears the offline
+              copies.
             </li>
           </ul>
           <p>There are no analytics, advertising or tracking cookies.</p>
@@ -177,7 +202,7 @@ export default function PrivacyPage() {
           <p>
             Open Settings from the account menu and choose Delete account. If you have a class coming up,
             cancel it first. Deleting cancels any subscription and removes your account, profile, bookings,
-            flashcards and progress from every site. Otherwise, your information is kept for as long as your
+            flashcards, progress and results from every site. Otherwise, your information is kept for as long as your
             account exists.
           </p>
           <p>A few things stay for a while or are out of our hands:</p>
