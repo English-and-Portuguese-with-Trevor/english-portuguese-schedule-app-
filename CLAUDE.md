@@ -63,6 +63,9 @@ CLAUDE.md.)
 ## One address, one app
 The other sites share `englishandportuguesewithtrevor.com` (`/lessons/`, `/flashcards/`, `/activities/`, `/dailies/`, `/conversations/`, one installed app from the landing repo's manifest); this app stays at `schedule.englishandportuguesewithtrevor.com`, so links to it open outside the installed app. Instead it's its own installable app, "EPT Schedule" (Trevor, 2026-10-02): `src/app/manifest.ts` (start `/dashboard`, icons in `public/icons/`, copied from the landing repo) and the Get the app row in Settings. No service worker (see Admin alerts). The account menu has "App start" (`start` in `ept-prefs`, `profiles.start_page` via `set_start_page`, `START_PAGES` in `prefs.ts`; Trevor wants it in the main menu, not under Settings): the section the installed app starts on.
 
+## Ideas for later
+- Monthly summary email to every student (Trevor, 2026-10-02: "eventually"): how many classes they have left on their package and what they went over that month (classes taken, lessons finished, activities, puzzles, flashcards). Not built yet; when it is, it replaces other student emails where it can (see Email volume) and needs Trevor's go-ahead on the wording first.
+
 ## Brand in the header
 Every site's header shows the brand on two lines, "English & Portuguese" over
 "with Trevor" (a `<br />` before "with Trevor"; the ampersand in gold italic),
