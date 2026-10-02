@@ -23,7 +23,7 @@ describe("accessSummary", () => {
 
   it("gives subscribers their renewal or end date", () => {
     expect(accessSummary("student", "subscriber", sub)).toBe(
-      "Subscriber: every Portuguese lesson is open. Renews on October 27, 2026.",
+      "Subscriber: every lesson is open, in both languages. Renews on October 27, 2026.",
     );
     expect(
       accessSummary("student", "subscriber", {
@@ -38,7 +38,7 @@ describe("accessSummary", () => {
 
   it("writes the summary and dates in the site language", () => {
     expect(accessSummary("student", "subscriber", sub, "pt")).toBe(
-      "Assinante: todas as aulas de português estão liberadas. Renova em 27 de outubro de 2026.",
+      "Assinante: todas as aulas estão liberadas, nos dois idiomas. Renova em 27 de outubro de 2026.",
     );
   });
 });

@@ -44,10 +44,10 @@ export function accessSummary(
         date: end,
       });
     return end
-      ? t("Subscriber: every Portuguese lesson is open. Renews on {date}.", {
+      ? t("Subscriber: every lesson is open, in both languages. Renews on {date}.", {
           date: end,
         })
-      : t("Subscriber: every Portuguese lesson is open.");
+      : t("Subscriber: every lesson is open, in both languages.");
   }
   return t(
     "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.",
