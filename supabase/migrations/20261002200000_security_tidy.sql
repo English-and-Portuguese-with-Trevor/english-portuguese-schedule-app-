@@ -16,7 +16,7 @@ alter table private.app_settings enable row level security;
 --    (createServerJobClient) uses the anon key and passes CRON_SECRET.
 revoke execute on function public.set_vapid_keys(text, text, text) from public, anon, authenticated;
 
--- Not done yet: profiles has two identical SELECT policies (profiles_select
--- and profiles_select_own_or_admin). Dropping the second needs a confirmation
--- the tools couldn't show, so it waits for Trevor to run, in the SQL editor:
---   drop policy if exists profiles_select_own_or_admin on public.profiles;
+-- 3. profiles had two identical SELECT policies; keep profiles_select
+--    (private.is_admin(), same as profiles_update). Trevor ran this one in
+--    the SQL editor on 2026-10-02.
+drop policy if exists profiles_select_own_or_admin on public.profiles;
