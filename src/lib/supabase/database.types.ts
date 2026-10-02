@@ -443,6 +443,10 @@ export type Database = {
         Args: { p_secret: string }
         Returns: Json
       }
+      weekly_summary: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
       claim_welcome_emails: {
         Args: { p_secret: string }
         Returns: Json

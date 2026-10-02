@@ -71,7 +71,14 @@ in summer, 6 AM in winter). It:
   Overview);
 - emails each student one reminder for lessons in the next 36 hours;
 - emails the admin the next 24 hours of lessons plus requests waiting for
-  approval.
+  approval;
+- on Mondays (in the admin's time zone), emails the admin the weekly summary
+  (`weekly_summary`, `supabase/migrations/20261003010000_weekly_summary.sql`):
+  the last 7 days' new sign-ups and subscribers, active students (anything
+  done on any site, or a booking), lessons finished, puzzles played,
+  activities finished, flashcards studied, classes held and canceled, the
+  next 7 days' classes, and students quiet for 14 days or more. Trevor's own
+  practice isn't counted.
 
 It is guarded by a shared secret stored in two places that must match:
 `CRON_SECRET` in Vercel, and `private.app_settings` (key `cron_secret`) in
@@ -110,6 +117,7 @@ cause, plus one welcome:
 | --- | --- |
 | A copy of every scheduling change | New booking, approval needed, student canceled, reschedule asked or withdrawn, and "You approved / booked / booked a series / moved / declined / canceled" |
 | Your day | Daily job, 13:00 UTC (7 AM Mountain in summer, 6 AM in winter): the next 24 hours of classes and waiting requests; none on a day with nothing |
+| Your week | Mondays with the daily job: the weekly summary (see "Daily job") |
 | New sign-up / new subscriber | As it happens (several at once come as one email) |
 | Flags and reported issues | One summary at 6:30 AM Mountain; none when there are no flags |
 | DeepL credits reset | On hold (`DEEPL_ON_HOLD` in `src/lib/daily-job.ts`) |

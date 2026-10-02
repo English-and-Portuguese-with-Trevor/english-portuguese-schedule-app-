@@ -21,6 +21,7 @@ vi.mock("@/lib/notifications", async (importOriginal) => ({
 }));
 
 import { runDailyJob } from "@/lib/daily-job";
+import type { Email } from "@/lib/notifications";
 import { GET } from "@/app/api/cron/daily/route";
 
 const reminderRow = {
@@ -33,12 +34,35 @@ const reminderRow = {
   meet_link: "https://meet.google.com/x",
 };
 
+const weeklyRow = {
+  people: [
+    { id: "u1", full_name: "Ana Pereira", email: "ana@example.com", created_at: "2026-09-01T00:00:00Z" },
+    { id: "u2", full_name: "Bruno Costa Lima", email: "bruno@example.com", created_at: "2026-10-03T15:00:00Z" },
+    { id: "u3", full_name: null, email: "quiet@example.com", created_at: "2026-08-01T00:00:00Z" },
+  ],
+  new_signups: ["u2"],
+  new_subscribers: [],
+  active_students: 2,
+  lessons_finished: 3,
+  puzzles_played: 5,
+  activities_finished: 1,
+  cards_studied: 40,
+  classes_held: 2,
+  classes_canceled: 1,
+  late_cancellations: 1,
+  upcoming: [{ start: "2026-10-06T20:00:00Z", student_id: "u1", language: "PORTUGUESE" }],
+  inactive: [{ id: "u3", last_active: null }],
+};
+
 beforeEach(() => {
+  // A Tuesday, 7 AM in Denver: no weekly summary unless a test says Monday.
+  vi.useFakeTimers({ now: new Date("2026-09-29T13:00:00Z"), toFake: ["Date"] });
   vi.stubEnv("ADMIN_NOTIFY_EMAIL", "trevor@example.com");
   vi.stubEnv("CRON_SECRET", "s3cret");
   mocks.rpc.mockImplementation(async (fn: string) => {
     if (fn === "admin_timezone") return { data: "America/Denver", error: null };
     if (fn === "claim_student_reminders") return { data: [reminderRow], error: null };
+    if (fn === "weekly_summary") return { data: weeklyRow, error: null };
     if (fn === "admin_agenda") {
       return {
         data: [{ ...reminderRow, status: "CONFIRMED", lesson_language: "PORTUGUESE", whatsapp: null, reschedule_from: null }],
@@ -50,6 +74,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
@@ -63,7 +88,25 @@ describe("runDailyJob", () => {
     const sent = mocks.sendNotification.mock.calls.map(([email]) => email);
     expect(sent.map((e) => e?.to)).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(sent[0]?.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
-    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false });
+    expect(mocks.rpc).not.toHaveBeenCalledWith("weekly_summary", expect.anything());
+    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false, weekly: false });
+  });
+
+  it("on Monday morning in Denver also emails Trevor the weekly summary", async () => {
+    vi.setSystemTime(new Date("2026-10-05T13:00:00Z"));
+    const result = await runDailyJob("s3cret");
+
+    expect(mocks.rpc).toHaveBeenCalledWith("weekly_summary", { p_secret: "s3cret" });
+    const weekly = mocks.sendNotification.mock.calls.map(([email]) => email as Email | null).at(-1);
+    expect(weekly?.to).toBe("trevor@example.com");
+    expect(weekly?.subject).toBe("Your week: 2 active, 1 new, 1 class ahead");
+    expect(weekly?.text).toContain("Bruno L.");
+    expect(weekly?.text).toContain("joined Oct 3");
+    expect(weekly?.text).toContain("Classes canceled");
+    expect(weekly?.text).toContain("1 (1 late)");
+    expect(weekly?.text).toContain("Tue, Oct 6, 2:00 PM: Ana P. · Portuguese");
+    expect(weekly?.text).toContain("quiet: never active");
+    expect(result.weekly).toBe(true);
   });
 
   it("sends no DeepL reminder on the 20th while DeepL is on hold", async () => {
