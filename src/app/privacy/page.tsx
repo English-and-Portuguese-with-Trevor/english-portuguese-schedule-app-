@@ -87,8 +87,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Flashcards:</strong> the decks, folders and cards you make, your favorite decks, which
-              cards you&apos;ve marked &quot;Got it&quot; or &quot;Still learning&quot;, and a dated log of
-              those taps.
+              cards you&apos;ve marked &quot;Got it&quot; or &quot;Still learning&quot; and when each is due for
+              review again, and a dated log of those taps.
             </li>
             <li>
               <strong>Lessons:</strong> the lessons you mark as finished, and the knowledge-check questions you
