@@ -1,0 +1,54 @@
+# Smoke check: after each push to main, wait for Vercel's production deploy of
+# that commit, then load a few pages of the live site (e2e/smoke.spec.ts).
+# A red run makes GitHub email Trevor.
+name: Smoke check
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: smoke
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Wait for the Vercel production deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The Vercel GitHub integration records a "Production" deployment for
+          # the commit; wait (up to 10 minutes) until its latest status is final.
+          for i in $(seq 1 60); do
+            id=$(gh api "repos/$GITHUB_REPOSITORY/deployments?sha=$GITHUB_SHA&environment=Production" --jq '.[0].id // empty')
+            if [ -n "$id" ]; then
+              state=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$id/statuses" --jq '.[0].state // empty')
+              echo "Deployment $id: ${state:-no status yet}"
+              case "$state" in
+                success) sleep 20; exit 0 ;;  # a moment for the domain to point at it
+                failure|error) echo "::error::Vercel's production deploy failed"; exit 1 ;;
+              esac
+            else
+              echo "No production deployment for $GITHUB_SHA yet"
+            fi
+            sleep 10
+          done
+          echo "::error::No finished production deploy after 10 minutes"
+          exit 1
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test

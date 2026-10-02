@@ -81,6 +81,40 @@ Supabase. To rotate it, generate a new value and update both:
 update private.app_settings set value = '<new secret>' where key = 'cron_secret';
 ```
 
+## Every email the system sends
+
+Kept short on purpose (Trevor: no email overload). Before adding one, see
+"Email volume" in CLAUDE.md. All of these come from this app
+(`src/lib/notifications.ts`, through the englishportuguesewithtrevor@gmail.com
+Gmail) unless noted.
+
+**Students** get only what their own actions (or Trevor's on their classes)
+cause, plus one welcome:
+
+| Email | When |
+| --- | --- |
+| Welcome | Once, when the account is made |
+| Lesson confirmed | They book 72+ hours ahead, Trevor approves their request, or Trevor books them |
+| Lessons booked (one email for a series) | Trevor books a series for them |
+| Lesson request received | They book less than 72 hours ahead (waits for approval) |
+| Lesson request not available | Trevor declines a request |
+| Lesson canceled | Trevor cancels a confirmed class |
+| Reschedule request received / Lesson moved / Reschedule not available | They ask to move a class; Trevor approves or declines |
+| Lesson reminder | Daily job (7 AM Mountain), once per class in the next 36 hours |
+| Google Calendar invitation, changes, reminders | Google sends these for every confirmed class (not branded) |
+| Confirm sign-up, reset password | Supabase Auth (through Resend), when they ask for one |
+
+**Trevor** (`ADMIN_NOTIFY_EMAIL`):
+
+| Email | When |
+| --- | --- |
+| A copy of every scheduling change | New booking, approval needed, student canceled, reschedule asked or withdrawn, and "You approved / booked / booked a series / moved / declined / canceled" |
+| Your day | Daily job, 13:00 UTC (7 AM Mountain in summer, 6 AM in winter): the next 24 hours of classes and waiting requests; none on a day with nothing |
+| New sign-up / new subscriber | As it happens (several at once come as one email) |
+| Flags and reported issues | One summary at 6:30 AM Mountain; none when there are no flags |
+| DeepL credits reset | On hold (`DEEPL_ON_HOLD` in `src/lib/daily-job.ts`) |
+| Smoke check failed | GitHub emails him when the smoke check workflow fails after a deploy (see "Smoke check") |
+
 ## Admin calendar
 
 `/admin/calendar` shows every class (waiting, confirmed, canceled, late
@@ -156,6 +190,24 @@ Don't replace the keys: every device would have to turn push on again.
 ## Maintenance mode
 
 While you're changing something big, set `MAINTENANCE_MODE` to `on` in Vercel (Settings -> Environment Variables) and redeploy. Every page then shows "We're updating the site" (`/maintenance`) with a 503, instead of an error. The cron jobs and `/api/alerts/push` keep running, so reminders and alerts still go out. Delete the variable (or set it to anything else) and redeploy to turn it off. Missing pages show "Page not found" and crashes show "Something went wrong", both with a button to recover.
+
+## Smoke check
+
+Vercel deploys `main` on its own. After each push to `main`,
+`.github/workflows/smoke.yml` waits (up to 10 minutes) for Vercel's
+production deployment of that commit, then runs `e2e/smoke.spec.ts`
+(Playwright) against the live site: the home page sends a logged-out visitor
+to `/login` (so not the maintenance page), `/login` and `/privacy` load with
+200, the brand shows, and no uncaught page errors (network failures reaching
+Supabase are tolerated). A failed deploy or check fails the run, and GitHub
+emails the person who pushed. To run it against a local build:
+
+```bash
+npm run build && npm start   # in one terminal
+SMOKE_URL=http://localhost:3000 npx playwright test
+```
+
+(`npx playwright install chromium` once first.) Vitest doesn't pick it up.
 
 ## Tests
 
