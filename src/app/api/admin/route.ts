@@ -1,5 +1,6 @@
 import { sendTestPush } from "@/lib/admin-push";
 import { adminBookSeries, adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
+import { checkAdmin } from "@/lib/auth/require-admin";
 import { createClient } from "@/lib/supabase/server";
 
 // The admin dashboard on the landing site (englishandportuguesewithtrevor.com/admin/)
@@ -39,19 +40,8 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   if (request.headers.get("origin") !== DASHBOARD_ORIGIN) return json({ error: "Wrong origin." }, 403);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return json({ error: "Not signed in." }, 401);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") return json({ error: "Admin only." }, 403);
-  // Once Trevor has Google Authenticator set up, admin rights need a session
-  // that entered a code (the database's is_admin() checks the same).
-  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
-    return json({ error: "Enter your Google Authenticator code first (reload the dashboard)." }, 403);
-  }
+  const admin = await checkAdmin(await createClient());
+  if (!admin.ok) return json({ error: admin.error }, admin.status);
 
   let body: Body;
   try {

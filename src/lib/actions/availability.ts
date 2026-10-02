@@ -2,22 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 type ActionResult = { error: string | null };
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") throw new Error("Admin only");
-
-  return supabase;
-}
 
 export async function createAvailabilityRule(input: {
   dayOfWeek: number;
@@ -29,10 +17,7 @@ export async function createAvailabilityRule(input: {
   if (!Intl.supportedValuesOf("timeZone").includes(input.timezone)) {
     return { error: "Pick a time zone from the list." };
   }
-  const supabase = await requireAdmin();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, adminId } = await requireAdmin();
 
   const { error } = await supabase.from("availability_rules").insert({
     day_of_week: input.dayOfWeek,
@@ -40,7 +25,7 @@ export async function createAvailabilityRule(input: {
     end_time: input.endTime,
     slot_duration_minutes: input.slotDurationMinutes,
     timezone: input.timezone,
-    created_by: user!.id,
+    created_by: adminId,
   });
 
   if (error) return { error: error.message };
@@ -50,7 +35,7 @@ export async function createAvailabilityRule(input: {
 }
 
 export async function toggleAvailabilityRule(id: string, isActive: boolean): Promise<ActionResult> {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { error } = await supabase
     .from("availability_rules")
     .update({ is_active: isActive })
@@ -63,7 +48,7 @@ export async function toggleAvailabilityRule(id: string, isActive: boolean): Pro
 }
 
 export async function deleteAvailabilityRule(id: string): Promise<ActionResult> {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { error } = await supabase.from("availability_rules").delete().eq("id", id);
 
   if (error) return { error: error.message };
@@ -78,7 +63,7 @@ export async function addDayOff(startsOn: string, endsOn: string): Promise<Actio
     return { error: "Pick a date." };
   }
   if (endsOn < startsOn) return { error: "The last day can't be before the first." };
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { error } = await supabase
     .from("availability_blocks")
     .insert({ starts_on: startsOn, ends_on: endsOn });
@@ -90,7 +75,7 @@ export async function addDayOff(startsOn: string, endsOn: string): Promise<Actio
 }
 
 export async function deleteDayOff(id: string): Promise<ActionResult> {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { error } = await supabase.from("availability_blocks").delete().eq("id", id);
 
   if (error) return { error: error.message };

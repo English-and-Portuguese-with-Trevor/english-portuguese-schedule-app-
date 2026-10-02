@@ -13,6 +13,7 @@ import {
   afterStudentBooking,
   type Lesson,
 } from "@/lib/notifications";
+import { checkAdmin } from "@/lib/auth/require-admin";
 import { createClient } from "@/lib/supabase/server";
 import { WHATSAPP_PATTERN, type BookingAnswers, type FlagReason } from "@/lib/types";
 import { tr } from "@/i18n/translate";
@@ -224,8 +225,9 @@ export async function adminBookStudent(
   startIso: string,
   endIso: string,
 ): Promise<ActionResult> {
-  const { supabase, profile } = await requireProfile();
-  if (profile.role !== "admin") return { error: "Admin only." };
+  const supabase = await createClient();
+  const admin = await checkAdmin(supabase);
+  if (!admin.ok) return { error: admin.error };
 
   const start = new Date(startIso);
   const end = new Date(endIso);
@@ -236,7 +238,7 @@ export async function adminBookStudent(
     studentId,
     status: "CONFIRMED",
     isAdminOverride: true,
-    createdBy: profile.id,
+    createdBy: admin.adminId,
   });
 
   if (result.error) return result;
@@ -264,8 +266,9 @@ export async function adminBookSeries(
   studentId: string,
   slots: { start: string; end: string }[],
 ): Promise<ActionResult & { booked?: number; skipped?: { start: string; reason: string }[] }> {
-  const { supabase, profile } = await requireProfile();
-  if (profile.role !== "admin") return { error: "Admin only." };
+  const supabase = await createClient();
+  const admin = await checkAdmin(supabase);
+  if (!admin.ok) return { error: admin.error };
   if (slots.length < 1 || slots.length > MAX_SERIES) return { error: `Book between 1 and ${MAX_SERIES} classes at a time.` };
 
   const bookedIds: string[] = [];
@@ -277,7 +280,7 @@ export async function adminBookSeries(
       studentId,
       status: "CONFIRMED",
       isAdminOverride: true,
-      createdBy: profile.id,
+      createdBy: admin.adminId,
     });
     if (result.error) skipped.push({ start: slot.start, reason: result.error });
     else bookedIds.push(result.bookingId!);
@@ -301,6 +304,10 @@ export async function adminBookSeries(
 
 export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
+  if (profile.role === "admin") {
+    const admin = await checkAdmin(supabase);
+    if (!admin.ok) return { error: admin.error };
+  }
   const before = await loadBooking(supabase, bookingId);
 
   const { error } =
@@ -356,8 +363,9 @@ export async function unflagClass(bookingId: string): Promise<ActionResult> {
 
 /** Admin-only: confirm a pending booking. */
 export async function confirmBooking(bookingId: string): Promise<ActionResult> {
-  const { supabase, profile } = await requireProfile();
-  if (profile.role !== "admin") return { error: "Admin only." };
+  const supabase = await createClient();
+  const admin = await checkAdmin(supabase);
+  if (!admin.ok) return { error: admin.error };
 
   const { data: updated, error } = await supabase
     .from("bookings")
