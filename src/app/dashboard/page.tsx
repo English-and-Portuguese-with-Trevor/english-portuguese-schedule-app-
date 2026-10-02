@@ -1,4 +1,4 @@
-import { addDays, subDays } from "date-fns";
+import { addDays, format, subDays } from "date-fns";
 
 import { BookingBoard } from "@/components/booking-board";
 import { ClassProgressCard } from "@/components/class-progress-card";
@@ -45,6 +45,7 @@ export default async function DashboardPage() {
     { data: lastAnswers },
     { data: progressRows },
     { data: recentClasses },
+    { data: daysOff },
   ] = await Promise.all([
     supabase.from("availability_rules").select("*").eq("is_active", true),
     supabase
@@ -81,6 +82,11 @@ export default async function DashboardPage() {
           .lte("session_slots.end_time", now.toISOString())
           .gt("session_slots.end_time", subDays(now, FLAG_DAYS).toISOString())
       : { data: [] },
+    // Days off ending today or later (yesterday's UTC date covers today in Denver).
+    supabase
+      .from("availability_blocks")
+      .select("starts_on, ends_on")
+      .gte("ends_on", format(subDays(now, 1), "yyyy-MM-dd")),
   ]);
   const progress = ((progressRows ?? []) as ClassProgress[])[0] ?? null;
 
@@ -111,6 +117,7 @@ export default async function DashboardPage() {
       now,
       days: LOOKAHEAD_DAYS,
       minutes: shortClasses ? NEW_STUDENT_CLASS_MINUTES : undefined,
+      daysOff: daysOff ?? [],
     },
   );
 

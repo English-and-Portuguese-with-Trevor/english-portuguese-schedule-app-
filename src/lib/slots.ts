@@ -6,6 +6,12 @@ import { APPROVAL_WINDOW_HOURS, type AvailabilityRule, type SessionSlot } from "
 /** Students can request an individual session starting on any 15-minute mark. */
 export const BOOKING_START_STEP_MINUTES = 15;
 
+/** A day off (`availability_blocks`): no class on these dates, inclusive. */
+export interface DayOff {
+  starts_on: string;
+  ends_on: string;
+}
+
 export interface CandidateSlot {
   start: Date;
   end: Date;
@@ -23,8 +29,12 @@ export interface CandidateSlot {
  */
 export function generateCandidateSlots(
   rules: AvailabilityRule[],
-  /** `minutes` replaces each window's class length (30 for new students). */
-  opts: { fromDate: string; days: number; now?: Date; minutes?: number },
+  /**
+   * `minutes` replaces each window's class length (30 for new students).
+   * `daysOff` drops every window on those dates, read in the window's own time
+   * zone, as `private.assert_lesson_time` does.
+   */
+  opts: { fromDate: string; days: number; now?: Date; minutes?: number; daysOff?: DayOff[] },
 ): CandidateSlot[] {
   const now = opts.now ?? new Date();
   const autoConfirmFrom = addMinutes(now, APPROVAL_WINDOW_HOURS * 60);
@@ -35,6 +45,8 @@ export function generateCandidateSlots(
     const day = addDays(rangeStart, i);
     const dateStr = format(day, "yyyy-MM-dd");
     const weekday = getDay(day);
+    // dateStr is the window's own date: the times below are read in its zone.
+    if (opts.daysOff?.some((b) => b.starts_on <= dateStr && dateStr <= b.ends_on)) continue;
 
     for (const rule of rules) {
       if (!rule.is_active || rule.day_of_week !== weekday) continue;
@@ -70,13 +82,14 @@ export function generateCandidateSlots(
  */
 export function generateUpcomingSlots(
   rules: AvailabilityRule[],
-  opts: { now: Date; days: number; minutes?: number },
+  opts: { now: Date; days: number; minutes?: number; daysOff?: DayOff[] },
 ): CandidateSlot[] {
   return generateCandidateSlots(rules, {
     fromDate: format(addDays(opts.now, -1), "yyyy-MM-dd"),
     days: opts.days + 1,
     now: opts.now,
     minutes: opts.minutes,
+    daysOff: opts.daysOff,
   });
 }
 

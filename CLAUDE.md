@@ -8,6 +8,9 @@
 ## 30-minute classes for new students
 Trevor (2026-10-01): until he marks someone as his student (lesson access `granted` or `lifetime`, or a class package), they can only book 30-minute classes inside his availability windows; his students book the windows' length (1 hour). `isClassStudent` / `NEW_STUDENT_CLASS_MINUTES` in `src/lib/types.ts` pick the times on the dashboard, and `private.class_minutes` (used by `assert_lesson_time` for bookings and reschedules) enforces it in the database. Keep the two in step. Trevor's own bookings aren't limited.
 
+## Days off
+Trevor (2026-10-02): `public.availability_blocks` (`starts_on`, `ends_on`, inclusive; `supabase/migrations/20261002230000_days_off.sql`) holds dates when no class can be booked, on top of the weekly windows. `private.assert_lesson_time` refuses a booking or reschedule on one (the date in the window's time zone, Denver); the dashboard drops those dates from the times it offers (`daysOff` in `generateCandidateSlots`, `src/lib/slots.ts`). Keep the two in step. Trevor adds and removes them on this app's `/admin/availability` (Days off) and on the landing dashboard's Availability screen. Classes already booked on a day off stay booked.
+
 ## Notices banner
 `src/components/notices.tsx`, rendered under the header in `AppShell`, shows Trevor's notices from the `my_announcements` RPC (written on the admin dashboard, landing repo), exactly as written and never translated. Dismissals are per device in localStorage `ept-dismissed-notices`, separate from the other sites' because this app is its own origin.
 

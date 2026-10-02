@@ -31,6 +31,30 @@ export type Database = {
         Update: { read_at?: string | null }
         Relationships: []
       }
+      availability_blocks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_on: string
+          id: string
+          starts_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_on: string
+          id?: string
+          starts_on: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string
+          id?: string
+          starts_on?: string
+        }
+        Relationships: []
+      }
       availability_rules: {
         Row: {
           created_at: string
