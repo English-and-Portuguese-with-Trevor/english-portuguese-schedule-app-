@@ -1,24 +1,25 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // Uncaught errors on the page, except network failures reaching Supabase
-// (the check shouldn't fail because supabase.co had a blip).
+// (the check shouldn't fail because supabase.co had a blip) and React's
+// hydration warning #418: Cloudflare, in front of the site, rewrites email
+// addresses in the HTML (Email Address Obfuscation), so /privacy's email
+// differs from what React renders. React recovers on its own.
 function pageErrors(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => {
-    if (/supabase\.co|failed to fetch|networkerror|load failed/i.test(`${error.message} ${error.stack ?? ""}`)) return;
+    if (/supabase\.co|failed to fetch|networkerror|load failed|react error #418/i.test(`${error.message} ${error.stack ?? ""}`)) return;
     errors.push(error.message);
   });
   return errors;
 }
 
-test("home sends a logged-out visitor to /login, not the maintenance page", async ({ request }) => {
-  const home = await request.get("/", { maxRedirects: 0 });
-  expect(home.status()).toBe(307);
-  expect(new URL(home.headers().location, "http://x").pathname).toBe("/login");
-
-  const login = await request.get("/login");
-  expect(login.status()).toBe(200);
-  expect(await login.text()).not.toContain("updating the site");
+// In the browser, not Playwright's request client: Cloudflare turns away
+// requests that don't come from a browser (403).
+test("home sends a logged-out visitor to /login, not the maintenance page", async ({ page }) => {
+  const response = await page.goto("/", { waitUntil: "commit" });
+  expect(response?.status()).toBe(200); // the maintenance page is a 503
+  expect(new URL(response!.url()).pathname).toBe("/login");
 });
 
 test("the login page loads", async ({ page }) => {

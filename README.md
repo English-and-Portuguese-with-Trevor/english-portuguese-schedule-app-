@@ -199,7 +199,8 @@ production deployment of that commit, then runs `e2e/smoke.spec.ts`
 (Playwright) against the live site: the home page sends a logged-out visitor
 to `/login` (so not the maintenance page), `/login` and `/privacy` load with
 200, the brand shows, and no uncaught page errors (network failures reaching
-Supabase are tolerated). A failed deploy or check fails the run, and GitHub
+Supabase are tolerated, and so is React's hydration warning #418, which
+Cloudflare's Email Address Obfuscation causes on `/privacy`). A failed deploy or check fails the run, and GitHub
 emails the person who pushed. To run it against a local build:
 
 ```bash
