@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings as SettingsIcon,
+  Smartphone,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -151,7 +152,7 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
         </DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
-            <SettingsIcon />
+            <Smartphone />
             <span className="whitespace-nowrap">{t("App start")}</span>
             {start && <span className="ml-auto truncate text-muted-foreground">{t(START_LABELS[start])}</span>}
           </DropdownMenuSubTrigger>
