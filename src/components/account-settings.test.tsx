@@ -56,6 +56,26 @@ describe("AccountSettings", () => {
     expect(screen.getByText(/Renews on October 27, 2026/)).toBeInTheDocument();
   });
 
+  it("offers Get the app right under Preferences when the browser can install it", async () => {
+    render(
+      <AccountSettings name="Ana" email={null} role="student" lessonAccess="none" billing={null} />,
+    );
+    const offer = Object.assign(new Event("beforeinstallprompt"), {
+      prompt: vi.fn().mockResolvedValue(undefined),
+      userChoice: Promise.resolve({ outcome: "accepted" }),
+    });
+    fireEvent(window, offer);
+    const row = await screen.findByRole("button", { name: "Get the app" });
+    expect(screen.getAllByRole("button").map((b) => b.textContent).slice(0, 3)).toEqual([
+      "Preferences›",
+      "Get the app",
+      "Account›",
+    ]);
+    fireEvent.click(row);
+    expect(offer.prompt).toHaveBeenCalled();
+    expect(await screen.findByText("Installed as an app")).toBeInTheDocument();
+  });
+
   it("is a short menu; Preferences opens its own page with nothing else under it", () => {
     render(
       <AccountSettings

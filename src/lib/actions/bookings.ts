@@ -178,8 +178,8 @@ function friendlyDbError(error: { code?: string; message: string }, rescheduling
  * Student (or admin) books a 1:1 slot. Students go through the
  * request_individual_booking DB function, which re-checks the availability
  * window server-side and decides the status: confirmed if the session is at
- * least 72 hours away, pending approval if sooner. Admins write directly and
- * are always confirmed.
+ * least 72 hours away, pending approval if sooner. Admins book for students
+ * with adminBookStudent instead.
  */
 export async function requestBooking(
   startIso: string,
@@ -216,10 +216,6 @@ export async function requestBooking(
     revalidatePath("/admin/bookings");
     return { error: null, pending };
   }
-
-  revalidatePath("/dashboard");
-  revalidatePath("/admin/bookings");
-  return { error: null };
 }
 
 /** Admin-only: place a student into a slot directly, bypassing the 72h cutoff. */

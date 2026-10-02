@@ -48,7 +48,7 @@ export async function sendAlerts(secret: string) {
 async function pushAlerts(secret: string, claimed: Claimed) {
   if (!claimed.subscriptions.length) return 0;
   if (!claimed.vapid_public_key || !claimed.vapid_private_key) {
-    console.error("[alerts] no push keys yet; turn push on from /admin/alerts");
+    console.error("[alerts] no push keys yet; turn push on from the admin dashboard (landing site, /admin/#/alerts)");
     return 0;
   }
   const supabase = createServerJobClient();

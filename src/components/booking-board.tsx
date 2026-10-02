@@ -275,7 +275,7 @@ export function BookingBoard({
         <h2 className="mb-3 text-lg font-semibold">{rescheduling ? t("Pick a new time") : t("Book a class")}</h2>
         {shortClasses && (
           <p className="mb-4 text-sm text-muted-foreground">
-            {t("New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.")}
+            {t("New students book 30-minute classes. Once Trevor adds you as his student, you can book longer classes.")}
           </p>
         )}
         {rescheduling && (

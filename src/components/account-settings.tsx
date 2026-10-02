@@ -41,6 +41,11 @@ import {
   type Prefs,
   type SiteLanguage,
 } from "@/lib/prefs";
+import {
+  getInstallState,
+  promptInstall,
+  subscribeInstallState,
+} from "@/lib/install-prompt";
 import { createClient } from "@/lib/supabase/client";
 import type { LessonAccess, Role } from "@/lib/types";
 
@@ -54,8 +59,9 @@ async function functionError(error: { message: string; context?: unknown }) {
 }
 
 /**
- * Settings > Account, the same on every site: lesson access, Manage
- * subscription (Stripe customer portal) and Delete account.
+ * Settings, the same short menu on every site: Preferences ›, Get the app,
+ * Account › (name, email, lesson access), Manage subscription (Stripe
+ * customer portal), Delete account and Log out.
  */
 export function AccountSettings({
   name,
@@ -129,7 +135,7 @@ export function AccountSettings({
           <Card>
             <CardHeader>
               <CardDescription>
-                {t("The same account works on the lessons, flashcards and schedule sites.")}
+                {t("The same account works on every site.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
@@ -160,7 +166,6 @@ export function AccountSettings({
       </Button>
       <h1 className="-mt-4 text-2xl font-semibold">{t("Settings")}</h1>
 
-      {/* The Stripe portal opens for any account (card, receipts, cancel). */}
       <div className="flex flex-col gap-2">
         <Button
           variant="outline"
@@ -170,6 +175,7 @@ export function AccountSettings({
           {t("Preferences")}
           <span aria-hidden>›</span>
         </Button>
+        <InstallRow />
         <Button
           variant="outline"
           className="h-12 w-full justify-between"
@@ -186,6 +192,17 @@ export function AccountSettings({
         >
           {opening ? t("Opening…") : t("Manage subscription")}
         </Button>
+        {/* The Stripe portal opens for any account. */}
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "Change your card, see receipts, or cancel. Handled securely by Stripe.",
+          )}
+        </p>
+        {billingError && (
+          <p role="alert" className="text-sm text-destructive">
+            {t(billingError)}
+          </p>
+        )}
         <Button
           variant="outline"
           className="h-12 w-full justify-start text-destructive"
@@ -200,16 +217,6 @@ export function AccountSettings({
         >
           {t("Log out")}
         </Button>
-        <p className="text-xs text-muted-foreground">
-          {t(
-            "Change your card, see receipts, or cancel. Handled securely by Stripe.",
-          )}
-        </p>
-        {billingError && (
-          <p role="alert" className="text-sm text-destructive">
-            {t(billingError)}
-          </p>
-        )}
       </div>
 
       <DeleteAccountDialog
@@ -221,7 +228,52 @@ export function AccountSettings({
   );
 }
 
-/** Dark mode and the language being learned; the same settings on every site. */
+/**
+ * "Get the app" (this site's own install, src/app/manifest.ts): a row where
+ * the browser lets a page offer the install, the two taps on an iPhone, and a
+ * note once it's installed.
+ */
+function InstallRow() {
+  const t = useT();
+  const [state, setState] = useState(getInstallState);
+  // Standalone and iPhone are only known in the browser; the server renders nothing.
+  const [device, setDevice] = useState<{ standalone: boolean; ios: boolean } | null>(null);
+  useEffect(() => subscribeInstallState(setState), []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser-only checks after hydration
+    setDevice({
+      standalone:
+        window.matchMedia?.("(display-mode: standalone)").matches ||
+        (window.navigator as { standalone?: boolean }).standalone === true,
+      ios: /iphone|ipad|ipod/i.test(window.navigator.userAgent),
+    });
+  }, []);
+  if (!device) return null;
+  if (state.installed || device.standalone) {
+    return <p className="text-xs text-muted-foreground">{t("Installed as an app")}</p>;
+  }
+  if (state.prompt) {
+    return (
+      <Button
+        variant="outline"
+        className="h-12 w-full justify-start"
+        onClick={() => void promptInstall()}
+      >
+        {t("Get the app")}
+      </Button>
+    );
+  }
+  if (device.ios) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        {t("On iPhone: tap Share, then Add to Home Screen.")}
+      </p>
+    );
+  }
+  return null;
+}
+
+/** Dark mode, the language being learned and the site language; the same settings on every site. */
 function PreferencesCard() {
   // The cookie is only readable in the browser; the server renders the defaults.
   const [prefs, setPrefs] = useState<Prefs>({});
@@ -239,34 +291,10 @@ function PreferencesCard() {
     <Card>
       <CardHeader>
         <CardDescription>
-          {t("These follow you to the home, lessons and flashcards sites too.")}
+          {t("These follow you to every site.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col divide-y">
-        <div className="flex items-center justify-between gap-4 py-3">
-          <span id="site-language-label" className="text-sm font-medium">
-            {t("Site language")}
-          </span>
-          <FlagSelect
-            id="site-language"
-            labelId="site-language-label"
-            value={siteLanguage}
-            options={SITE_LANGUAGES.map((l) => ({
-              value: l.code,
-              label: l.label,
-              flag: l.flag,
-              lang: l.code,
-            }))}
-            disabled={savingLanguage}
-            onChange={(next: SiteLanguage) => {
-              // Save first, then re-render the pages in the new language.
-              startSavingLanguage(async () => {
-                await setSiteLanguage(next);
-                router.refresh();
-              });
-            }}
-          />
-        </div>
         <div className="flex items-center justify-between gap-4 py-3">
           <span id="dark-mode-label" className="text-sm font-medium">
             {t("Dark mode")}
@@ -312,6 +340,30 @@ function PreferencesCard() {
             onChange={(learning: LearningLanguage) => {
               setLearningLanguage(learning);
               setPrefs((p) => ({ ...p, learning }));
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3">
+          <span id="site-language-label" className="text-sm font-medium">
+            {t("Site language")}
+          </span>
+          <FlagSelect
+            id="site-language"
+            labelId="site-language-label"
+            value={siteLanguage}
+            options={SITE_LANGUAGES.map((l) => ({
+              value: l.code,
+              label: l.label,
+              flag: l.flag,
+              lang: l.code,
+            }))}
+            disabled={savingLanguage}
+            onChange={(next: SiteLanguage) => {
+              // Save first, then re-render the pages in the new language.
+              startSavingLanguage(async () => {
+                await setSiteLanguage(next);
+                router.refresh();
+              });
             }}
           />
         </div>

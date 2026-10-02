@@ -41,6 +41,8 @@ import { tr, translate } from "@/i18n/translate";
 import { readPrefs, START_PAGES, type SiteLanguage, type StartPage } from "@/lib/prefs";
 import { setStartPage } from "@/lib/preferences";
 import { logout } from "@/lib/actions/auth";
+// Catches the browser's install offer at startup, for Settings' Get the app row.
+import "@/lib/install-prompt";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/types";
 
@@ -57,7 +59,7 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 /**
  * The account menu is the same on every site: Home, Daily puzzles (gold
  * lettering, so it stands out), a Learn sub-menu with the learning sites, Schedule a class,
- * Settings, Log out.
+ * App start, Settings, Log out.
  */
 export const LEARN_LINKS = [
   {

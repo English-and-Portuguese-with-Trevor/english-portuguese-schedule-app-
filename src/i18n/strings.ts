@@ -17,6 +17,8 @@ export const STRINGS = {
     Learn: "Aprender",
     "Daily puzzles": "Juegos diarios",
     "Get the app": "Descargar la app",
+    "Installed as an app": "Instalada como aplicación",
+    "On iPhone: tap Share, then Add to Home Screen.": "En iPhone: toca Compartir y luego Agregar a inicio.",
     "App start": "Inicio de la app",
     Settings: "Configuración",
     "Log out": "Cerrar sesión",
@@ -34,7 +36,7 @@ export const STRINGS = {
     Cancel: "Cancelar",
     "Pick a new time": "Elige un nuevo horario",
     "Book a class": "Reservar una clase",
-    "New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.": "Los alumnos nuevos reservan clases de 30 minutos. Cuando Trevor te agregue como su alumno, podrás reservar clases de 1 hora.",
+    "New students book 30-minute classes. Once Trevor adds you as his student, you can book longer classes.": "Los alumnos nuevos reservan clases de 30 minutos. Cuando Trevor te agregue como su alumno, podrás reservar clases más largas.",
     "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Cambiando tu clase del {time}. Sigue reservada hasta que Trevor apruebe el nuevo horario.",
     Stop: "Dejar",
@@ -117,14 +119,14 @@ export const STRINGS = {
     "{done} of {needed} classes · {setsDone} of {sets} sets":
       "{done} de {needed} clases · {setsDone} de {sets} paquetes",
     Preferences: "Preferencias",
-    "These follow you to the home, lessons and flashcards sites too.":
-      "Se aplican también en el inicio, las lecciones y las flashcards.",
+    "These follow you to every site.":
+      "Se aplican en todos los sitios.",
     "Site language": "Idioma del sitio",
     "Dark mode": "Modo oscuro",
     "I'm learning": "Estoy aprendiendo",
     "Choose…": "Elegir…",
-    "The same account works on the lessons, flashcards and schedule sites.":
-      "La misma cuenta sirve para las lecciones, las flashcards y la agenda.",
+    "The same account works on every site.":
+      "La misma cuenta sirve en todos los sitios.",
     Name: "Nombre",
     Email: "Correo electrónico",
     "Lessons & subscription": "Lecciones y suscripción",
@@ -235,6 +237,8 @@ export const STRINGS = {
     Learn: "Aprender",
     "Daily puzzles": "Desafios diários",
     "Get the app": "Baixar o app",
+    "Installed as an app": "Instalado como aplicativo",
+    "On iPhone: tap Share, then Add to Home Screen.": "No iPhone: toque em Compartilhar e depois em Adicionar à Tela de Início.",
     "App start": "Início do app",
     Settings: "Configurações",
     "Log out": "Sair",
@@ -252,7 +256,7 @@ export const STRINGS = {
     Cancel: "Cancelar",
     "Pick a new time": "Escolha um novo horário",
     "Book a class": "Agendar uma aula",
-    "New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.": "Alunos novos agendam aulas de 30 minutos. Quando o Trevor adicionar você como aluno dele, você poderá agendar aulas de 1 hora.",
+    "New students book 30-minute classes. Once Trevor adds you as his student, you can book longer classes.": "Alunos novos agendam aulas de 30 minutos. Quando o Trevor adicionar você como aluno dele, você poderá agendar aulas mais longas.",
     "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Remarcando sua aula de {time}. Ela continua agendada até o Trevor aprovar o novo horário.",
     Stop: "Parar",
@@ -334,14 +338,14 @@ export const STRINGS = {
     "{done} of {needed} classes · {setsDone} of {sets} sets":
       "{done} de {needed} aulas · {setsDone} de {sets} pacotes",
     Preferences: "Preferências",
-    "These follow you to the home, lessons and flashcards sites too.":
-      "Valem também para o início, as aulas e os flashcards.",
+    "These follow you to every site.":
+      "Valem em todos os sites.",
     "Site language": "Idioma do site",
     "Dark mode": "Modo escuro",
     "I'm learning": "Estou aprendendo",
     "Choose…": "Escolher…",
-    "The same account works on the lessons, flashcards and schedule sites.":
-      "A mesma conta vale para as aulas, os flashcards e a agenda.",
+    "The same account works on every site.":
+      "A mesma conta vale em todos os sites.",
     Name: "Nome",
     Email: "E-mail",
     "Lessons & subscription": "Aulas e assinatura",
@@ -452,6 +456,8 @@ export const STRINGS = {
     Learn: "Apprendre",
     "Daily puzzles": "Jeux quotidiens",
     "Get the app": "Télécharger l'appli",
+    "Installed as an app": "Installée comme application",
+    "On iPhone: tap Share, then Add to Home Screen.": "Sur iPhone : touchez Partager, puis Sur l'écran d'accueil.",
     "App start": "Démarrage",
     Settings: "Paramètres",
     "Log out": "Se déconnecter",
@@ -470,7 +476,7 @@ export const STRINGS = {
     Cancel: "Annuler",
     "Pick a new time": "Choisissez un nouvel horaire",
     "Book a class": "Réserver un cours",
-    "New students book 30-minute classes. Once Trevor adds you as his student, you can book 1-hour classes.": "Les nouveaux élèves réservent des cours de 30 minutes. Une fois que Trevor vous aura ajouté comme élève, vous pourrez réserver des cours d'une heure.",
+    "New students book 30-minute classes. Once Trevor adds you as his student, you can book longer classes.": "Les nouveaux élèves réservent des cours de 30 minutes. Une fois que Trevor vous aura ajouté comme élève, vous pourrez réserver des cours plus longs.",
     "Moving your class on {time}. It stays booked until Trevor approves the new time.":
       "Déplacement de votre cours du {time}. Il reste réservé jusqu'à ce que Trevor approuve le nouvel horaire.",
     Stop: "Arrêter",
@@ -552,14 +558,14 @@ export const STRINGS = {
     "{done} of {needed} classes · {setsDone} of {sets} sets":
       "{done} cours sur {needed} · {setsDone} séries sur {sets}",
     Preferences: "Préférences",
-    "These follow you to the home, lessons and flashcards sites too.":
-      "Ils s'appliquent aussi à l'accueil, aux leçons et aux flashcards.",
+    "These follow you to every site.":
+      "Ils s'appliquent sur tous les sites.",
     "Site language": "Langue du site",
     "Dark mode": "Mode sombre",
     "I'm learning": "J'apprends",
     "Choose…": "Choisir…",
-    "The same account works on the lessons, flashcards and schedule sites.":
-      "Le même compte fonctionne pour les leçons, les flashcards et la réservation.",
+    "The same account works on every site.":
+      "Le même compte fonctionne sur tous les sites.",
     Name: "Nom",
     Email: "E-mail",
     "Lessons & subscription": "Leçons et abonnement",
