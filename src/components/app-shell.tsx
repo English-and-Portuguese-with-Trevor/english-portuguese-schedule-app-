@@ -40,6 +40,7 @@ import { PrefsSync } from "@/components/prefs-sync";
 import { SiteLanguageProvider, useT } from "@/i18n/client";
 import { tr, translate } from "@/i18n/translate";
 import { readPrefs, START_PAGES, type SiteLanguage, type StartPage } from "@/lib/prefs";
+import { startErrorReports } from "@/lib/error-report";
 import { setStartPage } from "@/lib/preferences";
 import { logout } from "@/lib/actions/auth";
 // Catches the browser's install offer at startup, for Settings' Get the app row.
@@ -218,6 +219,10 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const isAdmin = role === "admin";
+  // Uncaught errors go to Trevor's admin dashboard (Errors).
+  useEffect(() => {
+    startErrorReports();
+  }, []);
 
   return (
     <SiteLanguageProvider lang={siteLanguage}>
