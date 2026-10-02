@@ -6,6 +6,8 @@ import { formatInTimeZone } from "date-fns-tz";
 
 /** The day of the month the DeepL reminder goes out (the allowance resets about a week later). */
 export const DEEPL_REMINDER_DAY = "20";
+/** DeepL is on hold (Trevor, 2026-09-30): no reminder until he says so; set to false to send it again. */
+export const DEEPL_ON_HOLD = true;
 
 /**
  * Runs once a day (see vercel.json): checks the Google connection, sends
@@ -26,7 +28,7 @@ export async function runDailyJob(secret: string) {
   const { data: adminZone } = await supabase.rpc("admin_timezone");
   const zone = adminZone || "America/Denver";
 
-  const deeplReminder = formatInTimeZone(new Date(), zone, "d") === DEEPL_REMINDER_DAY;
+  const deeplReminder = !DEEPL_ON_HOLD && formatInTimeZone(new Date(), zone, "d") === DEEPL_REMINDER_DAY;
   if (deeplReminder) await sendNotification(emails.deeplReset());
 
   const { data: due, error: remindersError } = await supabase.rpc("claim_student_reminders", { p_secret: secret });

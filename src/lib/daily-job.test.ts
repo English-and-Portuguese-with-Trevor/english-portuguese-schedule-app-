@@ -64,14 +64,14 @@ describe("runDailyJob", () => {
     expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false });
   });
 
-  it("on the 20th (admin's time zone) also reminds the admin that the DeepL allowance resets soon", async () => {
+  it("sends no DeepL reminder on the 20th while DeepL is on hold", async () => {
     // 20th at 6:00 AM in Denver; still the 20th in UTC too.
     vi.useFakeTimers({ now: new Date("2026-10-20T12:00:00Z"), toFake: ["Date"] });
     try {
       const result = await runDailyJob("s3cret");
       const sent = mocks.sendNotification.mock.calls.map(([email]) => email);
-      expect(sent.map((e) => e?.subject)).toContain("DeepL credits reset in about a week");
-      expect(result.deeplReminder).toBe(true);
+      expect(sent.map((e) => e?.subject)).not.toContain("DeepL credits reset in about a week");
+      expect(result.deeplReminder).toBe(false);
     } finally {
       vi.useRealTimers();
     }

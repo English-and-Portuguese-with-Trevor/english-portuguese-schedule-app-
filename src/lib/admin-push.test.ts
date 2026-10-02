@@ -11,7 +11,10 @@ vi.mock("@/lib/google", () => ({
   sendEmail: mocks.sendEmail,
   LESSON_TIMEZONE: "America/Denver",
 }));
-vi.mock("@/lib/integration-status", () => ({ createServerJobClient: () => ({ rpc: mocks.rpc }) }));
+vi.mock("@/lib/integration-status", () => ({
+  createServerJobClient: () => ({ rpc: mocks.rpc }),
+  recordGoogleStatus: async () => {},
+}));
 vi.mock("web-push", () => ({
   default: { sendNotification: mocks.sendNotification, generateVAPIDKeys: () => ({ publicKey: "pub", privateKey: "priv" }) },
 }));
@@ -126,6 +129,22 @@ describe("sendAlerts", () => {
     expect(mocks.sendEmail).not.toHaveBeenCalled();
   });
 
+  it("hands back the alerts whose email failed, so the next call sends them again", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const flag: AlertRow = { ...signup, id: 7, kind: "flag", reason: "other", class_start: "2026-09-28T20:30:00Z" };
+    mocks.rpc.mockResolvedValueOnce({ data: claimed([signup, flag]), error: null });
+    mocks.sendEmail.mockRejectedValueOnce(new Error("Gmail is down"));
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 2, emailed: false, sent: 2 });
+    // Only the sign-up: the flag's email is the morning one.
+    expect(mocks.rpc).toHaveBeenCalledWith("unclaim_alert_emails", { p_secret: "s3cret", p_ids: [1] });
+  });
+
+  it("keeps the claim when the email went out", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
+    await sendAlerts("s3cret");
+    expect(mocks.rpc).not.toHaveBeenCalledWith("unclaim_alert_emails", expect.anything());
+  });
+
   it("still pushes when Gmail isn't set up", async () => {
     mocks.isGoogleConfigured.mockReturnValueOnce(false);
     mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
@@ -180,6 +199,15 @@ describe("GET /api/cron/flags", () => {
     mocks.rpc.mockResolvedValueOnce({ data: [], error: null });
     expect(await (await call()).json()).toEqual({ flags: 0 });
     expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("hands the flags back for the next morning when the email fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers({ now: new Date("2026-09-30T12:30:00Z"), toFake: ["Date"] });
+    mocks.rpc.mockResolvedValueOnce({ data: [{ ...flag, id: 8 }], error: null });
+    mocks.sendEmail.mockRejectedValueOnce(new Error("Gmail is down"));
+    expect(await (await call()).json()).toEqual({ flags: 0 });
+    expect(mocks.rpc).toHaveBeenCalledWith("unclaim_flag_digest", { p_secret: "s3cret", p_ids: [8] });
   });
 
   it("refuses a request without the job secret", async () => {

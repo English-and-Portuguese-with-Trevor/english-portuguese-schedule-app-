@@ -440,6 +440,14 @@ export type Database = {
         Args: { p_endpoint: string; p_secret: string }
         Returns: Json
       }
+      unclaim_alert_emails: {
+        Args: { p_ids: number[]; p_secret: string }
+        Returns: undefined
+      }
+      unclaim_flag_digest: {
+        Args: { p_ids: number[]; p_secret: string }
+        Returns: undefined
+      }
       admin_class_progress: {
         Args: never
         Returns: {

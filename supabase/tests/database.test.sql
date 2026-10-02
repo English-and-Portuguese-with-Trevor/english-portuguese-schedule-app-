@@ -676,6 +676,39 @@ begin
   if v_claimed not like '%db-test-wait@example.com%' then raise exception 'FAIL: sign-ups are still pushed at once'; end if;
 end $$;
 
+-- A failed alert email hands the alerts back
+do $$
+declare
+  v_signup bigint;
+  v_flag bigint;
+  v_ok boolean;
+begin
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+  on conflict (key) do update set value = excluded.value;
+  insert into public.admin_alerts (kind, name, pushed_at) values ('signup', 'Unclaim signup', now()) returning id into v_signup;
+  insert into public.admin_alerts (kind, name, reason, pushed_at, emailed_at)
+  values ('flag', 'Unclaim flag', 'other', now(), now()) returning id into v_flag;
+
+  set local role authenticated;
+  v_ok := false; begin perform public.unclaim_alert_emails('wrong', array[v_signup]); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: unclaiming alert emails needs the job secret'; end if;
+  v_ok := false; begin perform public.unclaim_flag_digest('wrong', array[v_flag]); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: unclaiming the flag email needs the job secret'; end if;
+  reset role;
+
+  perform public.unclaim_alert_emails('test-secret', array[v_signup, v_flag]);
+  if (select pushed_at from public.admin_alerts where id = v_signup) is not null then
+    raise exception 'FAIL: a sign-up whose email failed is sent again';
+  end if;
+  if (select pushed_at from public.admin_alerts where id = v_flag) is null then
+    raise exception 'FAIL: a flag is not pushed again when the sign-up email fails';
+  end if;
+  perform public.unclaim_flag_digest('test-secret', array[v_signup, v_flag]);
+  if (select emailed_at from public.admin_alerts where id = v_flag) is not null then
+    raise exception 'FAIL: a flag whose morning email failed goes in the next one';
+  end if;
+end $$;
+
 -- Reported issues (lessons and activities sites)
 do $$
 declare

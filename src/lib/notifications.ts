@@ -525,20 +525,22 @@ export const emails = {
 async function attempt(label: string, work: () => Promise<void>) {
   try {
     await work();
+    return true;
   } catch (error) {
     // A Google hiccup must never undo or block a booking; log it, flag it
     // on the admin Overview, and move on.
     console.error(`[notifications] ${label} failed:`, error);
     const detail = error instanceof Error ? error.message : String(error);
     await recordGoogleStatus(false, `${label} failed: ${detail}`);
+    return false;
   }
 }
 
 async function send(email: Email | null) {
-  if (email) await attempt(`email "${email.subject}"`, () => sendEmail(email));
+  return email ? attempt(`email "${email.subject}"`, () => sendEmail(email)) : true;
 }
 
-/** Sends one notification; failures are logged and flagged, never thrown. */
+/** Sends one notification; failures are logged and flagged, never thrown. Resolves false if the email failed. */
 export const sendNotification = send;
 
 function configured() {
@@ -572,7 +574,7 @@ async function recordMeeting(supabase: Supabase, bookingId: string, eventId: str
     p_secret: secret,
   });
   if (!error) return;
-  // Until migration 20260928093000 is applied the database still has the
+  // Until migration 20260928091500 is applied the database still has the
   // older three-argument function; fall back to it. Remove once applied.
   const missing = error.code === "PGRST202" || /could not find the function/i.test(error.message ?? "");
   if (!missing) throw error;

@@ -27,8 +27,10 @@ export const VAPID_SUBJECT = "mailto:englishportuguesewithtrevor@gmail.com";
 
 /**
  * Emails and pushes every alert not sent yet. Claiming marks them sent
- * first, so two calls at once never send one twice. Never throws for one bad
- * device or a failed email (those are logged).
+ * first, so two calls at once never send one twice; if the email fails they
+ * are handed back (unclaim_alert_emails), so the next call, the daily job at
+ * the latest, sends them again. Never throws for one bad device or a failed
+ * email (those are logged).
  */
 export async function sendAlerts(secret: string) {
   const supabase = createServerJobClient();
@@ -38,11 +40,17 @@ export async function sendAlerts(secret: string) {
   if (!claimed.alerts.length) return { alerts: 0, emailed: false, sent: 0 };
 
   // Flagged classes and reported issues are pushed now but emailed in the morning (sendFlagDigest).
-  const email = isGoogleConfigured()
-    ? emails.adminAlerts(claimed.alerts.filter((a) => a.kind !== "flag" && a.kind !== "report"))
-    : null;
-  const [sent] = await Promise.all([pushAlerts(secret, claimed), sendNotification(email)]);
-  return { alerts: claimed.alerts.length, emailed: email !== null, sent };
+  const toEmail = claimed.alerts.filter((a) => a.kind !== "flag" && a.kind !== "report");
+  const email = isGoogleConfigured() ? emails.adminAlerts(toEmail) : null;
+  const [sent, ok] = await Promise.all([pushAlerts(secret, claimed), sendNotification(email)]);
+  if (!ok) await unclaim("unclaim_alert_emails", secret, toEmail);
+  return { alerts: claimed.alerts.length, emailed: email !== null && ok, sent };
+}
+
+/** Hands back alerts whose email failed, so they're sent again; logged if that fails too. */
+async function unclaim(fn: "unclaim_alert_emails" | "unclaim_flag_digest", secret: string, alerts: AlertRow[]) {
+  const { error } = await createServerJobClient().rpc(fn, { p_secret: secret, p_ids: alerts.map((a) => a.id) });
+  if (error) console.error(`[alerts] ${fn} failed; these alerts weren't emailed:`, alerts.map((a) => a.id), error.message);
 }
 
 async function pushAlerts(secret: string, claimed: Claimed) {
@@ -87,13 +95,19 @@ async function pushAlerts(secret: string, claimed: Claimed) {
   return sent;
 }
 
-/** Emails the classes flagged since the last morning email; claim_flag_digest marks them emailed. */
+/**
+ * Emails the classes flagged since the last morning email; claim_flag_digest
+ * marks them emailed, and a failed email hands them back for the next morning.
+ */
 export async function sendFlagDigest(secret: string) {
   if (!isGoogleConfigured()) return { flags: 0 };
   const { data, error } = await createServerJobClient().rpc("claim_flag_digest", { p_secret: secret });
   if (error) throw new Error(`claim_flag_digest: ${error.message}`);
   const flags = (data ?? []) as unknown as AlertRow[];
-  await sendNotification(emails.flagDigest(flags));
+  if (!(await sendNotification(emails.flagDigest(flags)))) {
+    await unclaim("unclaim_flag_digest", secret, flags);
+    return { flags: 0 };
+  }
   return { flags: flags.length };
 }
 

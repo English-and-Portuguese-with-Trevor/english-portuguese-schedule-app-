@@ -34,7 +34,7 @@ Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): t
 - Write English the American way (spelling and words: color, canceled, vacation, apartment), in the site's text and in English teaching content.
 
 ## DeepL translations
-DeepL translates only the lessons site's lesson text, through the shared `translate` edge function (flashcards-app repo). Every translation is saved keyed on the text alone, so nothing is paid for twice, each deploy may send at most 25,000 new characters, and Claude reviews new rows (see the lessons repo's CLAUDE.md). This site's own text is hand-written in `src/i18n/strings.ts`; don't wire DeepL into it without asking Trevor.
+DeepL translates only the lessons site's lesson text, through the shared `translate` edge function (flashcards-app repo). Every translation is saved keyed on the text alone, so nothing is paid for twice, each deploy may send at most 25,000 new characters, and Claude reviews new rows (see the lessons repo's CLAUDE.md). This site's own text is hand-written in `src/i18n/strings.ts`; don't wire DeepL into it without asking Trevor. DeepL is on hold (Trevor, 2026-09-30), so the daily job's monthly "DeepL credits reset" email is off (`DEEPL_ON_HOLD` in `src/lib/daily-job.ts`) until he says so.
 
 ## Portuguese and English stay separate
 Trevor's rule for every site (2026-09-28): everything students practice is
