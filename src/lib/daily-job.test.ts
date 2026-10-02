@@ -6,8 +6,10 @@ const mocks = vi.hoisted(() => ({
   sendNotification: vi.fn<(email: { to: string; subject: string } | null) => Promise<void>>(async () => {}),
   rpc: vi.fn(),
   sendAlerts: vi.fn(async () => ({ alerts: 0, emailed: false, sent: 0 })),
+  sendWelcomes: vi.fn(async () => 0),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
+vi.mock("@/lib/welcome", () => ({ sendWelcomes: mocks.sendWelcomes }));
 vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection }));
 vi.mock("@/lib/integration-status", () => ({
   recordGoogleStatus: mocks.recordGoogleStatus,
@@ -81,6 +83,7 @@ describe("runDailyJob", () => {
     mocks.checkGoogleConnection.mockResolvedValueOnce({ ok: false, message: "down" });
     await runDailyJob("s3cret");
     expect(mocks.sendAlerts).toHaveBeenCalledWith("s3cret");
+    expect(mocks.sendWelcomes).toHaveBeenCalledWith("s3cret");
   });
 
   it("while Google is down: records it and leaves reminders unclaimed for tomorrow", async () => {

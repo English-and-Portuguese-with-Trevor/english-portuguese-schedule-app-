@@ -480,6 +480,40 @@ export const emails = {
     };
   },
 
+  /** Sent once to every new account (claim_welcome_emails): what's free, the app, and booking a class. */
+  welcome(person: { full_name: string | null; email: string | null }): Email | null {
+    if (!person.email) return null;
+    const site = "https://englishandportuguesewithtrevor.com";
+    return {
+      to: person.email,
+      subject: "Welcome to English & Portuguese with Trevor",
+      ...renderEmail({
+        heading: `Welcome, ${firstName(person.full_name)}!`,
+        intro:
+          "I'm really glad you're here. Your account works on every part of the site, " +
+          "so here's what you can start with today, how to keep it on your phone, and how to book a class with me.",
+        details: [],
+        sections: [
+          {
+            title: "Free for you",
+            rows: [
+              ["Lessons", "The first five lessons in Portuguese and in English", `${site}/lessons/`],
+              ["Daily puzzles", "Three free games every day", `${site}/dailies/`],
+              ["Activities", "The first activities of every skill, and the games", `${site}/activities/`],
+              ["Flashcards", "Study the decks and make your own", `${site}/flashcards/`],
+            ],
+          },
+          {
+            title: "Get the app",
+            rows: [["On your phone", "Put the site on your home screen, like an app", `${site}/?install=1`]],
+          },
+        ],
+        button: { label: "Book a class", url: `${SITE_URL}/dashboard` },
+        footerNote: "Any questions, just reply to this email. See you soon! Trevor",
+      }),
+    };
+  },
+
   /** New sign-ups and subscribers (admin_alerts), one email per batch. Flags wait for the morning email. */
   adminAlerts(alerts: AlertRow[]): Email | null {
     const to = adminEmail();

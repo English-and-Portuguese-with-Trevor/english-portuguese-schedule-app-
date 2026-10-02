@@ -367,32 +367,20 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   const admin = await checkAdmin(supabase);
   if (!admin.ok) return { error: admin.error };
 
-  const { data: updated, error } = await supabase
-    .from("bookings")
-    .update({ status: "CONFIRMED" })
-    .eq("id", bookingId)
-    .eq("status", "PENDING")
-    .select("id");
-
+  // Confirms the request and, for a reschedule, cancels the class it
+  // replaces, in one transaction (approve_booking).
+  const { data: outcome, error } = await supabase.rpc("approve_booking", { p_booking_id: bookingId });
   if (error) return { error: error.message };
 
-  if (updated.length > 0) {
+  if (outcome !== "not_pending") {
     const booking = await loadBooking(supabase, bookingId);
-    const original = booking?.original;
-    if (original?.cancelled) {
-      // The original lesson was canceled while this request waited, and its
-      // calendar event with it: approving books the new time as a fresh lesson.
-      after(() => afterApproval(supabase, booking!.lesson));
-    } else if (original) {
-      // Approving a reschedule replaces the original lesson. Its calendar
-      // event moves to the new time rather than being canceled.
-      const { error: cancelError } = await supabase
-        .from("bookings")
-        .update({ status: "CANCELLED", cancelled_at: new Date().toISOString(), cancellation_reason: "Rescheduled" })
-        .eq("id", original.id);
-      if (cancelError) return { error: cancelError.message };
+    if (outcome === "rescheduled" && booking?.original) {
+      // The original lesson's calendar event moves to the new time rather than being canceled.
+      const original = booking.original;
       after(() => afterRescheduleApproval(supabase, booking.lesson, original));
     } else if (booking) {
+      // A new booking, or a reschedule whose original was canceled while it
+      // waited (its calendar event with it): book the new time as a fresh lesson.
       after(() => afterApproval(supabase, booking.lesson));
     }
   }

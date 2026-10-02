@@ -42,7 +42,7 @@ The admin gets an email for every scheduling change: the ones students make
 (new lesson, approval needed, reschedule requested or withdrawn,
 cancellations) and a copy of the ones the admin makes ("You approved", "You
 booked", "You moved", "You declined", "You canceled"), plus new sign-ups and
-subscribers (see "Alerts" below).
+subscribers (see "Alerts" below). New students get a welcome email (see "Alerts" below).
 
 This needs four environment variables in Vercel (see `.env.example`). Without
 the three `GOOGLE_*` ones, bookings still work; nothing is sent.
@@ -126,7 +126,16 @@ emails every flag not emailed yet (`claim_flag_digest`), so the email arrives
 at 6:30 AM Mountain, summer or winter. No flags, no email.
 
 Each alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
-one email), through the same Gmail connection as the booking emails.
+one email), through the same Gmail connection as the booking emails. The push and the email are
+marked separately (`pushed_at`, `emailed_at`), so an email that failed is sent
+again (for up to 14 days) without pushing again
+(`20261003000000_alerts_welcome.sql`).
+
+Welcome email: every new account gets one branded welcome email (what's free,
+how to get the app, how to book a class), sent with the sign-up alert by
+`/api/alerts/push` or, if that call was missed, by the daily job.
+`claim_welcome_emails` marks `profiles.welcomed_at` first, so it goes out once;
+accounts made before it existed never get it.
 
 Push notifications: on the admin dashboard's Alerts tab
 (`englishandportuguesewithtrevor.com/admin/#/alerts`, landing repo), **Turn on

@@ -17,7 +17,10 @@ import { emails, sendNotification } from "@/lib/notifications";
 type PushSubscriptionRow = { endpoint: string; p256dh: string; auth: string };
 
 type Claimed = {
+  /** Alerts to push (every kind). */
   alerts: AlertRow[];
+  /** Sign-ups and subscribers to email (flags and reports wait for the morning email). */
+  emails: AlertRow[];
   subscriptions: PushSubscriptionRow[];
   vapid_public_key: string | null;
   vapid_private_key: string | null;
@@ -26,21 +29,21 @@ type Claimed = {
 export const VAPID_SUBJECT = "mailto:englishportuguesewithtrevor@gmail.com";
 
 /**
- * Emails and pushes every alert not sent yet. Claiming marks them sent
- * first, so two calls at once never send one twice; if the email fails they
- * are handed back (unclaim_alert_emails), so the next call, the daily job at
- * the latest, sends them again. Never throws for one bad device or a failed
- * email (those are logged).
+ * Emails and pushes every alert not sent yet. Claiming marks them first
+ * (pushed_at for the push, emailed_at for the email), so two calls at once
+ * never send one twice; if the email fails its alerts are handed back
+ * (unclaim_alert_emails) and the next call, the daily job at the latest,
+ * emails them again without pushing again. Never throws for one bad device
+ * or a failed email (those are logged).
  */
 export async function sendAlerts(secret: string) {
   const supabase = createServerJobClient();
   const { data, error } = await supabase.rpc("claim_alert_pushes", { p_secret: secret });
   if (error) throw new Error(`claim_alert_pushes: ${error.message}`);
   const claimed = data as unknown as Claimed;
-  if (!claimed.alerts.length) return { alerts: 0, emailed: false, sent: 0 };
+  const toEmail = claimed.emails;
+  if (!claimed.alerts.length && !toEmail.length) return { alerts: 0, emailed: false, sent: 0 };
 
-  // Flagged classes and reported issues are pushed now but emailed in the morning (sendFlagDigest).
-  const toEmail = claimed.alerts.filter((a) => a.kind !== "flag" && a.kind !== "report");
   const email = isGoogleConfigured() ? emails.adminAlerts(toEmail) : null;
   const [sent, ok] = await Promise.all([pushAlerts(secret, claimed), sendNotification(email)]);
   if (!ok) await unclaim("unclaim_alert_emails", secret, toEmail);
@@ -54,7 +57,7 @@ async function unclaim(fn: "unclaim_alert_emails" | "unclaim_flag_digest", secre
 }
 
 async function pushAlerts(secret: string, claimed: Claimed) {
-  if (!claimed.subscriptions.length) return 0;
+  if (!claimed.alerts.length || !claimed.subscriptions.length) return 0;
   if (!claimed.vapid_public_key || !claimed.vapid_private_key) {
     console.error("[alerts] no push keys yet; turn push on from the admin dashboard (landing site, /admin/#/alerts)");
     return 0;

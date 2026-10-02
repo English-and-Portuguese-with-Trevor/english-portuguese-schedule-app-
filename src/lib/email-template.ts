@@ -14,8 +14,8 @@ export interface EmailContent {
   button?: { label: string; url: string };
   /** The student's answers to the booking questions. */
   questions?: [question: string, answer: string][];
-  /** Titled lists below the details, e.g. the day's lessons in an agenda. */
-  sections?: { title: string; rows: [label: string, value: string][] }[];
+  /** Titled lists below the details, e.g. the day's lessons in an agenda; a row with a url links its value. */
+  sections?: { title: string; rows: [label: string, value: string, url?: string][] }[];
   footerNote?: string;
 }
 
@@ -70,10 +70,10 @@ export function renderEmail(content: EmailContent): { html: string; text: string
       <h2 style="margin:24px 0 8px;font-size:15px;color:${INK}">${escape(section.title)}</h2>
       <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${section.rows
         .map(
-          ([label, value]) => `
+          ([label, value, url]) => `
         <tr>
           <td style="padding:4px 16px 4px 0;color:${MUTED};font-size:14px;vertical-align:top;white-space:nowrap">${escape(label)}</td>
-          <td style="padding:4px 0;color:${INK};font-size:14px">${escape(value)}</td>
+          <td style="padding:4px 0;color:${INK};font-size:14px">${url ? `<a href="${escape(url)}" style="color:${FOREST};font-weight:600">${escape(value)}</a>` : escape(value)}</td>
         </tr>`,
         )
         .join("")}
@@ -117,7 +117,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
     ...(content.questions?.length ? ["", "Questions", ...content.questions.flatMap(([q, a]) => [q, a])] : []),
     ...(content.sections ?? [])
       .filter((section) => section.rows.length > 0)
-      .flatMap((section) => ["", section.title, ...section.rows.map(([label, value]) => `${label}: ${value}`)]),
+      .flatMap((section) => ["", section.title, ...section.rows.map(([label, value, url]) => `${label}: ${value}${url ? ` ${url}` : ""}`)]),
     ...(content.button ? ["", `${content.button.label}: ${content.button.url}`] : []),
     "",
     TAGLINE_EN,

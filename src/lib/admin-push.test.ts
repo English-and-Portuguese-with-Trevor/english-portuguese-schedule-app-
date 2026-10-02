@@ -31,8 +31,9 @@ const devices = [
   { endpoint: "https://push.example/b", p256dh: "k2", auth: "a2" },
 ];
 
-function claimed(alerts: AlertRow[], subscriptions = devices) {
-  return { alerts, subscriptions, vapid_public_key: "pub", vapid_private_key: "priv" };
+/** By default the sign-ups and subscribers among the pushed alerts are the ones to email too. */
+function claimed(alerts: AlertRow[], subscriptions = devices, emails = alerts.filter((a) => a.kind !== "flag" && a.kind !== "report")) {
+  return { alerts, emails, subscriptions, vapid_public_key: "pub", vapid_private_key: "priv" };
 }
 
 beforeEach(() => {
@@ -139,6 +140,19 @@ describe("sendAlerts", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("unclaim_alert_emails", { p_secret: "s3cret", p_ids: [1] });
   });
 
+  it("retries a failed email without pushing it again", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: claimed([], devices, [signup]), error: null });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 0, emailed: true, sent: 0 });
+    expect(mocks.sendEmail).toHaveBeenCalledOnce();
+    expect(mocks.sendNotification).not.toHaveBeenCalled();
+  });
+
+  it("pushes without emailing an alert whose email already went", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: claimed([signup], devices, []), error: null });
+    expect(await sendAlerts("s3cret")).toEqual({ alerts: 1, emailed: false, sent: 2 });
+    expect(mocks.sendEmail).not.toHaveBeenCalled();
+  });
+
   it("keeps the claim when the email went out", async () => {
     mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
     await sendAlerts("s3cret");
@@ -164,13 +178,15 @@ describe("POST /api/alerts/push", () => {
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
-  it("sends with the right secret", async () => {
+  it("sends with the right secret, and welcomes new accounts", async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [], error: null }); // claim_welcome_emails
     mocks.rpc.mockResolvedValueOnce({ data: claimed([signup]), error: null });
     const res = await POST(
       new Request("http://x/api/alerts/push", { method: "POST", headers: { authorization: "Bearer s3cret" } }),
     );
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ alerts: 1, emailed: true, sent: 2 });
+    expect(await res.json()).toEqual({ alerts: 1, emailed: true, sent: 2, welcomed: 0 });
+    expect(mocks.rpc).toHaveBeenCalledWith("claim_welcome_emails", { p_secret: "s3cret" });
   });
 });
 

@@ -352,6 +352,7 @@ export type Database = {
           theme: string | null
           timezone: string
           translation_language: string | null
+          welcomed_at: string | null
         }
         Insert: {
           class_package?: number | null
@@ -369,6 +370,7 @@ export type Database = {
           theme?: string | null
           timezone?: string
           translation_language?: string | null
+          welcomed_at?: string | null
         }
         Update: {
           class_package?: number | null
@@ -386,6 +388,7 @@ export type Database = {
           theme?: string | null
           timezone?: string
           translation_language?: string | null
+          welcomed_at?: string | null
         }
         Relationships: []
       }
@@ -439,6 +442,18 @@ export type Database = {
       claim_flag_digest: {
         Args: { p_secret: string }
         Returns: Json
+      }
+      claim_welcome_emails: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      unclaim_welcome_emails: {
+        Args: { p_ids: string[]; p_secret: string }
+        Returns: undefined
+      }
+      approve_booking: {
+        Args: { p_booking_id: string }
+        Returns: string
       }
       delete_push_subscription: {
         Args: { p_endpoint: string }
