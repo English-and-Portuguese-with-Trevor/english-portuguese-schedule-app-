@@ -8,7 +8,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { GoogleIcon } from "@/components/google-icon";
 import { translator } from "@/i18n/translate";
@@ -60,10 +59,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <main lang={lang} className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("Welcome")}</CardTitle>
+          <h1 className="text-lg font-semibold leading-none tracking-tight">{t("Welcome")}</h1>
           <CardDescription>
             {t("Log in with your Google account or your email and password.")}
           </CardDescription>
@@ -80,9 +79,9 @@ export default function LoginPage() {
             </span>
             {pending ? t("Redirecting...") : t("Log in with Google")}
           </Button>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }

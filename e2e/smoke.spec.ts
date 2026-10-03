@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 // Uncaught errors on the page, except network failures reaching Supabase
@@ -12,6 +13,17 @@ function pageErrors(page: Page) {
     errors.push(error.message);
   });
   return errors;
+}
+
+// Accessibility (axe), light and dark: no serious or critical problems.
+async function expectAccessible(page: Page) {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate((t) => (document.documentElement.dataset.theme = t), theme);
+    const { violations } = await new AxeBuilder({ page }).analyze();
+    const serious = violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    expect(serious.map((v) => `${theme}: ${v.id} ${v.nodes.map((n) => n.target).join(", ")}`)).toEqual([]);
+  }
 }
 
 // In the browser, not Playwright's request client: Cloudflare turns away
@@ -29,6 +41,7 @@ test("the login page loads", async ({ page }) => {
   expect(response?.status()).toBe(200);
   await expect(page.getByRole("button", { name: /google/i })).toBeVisible();
   expect(errors).toEqual([]);
+  await expectAccessible(page);
 });
 
 test("the privacy page loads with the brand", async ({ page }) => {
@@ -37,4 +50,5 @@ test("the privacy page loads with the brand", async ({ page }) => {
   expect(response?.status()).toBe(200);
   await expect(page.getByText("Portuguese with Trevor").first()).toBeVisible();
   expect(errors).toEqual([]);
+  await expectAccessible(page);
 });

@@ -85,7 +85,7 @@ export function CancelBookingDialog({
           <p className="text-sm text-muted-foreground">{t("The time will open up for other students.")}</p>
         )}
         {error && (
-          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {t(error)}
           </p>
         )}

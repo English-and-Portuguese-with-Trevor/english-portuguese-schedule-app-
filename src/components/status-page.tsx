@@ -9,7 +9,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { translator } from "@/i18n/translate";
 import { readPrefs, siteLanguage, type SiteLanguage } from "@/lib/prefs";
@@ -38,10 +37,10 @@ export function StatusPage({
   const t = translator(lang);
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-6">
+    <main lang={lang} className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t(title)}</CardTitle>
+          <h1 className="text-lg font-semibold leading-none tracking-tight">{t(title)}</h1>
           <CardDescription>{t(message)}</CardDescription>
         </CardHeader>
         <CardContent>
@@ -54,6 +53,6 @@ export function StatusPage({
           )}
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
