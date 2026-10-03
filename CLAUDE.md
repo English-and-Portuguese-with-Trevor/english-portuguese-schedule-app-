@@ -89,7 +89,7 @@ The other sites share `englishandportuguesewithtrevor.com` (`/lessons/`, `/flash
 Every site's header shows the brand on two lines, "English & Portuguese" over
 "with Trevor" (a `<br />` before "with Trevor"; the ampersand in gold italic),
 linking to the home page, with the "Hi, name" menu at the right. Trevor chose
-this (2026-09-29); keep it on every page of every site.
+this (2026-09-29); keep it on every page of every site. A three-line menu icon sits before the name on the button (Trevor, 2026-10-03: students didn't see it was a menu).
 
 ## Keep it simple
 - Make the smallest change that does the job. No new dependency, helper, abstraction, option or setting unless this task needs it now; use what the browser, Node and the existing code already provide first.
