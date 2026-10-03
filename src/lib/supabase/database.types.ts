@@ -249,6 +249,35 @@ export type Database = {
           },
         ]
       }
+      class_notes: {
+        Row: {
+          booking_id: string
+          notes: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          booking_id: string
+          notes: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          booking_id?: string
+          notes?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_notes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       combos: {
         Row: {
           deck_ids: string[]
