@@ -2,6 +2,7 @@ import { differenceInMinutes } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
 import { alertTitle, flagDetails, type AlertRow } from "@/lib/alerts";
+import { buildDisplayNames } from "@/lib/display-names";
 import { renderEmail, type EmailContent } from "@/lib/email-template";
 import {
   createLessonEvent,
@@ -133,6 +134,24 @@ const meet = (meetLink: string | null) =>
   meetLink ? { label: "Google Meet: join the lesson", url: meetLink } : undefined;
 
 /** One row of the admin's morning agenda (from the admin_agenda database function). */
+/** What weekly_summary returns: the last 7 days, the classes in the next 7, and who has gone quiet. */
+export interface WeeklySummary {
+  people: { id: string; full_name: string | null; email: string | null; created_at: string }[];
+  new_signups: string[];
+  new_subscribers: string[];
+  active_students: number;
+  lessons_finished: number;
+  puzzles_played: number;
+  activities_finished: number;
+  cards_studied: number;
+  classes_held: number;
+  classes_canceled: number;
+  late_cancellations: number;
+  upcoming: { start: string; student_id: string; language: string | null }[];
+  /** last_active null: never did anything. */
+  inactive: { id: string; last_active: string | null }[];
+}
+
 export interface AgendaItem {
   status: string;
   start: string;
@@ -257,6 +276,58 @@ export const emails = {
           { title: "Waiting for your approval", rows: waiting.map((i) => agendaRow(i, adminZone)) },
         ],
         button: { label: "Open bookings", url: `${SITE_URL}/admin/bookings` },
+      }),
+    };
+  },
+
+  /** Monday mornings (daily job): the week in numbers, the classes ahead, and students gone quiet. */
+  weeklySummary(summary: WeeklySummary, adminZone: string): Email | null {
+    const to = adminEmail();
+    if (!to) return null;
+    const names = buildDisplayNames(summary.people);
+    const name = (id: string) => names[id] ?? "Unknown";
+    const day = (iso: string) => formatInTimeZone(new Date(iso), adminZone, "MMM d");
+    const joined = new Map(summary.people.map((p) => [p.id, p.created_at]));
+    const count = (n: number) => String(n);
+    const canceled =
+      summary.classes_canceled + (summary.late_cancellations ? ` (${summary.late_cancellations} late)` : "");
+    const ahead = summary.upcoming.length;
+    return {
+      to,
+      subject: `Your week: ${summary.active_students} active, ${summary.new_signups.length} new, ${ahead} class${ahead === 1 ? "" : "es"} ahead`,
+      ...renderEmail({
+        heading: "Your week",
+        intro: `The last 7 days, up to ${formatInTimeZone(new Date(), adminZone, "EEEE, MMMM d")}. Times are in ${formatInTimeZone(new Date(), adminZone, "zzzz")}.`,
+        details: [
+          ["New sign-ups", count(summary.new_signups.length)],
+          ["New subscribers", count(summary.new_subscribers.length)],
+          ["Active students", count(summary.active_students)],
+          ["Lessons finished", count(summary.lessons_finished)],
+          ["Puzzles played", count(summary.puzzles_played)],
+          ["Activities finished", count(summary.activities_finished)],
+          ["Flashcards studied", count(summary.cards_studied)],
+          ["Classes held", count(summary.classes_held)],
+          ["Classes canceled", canceled],
+        ],
+        sections: [
+          {
+            title: "New sign-ups",
+            rows: summary.new_signups.map((id) => [name(id), `joined ${day(joined.get(id)!)}`]),
+          },
+          { title: "New subscribers", rows: summary.new_subscribers.map((id) => [name(id), "subscribed"]) },
+          {
+            title: "Classes this week",
+            rows: summary.upcoming.map((c) => [
+              shortTime(c.start, adminZone),
+              [name(c.student_id), c.language ? (LANGUAGE_LABELS[c.language] ?? c.language) : null].filter(Boolean).join(" · "),
+            ]),
+          },
+          {
+            title: "Quiet for 14 days or more",
+            rows: summary.inactive.map((s) => [name(s.id), s.last_active ? `last active ${day(s.last_active)}` : "never active"]),
+          },
+        ],
+        button: { label: "Open the admin dashboard", url: "https://englishandportuguesewithtrevor.com/admin/" },
       }),
     };
   },

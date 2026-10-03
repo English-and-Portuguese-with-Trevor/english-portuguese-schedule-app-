@@ -2,7 +2,7 @@ import { sendAlerts } from "@/lib/admin-push";
 import { sendWelcomes } from "@/lib/welcome";
 import { checkGoogleConnection } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
-import { emails, sendNotification } from "@/lib/notifications";
+import { emails, sendNotification, type WeeklySummary } from "@/lib/notifications";
 import { formatInTimeZone } from "date-fns-tz";
 
 /** The day of the month the DeepL reminder goes out (the allowance resets about a week later). */
@@ -13,7 +13,7 @@ export const DEEPL_ON_HOLD = true;
 /**
  * Runs once a day (see vercel.json): checks the Google connection, sends
  * each student one reminder for lessons in the next 36 hours, and sends the
- * admin the day's agenda. It also sends any sign-up or subscriber alert, and
+ * admin the day's agenda, and on Mondays the weekly summary. It also sends any sign-up or subscriber alert, and
  * any welcome email, the database's own call to /api/alerts/push missed. The database functions it
  * calls are guarded by the same CRON_SECRET the request was authorized with.
  */
@@ -24,7 +24,7 @@ export async function runDailyJob(secret: string) {
   const google = await checkGoogleConnection();
   await recordGoogleStatus(google.ok, google.ok ? "Daily check passed." : google.message);
   // Leave reminders unclaimed while Google is down, so tomorrow's run can still send them.
-  if (!google.ok) return { google: google.message, reminders: 0, agenda: false, deeplReminder: false };
+  if (!google.ok) return { google: google.message, reminders: 0, agenda: false, deeplReminder: false, weekly: false };
 
   const supabase = createServerJobClient();
   const { data: adminZone } = await supabase.rpc("admin_timezone");
@@ -68,5 +68,13 @@ export async function runDailyJob(secret: string) {
   );
   await sendNotification(agendaEmail);
 
-  return { google: "ok", reminders: due?.length ?? 0, agenda: agendaEmail !== null, deeplReminder };
+  // Mondays (ISO day 1) in the admin's zone: 7 AM Mountain in summer, 6 AM in winter.
+  const weekly = formatInTimeZone(new Date(), zone, "i") === "1";
+  if (weekly) {
+    const { data: summary, error: summaryError } = await supabase.rpc("weekly_summary", { p_secret: secret });
+    if (summaryError) throw new Error(`weekly_summary: ${summaryError.message}`);
+    await sendNotification(emails.weeklySummary(summary as unknown as WeeklySummary, zone));
+  }
+
+  return { google: "ok", reminders: due?.length ?? 0, agenda: agendaEmail !== null, deeplReminder, weekly };
 }
