@@ -2,6 +2,7 @@
 
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { adminBookStudent } from "@/lib/actions/bookings";
 import {
@@ -14,6 +15,15 @@ import {
 } from "@/components/admin/booking-parts";
 import { LateCancellations, type LateCancellationRow } from "@/components/admin/late-cancellations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+/** Who made the class: students' own bookings, Trevor's (override), or both (Trevor, 2026-10-03: his regulars' series buried the rest). */
+const WHO_BOOKED = [
+  { value: "all", label: "All" },
+  { value: "students", label: "Booked by students" },
+  { value: "mine", label: "Booked by me" },
+] as const;
+type WhoBooked = (typeof WHO_BOOKED)[number]["value"];
 
 export function BookingsManager({
   initialBookings,
@@ -45,8 +55,11 @@ export function BookingsManager({
     });
   }
 
+  const [who, setWho] = useState<WhoBooked>("all");
   const pending = bookings.filter((b) => b.status === "PENDING");
-  const confirmed = bookings.filter((b) => b.status === "CONFIRMED");
+  const confirmed = bookings.filter(
+    (b) => b.status === "CONFIRMED" && (who === "all" || (who === "mine") === b.is_admin_override),
+  );
   const startById = new Map(
     bookings.filter((b) => b.status !== "CANCELLED").map((b) => [b.id, b.session_slots?.start_time ?? null]),
   );
@@ -95,8 +108,27 @@ export function BookingsManager({
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Confirmed upcoming ({confirmed.length})</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">Confirmed upcoming ({confirmed.length})</h2>
+          <div role="group" aria-label="Who booked" className="inline-flex rounded-md border p-0.5">
+            {WHO_BOOKED.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={who === option.value}
+                onClick={() => setWho(option.value)}
+                className={cn(
+                  "rounded px-2.5 py-1 text-sm text-muted-foreground",
+                  who === option.value && "bg-accent text-accent-foreground",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex flex-col gap-2">
+          {confirmed.length === 0 && <p className="text-sm text-muted-foreground">None.</p>}
           {confirmed.map((b) => (
             <BookingItem
               key={b.id}
