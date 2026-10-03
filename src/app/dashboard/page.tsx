@@ -1,6 +1,7 @@
 import { addDays, format, subDays } from "date-fns";
 
 import { BookingBoard } from "@/components/booking-board";
+import { ClassNotes } from "@/components/class-notes";
 import { ClassProgressCard } from "@/components/class-progress-card";
 import { getDisplayNames } from "@/lib/display-names";
 import { learningToLessonLanguage } from "@/lib/prefs";
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
     { data: progressRows },
     { data: recentClasses },
     { data: daysOff },
+    { data: noteRows },
   ] = await Promise.all([
     supabase.from("availability_rules").select("*").eq("is_active", true),
     supabase
@@ -87,7 +89,19 @@ export default async function DashboardPage() {
       .from("availability_blocks")
       .select("starts_on, ends_on")
       .gte("ends_on", format(subDays(now, 1), "yyyy-MM-dd")),
+    // Trevor's notes on the student's classes (class_notes).
+    isAdmin
+      ? { data: [] }
+      : supabase
+          .from("class_notes")
+          .select("booking_id, notes, bookings!inner(student_id, session_slots!inner(start_time))")
+          .eq("bookings.student_id", profile!.id)
+          .order("updated_at", { ascending: false })
+          .limit(20),
   ]);
+  const notes = (noteRows ?? [])
+    .map((n) => ({ bookingId: n.booking_id, start: n.bookings.session_slots.start_time, notes: n.notes }))
+    .sort((a, b) => b.start.localeCompare(a.start));
   const progress = ((progressRows ?? []) as ClassProgress[])[0] ?? null;
 
   // Only admins see who booked a slot; students can't read other students'
@@ -137,6 +151,7 @@ export default async function DashboardPage() {
           lessonAccess={profile!.lesson_access as LessonAccess}
         />
       )}
+      <ClassNotes notes={notes} />
       <BookingBoard
         role={profile!.role as Role}
         candidates={candidates.map((c) => ({
