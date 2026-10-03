@@ -106,12 +106,12 @@ export default async function DashboardPage() {
 
   // Only admins see who booked a slot; students can't read other students'
   // bookings at all.
-  const studentBySlot = new Map<string, string>();
+  const studentBySlot = new Map<string, { name: string; note: string | null }>();
   if (isAdmin && slots?.length) {
     const [{ data: activeBookings }, displayNames] = await Promise.all([
       supabase
         .from("bookings")
-        .select("session_slot_id, student_id")
+        .select("session_slot_id, student_id, notes")
         .in(
           "session_slot_id",
           slots.map((s) => s.id),
@@ -120,7 +120,7 @@ export default async function DashboardPage() {
       getDisplayNames(supabase),
     ]);
     for (const b of activeBookings ?? [])
-      studentBySlot.set(b.session_slot_id, displayNames[b.student_id]);
+      studentBySlot.set(b.session_slot_id, { name: displayNames[b.student_id], note: b.notes });
   }
 
   // All candidate start times within active windows, including ones that
@@ -140,7 +140,9 @@ export default async function DashboardPage() {
   const busySlots = (slots ?? []).map((s) => ({
     start: s.start_time,
     end: s.end_time,
-    studentName: studentBySlot.get(s.id),
+    studentName: studentBySlot.get(s.id)?.name,
+    // e.g. "Hold: Tim" on a time held for a student with no account yet.
+    note: studentBySlot.get(s.id)?.note ?? undefined,
   }));
 
   return (

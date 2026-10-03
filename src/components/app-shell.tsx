@@ -5,6 +5,7 @@ import {
   ChartLine,
   Check,
   BookOpen,
+  CalendarCheck,
   CalendarClock,
   CalendarDays,
   CalendarPlus,
@@ -52,6 +53,8 @@ import type { Role } from "@/lib/types";
 export const LANDING_URL = "https://englishandportuguesewithtrevor.com";
 
 const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
+  // The booking board (the app's start page): each day's classes at a glance (Trevor, 2026-10-03).
+  { href: "/dashboard", label: "Today", icon: CalendarCheck },
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/admin/availability", label: "Availability", icon: CalendarClock },
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
@@ -314,7 +317,7 @@ export function AppShell({
         {isAdmin && (
           <nav
             aria-label="Admin (phone)"
-            className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
           >
             {ADMIN_LINKS.map(({ href, label, icon: Icon }) => (
               <Link

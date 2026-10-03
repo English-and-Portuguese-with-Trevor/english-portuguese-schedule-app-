@@ -45,6 +45,7 @@ describe("AppShell", () => {
     for (const nav of navs) {
       const links = within(nav).getAllByRole("link");
       expect(links.map((l) => l.textContent)).toEqual([
+        "Today",
         "Overview",
         "Availability",
         "Bookings",

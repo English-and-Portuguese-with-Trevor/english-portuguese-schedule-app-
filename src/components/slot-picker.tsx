@@ -31,6 +31,8 @@ export interface BusySlotDTO {
   start: string;
   end: string;
   studentName?: string;
+  /** The booking's note, shown to the admin after the name (e.g. "Hold: Tim"). */
+  note?: string;
 }
 
 const DAYS_SHOWN = 14;
@@ -48,6 +50,7 @@ interface Busy {
   start: Date;
   end: Date;
   studentName?: string;
+  note?: string;
 }
 
 interface DayInfo {
@@ -94,6 +97,7 @@ export function SlotPicker({
       start: new Date(b.start),
       end: new Date(b.end),
       studentName: b.studentName,
+      note: b.note,
     }));
 
     const map = new Map<string, DayInfo>();
@@ -208,6 +212,7 @@ export function SlotPicker({
               >
                 {formatTimeRange(b.start, b.end, lang)} · {t("Booked")}
                 {isAdmin && b.studentName ? ` (${b.studentName})` : ""}
+                {isAdmin && b.note && <span className="text-muted-foreground"> · {b.note}</span>}
               </li>
             ))}
           </ul>
