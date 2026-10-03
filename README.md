@@ -173,7 +173,7 @@ marked separately (`pushed_at`, `emailed_at`), so an email that failed is sent
 again (for up to 14 days) without pushing again
 (`20261003000000_alerts_welcome.sql`).
 
-Welcome email: every new account gets one branded welcome email (what's free,
+Welcome email: every new account gets one branded welcome email (what's free, the placement test,
 how to get the app, how to book a class), sent with the sign-up alert by
 `/api/alerts/push` or, if that call was missed, by the daily job.
 `claim_welcome_emails` marks `profiles.welcomed_at` first, so it goes out once;
