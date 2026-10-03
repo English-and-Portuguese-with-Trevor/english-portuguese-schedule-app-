@@ -2,6 +2,7 @@
 
 import {
   Bell,
+  ChartLine,
   Check,
   BookOpen,
   CalendarClock,
@@ -59,7 +60,8 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
 ];
 
 /**
- * The account menu is the same on every site: Home, Daily puzzles (gold
+ * The account menu is the same on every site: Home, My progress (the landing
+ * site's /progress/, another origin), Daily puzzles (gold
  * lettering, so it stands out), a Learn sub-menu with the learning sites, Schedule a class,
  * App start, Settings, Log out.
  */
@@ -118,6 +120,12 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
           <a href={LANDING_URL}>
             <Home />
             {t("Home")}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={`${LANDING_URL}/progress/`}>
+            <ChartLine />
+            {t("My progress")}
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem
