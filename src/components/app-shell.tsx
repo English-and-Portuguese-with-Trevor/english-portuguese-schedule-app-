@@ -18,6 +18,7 @@ import {
   Layers,
   LayoutDashboard,
   LogOut,
+  Menu,
   Settings as SettingsIcon,
   Smartphone,
   Users,
@@ -115,8 +116,9 @@ function AccountMenu({ fullName, email }: { fullName: string | null; email: stri
   }, []);
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="max-w-44 shrink-0 truncate rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
-        {first ? t("Hi, {name}", { name: first }) : t("Account")}
+      <DropdownMenuTrigger className="inline-flex max-w-44 shrink-0 items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white outline-none ring-offset-2 hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring dark:text-black">
+        <Menu className="size-[18px] shrink-0" aria-hidden />
+        <span className="truncate">{first ? t("Hi, {name}", { name: first }) : t("Account")}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild>
