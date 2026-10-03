@@ -46,6 +46,19 @@ export default async function PolicyPage() {
       ],
     },
     {
+      title: t("Refunds for private classes"),
+      lines: [t("Private class packages aren't refunded. You use up a package by taking the classes you paid for.")],
+    },
+    {
+      title: t("Lesson subscriptions"),
+      lines: [
+        t(
+          "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.",
+        ),
+        t("Within 14 days of your first payment, email {email} for a full refund.", { email: CONTACT_EMAIL }),
+      ],
+    },
+    {
       title: t("Students under 18"),
       lines: [
         t(

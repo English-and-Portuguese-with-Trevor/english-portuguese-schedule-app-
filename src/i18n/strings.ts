@@ -288,6 +288,11 @@ export const STRINGS = {
     "Trevor may update these rules; the date at the top shows the latest version. Questions? Email {email}.": "Trevor puede actualizar estas reglas; la fecha de arriba muestra la última versión. ¿Preguntas? Escribe a {email}.",
     "Privacy Policy": "Política de privacidad",
     "By booking, you agree to the class policy.": "Al reservar, aceptas la política de clases.",
+    "Refunds for private classes": "Reembolsos de clases particulares",
+    "Private class packages aren't refunded. You use up a package by taking the classes you paid for.": "Los paquetes de clases particulares no se reembolsan. El paquete se usa tomando las clases que pagaste.",
+    "Lesson subscriptions": "Suscripciones a las lecciones",
+    "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Puedes cancelar la suscripción a las lecciones cuando quieras en Configuración. Sigue activa hasta el final del periodo que pagaste, y ese periodo no se reembolsa.",
+    "Within 14 days of your first payment, email {email} for a full refund.": "Dentro de los 14 días de tu primer pago, escribe a {email} para un reembolso completo.",
   },
   pt: {
     "English & Portuguese with Trevor, main website":
@@ -574,6 +579,11 @@ export const STRINGS = {
     "Trevor may update these rules; the date at the top shows the latest version. Questions? Email {email}.": "O Trevor pode atualizar estas regras; a data no topo mostra a versão mais recente. Dúvidas? Escreva para {email}.",
     "Privacy Policy": "Política de privacidade",
     "By booking, you agree to the class policy.": "Ao reservar, você concorda com a política das aulas.",
+    "Refunds for private classes": "Reembolsos das aulas particulares",
+    "Private class packages aren't refunded. You use up a package by taking the classes you paid for.": "Os pacotes de aulas particulares não são reembolsados. Você usa o pacote fazendo as aulas que pagou.",
+    "Lesson subscriptions": "Assinaturas das lições",
+    "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Você pode cancelar a assinatura das lições quando quiser em Configurações. Ela continua ativa até o fim do período que você pagou, e esse período não é reembolsado.",
+    "Within 14 days of your first payment, email {email} for a full refund.": "Até 14 dias depois do seu primeiro pagamento, escreva para {email} para um reembolso total.",
   },
   fr: {
     "English & Portuguese with Trevor, main website":
@@ -860,5 +870,10 @@ export const STRINGS = {
     "Trevor may update these rules; the date at the top shows the latest version. Questions? Email {email}.": "Trevor peut mettre ces règles à jour ; la date en haut indique la dernière version. Des questions ? Écrivez à {email}.",
     "Privacy Policy": "Politique de confidentialité",
     "By booking, you agree to the class policy.": "En réservant, vous acceptez les règles des cours.",
+    "Refunds for private classes": "Remboursements des cours particuliers",
+    "Private class packages aren't refunded. You use up a package by taking the classes you paid for.": "Les forfaits de cours particuliers ne sont pas remboursés. Vous utilisez le forfait en suivant les cours que vous avez payés.",
+    "Lesson subscriptions": "Abonnements aux leçons",
+    "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Vous pouvez annuler un abonnement aux leçons à tout moment dans Paramètres. Il reste actif jusqu'à la fin de la période payée, et cette période n'est pas remboursée.",
+    "Within 14 days of your first payment, email {email} for a full refund.": "Dans les 14 jours suivant votre premier paiement, écrivez à {email} pour un remboursement intégral.",
   },
 } as const;
