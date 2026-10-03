@@ -383,6 +383,9 @@ export type Database = {
           translation_language: string | null
           welcomed_at: string | null
           summary_month: string | null
+          article_delivery: string
+          summary_delivery: string
+          articles_emailed_on: string | null
         }
         Insert: {
           class_package?: number | null
@@ -402,6 +405,9 @@ export type Database = {
           translation_language?: string | null
           welcomed_at?: string | null
           summary_month?: string | null
+          article_delivery?: string
+          summary_delivery?: string
+          articles_emailed_on?: string | null
         }
         Update: {
           class_package?: number | null
@@ -421,6 +427,9 @@ export type Database = {
           translation_language?: string | null
           welcomed_at?: string | null
           summary_month?: string | null
+          article_delivery?: string
+          summary_delivery?: string
+          articles_emailed_on?: string | null
         }
         Relationships: []
       }
@@ -492,6 +501,14 @@ export type Database = {
         Returns: Json
       }
       unclaim_monthly_summaries: {
+        Args: { p_ids: string[]; p_secret: string }
+        Returns: undefined
+      }
+      claim_article_emails: {
+        Args: { p_day: string; p_secret: string }
+        Returns: Json
+      }
+      unclaim_article_emails: {
         Args: { p_ids: string[]; p_secret: string }
         Returns: undefined
       }
@@ -598,6 +615,7 @@ export type Database = {
       set_learning_language: { Args: { lang: string }; Returns: undefined }
       set_start_page: { Args: { page: string }; Returns: undefined }
       set_site_language: { Args: { lang: string }; Returns: undefined }
+      set_email_choices: { Args: { p_articles: string; p_summary: string }; Returns: undefined }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
       set_theme: { Args: { theme: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }

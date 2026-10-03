@@ -30,9 +30,12 @@ import {
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { tr } from "@/i18n/translate";
 import {
+  setEmailChoices,
   setLearningLanguage,
   setSiteLanguage,
   setTheme,
+  type ArticleDelivery,
+  type SummaryDelivery,
 } from "@/lib/preferences";
 import {
   readPrefs,
@@ -69,12 +72,17 @@ export function AccountSettings({
   role,
   lessonAccess,
   billing,
+  articleDelivery = "app",
+  summaryDelivery = "email",
 }: {
   name: string | null;
   email: string | null;
   role: Role;
   lessonAccess: LessonAccess;
   billing: BillingSummary | null;
+  /** The profile's email choices (Preferences > Emails); the database's defaults when not given. */
+  articleDelivery?: ArticleDelivery;
+  summaryDelivery?: SummaryDelivery;
 }) {
   const [billingError, setBillingError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
@@ -130,7 +138,7 @@ export function AccountSettings({
           {page === "preferences" ? t("Preferences") : t("Account")}
         </h1>
         {page === "preferences" ? (
-          <PreferencesCard />
+          <PreferencesCard articleDelivery={articleDelivery} summaryDelivery={summaryDelivery} />
         ) : (
           <Card>
             <CardHeader>
@@ -273,8 +281,16 @@ function InstallRow() {
   return null;
 }
 
-/** Dark mode, the language being learned and the site language; the same settings on every site. */
-function PreferencesCard() {
+/**
+ * Dark mode, the language being learned and the site language, then the
+ * Emails group (new articles, monthly summary); the same settings on every site.
+ */
+function PreferencesCard(props: {
+  articleDelivery: ArticleDelivery;
+  summaryDelivery: SummaryDelivery;
+}) {
+  const [articles, setArticles] = useState(props.articleDelivery);
+  const [summary, setSummary] = useState(props.summaryDelivery);
   // The cookie is only readable in the browser; the server renders the defaults.
   const [prefs, setPrefs] = useState<Prefs>({});
   const t = useT();
@@ -366,6 +382,44 @@ function PreferencesCard() {
               });
             }}
           />
+        </div>
+        <p className="pt-5 pb-1 text-sm font-semibold">{t("Emails")}</p>
+        <div className="flex items-center justify-between gap-4 py-3">
+          <label htmlFor="article-delivery" className="text-sm font-medium">
+            {t("New articles")}
+          </label>
+          <select
+            id="article-delivery"
+            value={articles}
+            onChange={(e) => {
+              const next = e.target.value as ArticleDelivery;
+              setArticles(next);
+              setEmailChoices(next, summary);
+            }}
+            className="h-11 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="email">{t("Email me")}</option>
+            <option value="app">{t("In the app")}</option>
+            <option value="off">{t("Off")}</option>
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3">
+          <label htmlFor="summary-delivery" className="text-sm font-medium">
+            {t("Monthly summary")}
+          </label>
+          <select
+            id="summary-delivery"
+            value={summary}
+            onChange={(e) => {
+              const next = e.target.value as SummaryDelivery;
+              setSummary(next);
+              setEmailChoices(articles, next);
+            }}
+            className="h-11 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="email">{t("Email me")}</option>
+            <option value="off">{t("Off")}</option>
+          </select>
         </div>
       </CardContent>
     </Card>

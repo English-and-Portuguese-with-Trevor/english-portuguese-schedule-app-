@@ -269,6 +269,30 @@ describe("Preferences", () => {
     );
   });
 
+  it("saves the email choices together, starting from the profile's", async () => {
+    render(
+      <AccountSettings
+        name="Ana"
+        email="ana@example.com"
+        role="student"
+        lessonAccess="none"
+        billing={null}
+        articleDelivery="app"
+        summaryDelivery="email"
+      />,
+    );
+    openPage("Preferences");
+    expect(screen.getByLabelText("New articles")).toHaveValue("app");
+    fireEvent.change(screen.getByLabelText("New articles"), { target: { value: "email" } });
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "email" }),
+    );
+    fireEvent.change(screen.getByLabelText("Monthly summary"), { target: { value: "off" } });
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "off" }),
+    );
+  });
+
   it("shows the settings in the site language", () => {
     render(
       <SiteLanguageProvider lang="fr">

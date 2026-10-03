@@ -13,6 +13,9 @@ import {
   sendEmail,
 } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
+import { siteLanguage, type SiteLanguage } from "@/lib/prefs";
+import { LOCALES } from "@/i18n/format";
+import { translator, type Translate } from "@/i18n/translate";
 import type { createClient } from "@/lib/supabase/server";
 
 const SITE_URL = "https://schedule.englishandportuguesewithtrevor.com";
@@ -158,6 +161,8 @@ export interface MonthlySummary {
   full_name: string | null;
   email: string | null;
   timezone: string | null;
+  /** 'en' | 'es' | 'pt' | 'fr'; null reads as English. */
+  site_language: string | null;
   learning: string;
   /** The first day of the month, 'YYYY-MM-DD'. */
   month: string;
@@ -172,8 +177,41 @@ export interface MonthlySummary {
   cards_studied: number;
 }
 
-/** The lessons site's lessons.json: every lesson in order, English ones marked. */
-export type LessonCatalog = { id: string; title: string; learning?: string }[];
+/** A student who chose article emails, from claim_article_emails. */
+export interface ArticleReader {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  site_language: string | null;
+  learning: string;
+}
+
+/** The lessons site's lessons.json: every lesson in order, English ones and articles marked. */
+export type LessonCatalog = { id: string; title: string; learning?: string; article?: boolean; releaseOn?: string }[];
+
+/** The language a student email is written in: their site language, English when unknown. */
+function emailLanguage(code: string | null) {
+  return siteLanguage({}, code ? [code] : []);
+}
+
+/** "Hi Ana!" in the email's language, or "Hi there!" without a name. */
+function greeting(fullName: string | null, t: Translate) {
+  const name = fullName?.trim().split(/\s+/)[0];
+  return name ? t("Hi {name}!", { name }) : t("Hi there!");
+}
+
+/** "Wednesday, October 7, 6:00 PM" in English; the language's own wording otherwise. */
+function studentDateTime(iso: string, timeZone: string, lang: SiteLanguage) {
+  if (lang === "en") return formatInTimeZone(new Date(iso), timeZone, "EEEE, MMMM d, h:mm a");
+  return new Intl.DateTimeFormat(LOCALES[lang], {
+    timeZone,
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
 
 /** The longest run of days in a row in a list of 'YYYY-MM-DD' days. */
 export function longestStreak(days: string[]) {
@@ -626,14 +664,19 @@ export const emails = {
   },
 
   /**
-   * On the 1st, to every student who did anything last month: their classes and
-   * their practice in the language they're learning. A line shows only when it
-   * has something in it.
+   * On the 1st, to every student who did anything last month and keeps the
+   * summary on: their classes and their practice in the language they're
+   * learning, written in their site language. A line shows only when it has
+   * something in it.
    */
   monthlySummary(person: MonthlySummary, catalog: LessonCatalog): Email | null {
     if (!person.email) return null;
+    const lang = emailLanguage(person.site_language);
+    const t = translator(lang);
     const site = "https://englishandportuguesewithtrevor.com";
-    const monthName = formatInTimeZone(new Date(`${person.month}T12:00:00Z`), "UTC", "MMMM");
+    const monthName = new Intl.DateTimeFormat(LOCALES[lang], { month: "long", timeZone: "UTC" }).format(
+      new Date(`${person.month}T12:00:00Z`),
+    );
     const zone = person.timezone || LESSON_TIMEZONE;
     const lessons = catalog.filter((l) => (person.learning === "English" ? l.learning === "English" : !l.learning));
     const title = (id: string) => lessons.find((l) => l.id === id)?.title;
@@ -641,35 +684,62 @@ export const emails = {
     const done = new Set(person.lessons_done);
     const next = lessons[lessons.findLastIndex((l) => done.has(l.id)) + 1];
     const left = person.class_package ? person.class_package - ((person.completed ?? 0) % person.class_package) : null;
+    const days = (n: number) => (n === 1 ? t("1 day") : t("{n} days", { n }));
 
     const classes: [string, string][] = [];
-    if (person.classes_taken) classes.push(["Classes taken this month", String(person.classes_taken)]);
-    if (left !== null) classes.push(["Left in your package", `${left} of ${person.class_package}`]);
-    if (person.next_class) classes.push(["Next class", formatInTimeZone(new Date(person.next_class), zone, "EEEE, MMMM d, h:mm a")]);
+    if (person.classes_taken) classes.push([t("Classes taken this month"), String(person.classes_taken)]);
+    if (left !== null) classes.push([t("Left in your package"), t("{left} of {total}", { left, total: person.class_package! })]);
+    if (person.next_class) classes.push([t("Next class"), studentDateTime(person.next_class, zone, lang)]);
 
     const practice: [string, string][] = [];
-    if (finished.length) practice.push(["Lessons finished", `${finished.length} (latest: ${title(finished.at(-1)!)})`]);
-    if (person.puzzle_days.length) {
-      const streak = longestStreak(person.puzzle_days);
-      practice.push(["Daily puzzles", `${person.puzzle_days.length} day${person.puzzle_days.length === 1 ? "" : "s"} · best streak: ${streak} day${streak === 1 ? "" : "s"}`]);
+    if (finished.length) {
+      practice.push([t("Lessons finished"), t("{count} (latest: {title})", { count: finished.length, title: title(finished.at(-1)!)! })]);
     }
-    if (person.activities_finished) practice.push(["Activities finished", String(person.activities_finished)]);
-    if (person.cards_studied) practice.push(["Flashcards studied", String(person.cards_studied)]);
+    if (person.puzzle_days.length) {
+      const streak = days(longestStreak(person.puzzle_days));
+      practice.push([t("Daily puzzles"), t("{days} · best streak: {streak}", { days: days(person.puzzle_days.length), streak })]);
+    }
+    if (person.activities_finished) practice.push([t("Activities finished"), String(person.activities_finished)]);
+    if (person.cards_studied) practice.push([t("Flashcards studied"), String(person.cards_studied)]);
 
     const sections = [];
-    if (classes.length) sections.push({ title: "Your classes with me", rows: classes });
-    if (practice.length) sections.push({ title: "Your practice", rows: practice });
-    if (next) sections.push({ title: "Up next", rows: [["Lesson", next.title, `${site}/lessons/#/${next.id}`]] as [string, string, string][] });
+    if (classes.length) sections.push({ title: t("Your classes with me"), rows: classes });
+    if (practice.length) sections.push({ title: t("Your practice"), rows: practice });
+    if (next) sections.push({ title: t("Up next"), rows: [[t("Lesson"), next.title, `${site}/lessons/#/${next.id}`]] as [string, string, string][] });
     return {
       to: person.email,
-      subject: "Your month at English & Portuguese with Trevor",
+      subject: t("Your month at English & Portuguese with Trevor"),
       ...renderEmail({
-        heading: `Hi ${firstName(person.full_name)}!`,
-        intro: `Here's what you did in ${monthName}. Nice work!`,
+        heading: greeting(person.full_name, t),
+        intro: t("Here's what you did in {month}. Nice work!", { month: monthName }),
         details: [],
         sections,
-        button: { label: "See all your progress", url: `${site}/progress/` },
-        footerNote: classes.length ? "Keep it up! See you in class. Trevor" : "Keep it up! Trevor",
+        button: { label: t("See all your progress"), url: `${site}/progress/` },
+        footerNote: `${classes.length ? t("Keep it up! See you in class. Trevor") : t("Keep it up! Trevor")} ${t("You can turn this email off in Settings > Preferences.")}`,
+      }),
+    };
+  },
+
+  /**
+   * On Mondays, to a student who chose article emails: the articles released
+   * today in the language they're learning (the caller picks them), written
+   * in their site language.
+   */
+  newArticles(person: ArticleReader, articles: LessonCatalog): Email | null {
+    if (!person.email || articles.length === 0) return null;
+    const t = translator(emailLanguage(person.site_language));
+    const link = (id: string) => `https://englishandportuguesewithtrevor.com/lessons/#/${id}`;
+    const one = articles.length === 1;
+    return {
+      to: person.email,
+      subject: one ? t("New article: {title}", { title: articles[0].title }) : t("New articles to read"),
+      ...renderEmail({
+        heading: greeting(person.full_name, t),
+        intro: one ? t("There's a new article for you today.") : t("There are new articles for you today."),
+        details: [],
+        sections: [{ title: t("Out today"), rows: articles.map((a): [string, string, string] => [t("Article"), a.title, link(a.id)]) }],
+        button: { label: t("Read it"), url: link(articles[0].id) },
+        footerNote: t("You get this email because you asked for it. You can change this in Settings > Preferences."),
       }),
     };
   },

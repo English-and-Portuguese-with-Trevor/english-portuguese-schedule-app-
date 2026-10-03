@@ -8,11 +8,13 @@ const mocks = vi.hoisted(() => ({
   sendAlerts: vi.fn(async () => ({ alerts: 0, emailed: false, sent: 0 })),
   sendWelcomes: vi.fn(async () => 0),
   sendMonthlySummaries: vi.fn(async () => 3),
+  sendArticleEmails: vi.fn(async () => 2),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
 vi.mock("@/lib/welcome", () => ({ sendWelcomes: mocks.sendWelcomes }));
 vi.mock("@/lib/monthly-summary", () => ({ sendMonthlySummaries: mocks.sendMonthlySummaries }));
-vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection }));
+vi.mock("@/lib/article-emails", () => ({ sendArticleEmails: mocks.sendArticleEmails }));
+vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection, LESSON_TIMEZONE: "America/Denver" }));
 vi.mock("@/lib/integration-status", () => ({
   recordGoogleStatus: mocks.recordGoogleStatus,
   createServerJobClient: () => ({ rpc: mocks.rpc }),
@@ -91,7 +93,8 @@ describe("runDailyJob", () => {
     expect(sent.map((e) => e?.to)).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(sent[0]?.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
     expect(mocks.rpc).not.toHaveBeenCalledWith("weekly_summary", expect.anything());
-    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false, weekly: false, monthly: 0 });
+    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false, weekly: false, articles: 0, monthly: 0 });
+    expect(mocks.sendArticleEmails).not.toHaveBeenCalled();
   });
 
   it("on the 1st in Denver also sends the students' monthly summaries", async () => {
@@ -116,6 +119,14 @@ describe("runDailyJob", () => {
     expect(weekly?.text).toContain("Tue, Oct 6, 2:00 PM: Ana P. · Portuguese");
     expect(weekly?.text).toContain("quiet: never active");
     expect(result.weekly).toBe(true);
+  });
+
+  it("on Mondays sends the article emails for that day in Denver", async () => {
+    // 1 AM UTC Tuesday is still Monday evening in Denver.
+    vi.setSystemTime(new Date("2026-10-06T01:00:00Z"));
+    const result = await runDailyJob("s3cret");
+    expect(mocks.sendArticleEmails).toHaveBeenCalledWith("s3cret", "2026-10-05");
+    expect(result.articles).toBe(2);
   });
 
   it("sends no DeepL reminder on the 20th while DeepL is on hold", async () => {

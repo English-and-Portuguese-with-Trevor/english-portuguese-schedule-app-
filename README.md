@@ -78,7 +78,11 @@ in summer, 6 AM in winter). It:
   done on any site, or a booking), lessons finished, puzzles played,
   activities finished, flashcards studied, classes held and canceled, the
   next 7 days' classes, and students quiet for 14 days or more. Trevor's own
-  practice isn't counted.
+  practice isn't counted;
+- on Mondays, when the lessons site releases an article that day, emails the
+  students who chose article emails (`src/lib/article-emails.ts`);
+- on the 1st, emails each student who did anything last month and keeps the
+  summary on their month (`src/lib/monthly-summary.ts`).
 
 It is guarded by a shared secret stored in two places that must match:
 `CRON_SECRET` in Vercel, and `private.app_settings` (key `cron_secret`) in
@@ -96,12 +100,20 @@ Kept short on purpose (Trevor: no email overload). Before adding one, see
 Gmail) unless noted.
 
 **Students** get only what their own actions (or Trevor's on their classes)
-cause, plus one welcome and a monthly summary:
+cause, plus one welcome, a monthly summary and, for those who ask, new
+articles. The welcome and the class emails are in English; the monthly
+summary and the article email are written in the student's site language
+(`profiles.site_language`, English when unset), while what they're about
+follows the language they're learning. Settings > Preferences > Emails on
+every site sets the two choices (`set_email_choices`: `article_delivery`
+email / app / off, default app; `summary_delivery` email / off, default
+email):
 
 | Email | When |
 | --- | --- |
 | Welcome | Once, when the account is made |
-| Your month | The 1st, with the daily job, to every student who did anything the month before: their classes and practice in the language they're learning (`claim_monthly_summaries`) |
+| Your month | The 1st, with the daily job, to every student who did anything the month before and keeps the summary on (`summary_delivery = 'email'`): their classes and practice in the language they're learning (`claim_monthly_summaries`) |
+| New article | Mondays, with the daily job, when the lessons site releases an article that day (Denver; `article`/`releaseOn` in `lessons.json`), to students who chose article emails (`article_delivery = 'email'`), only articles in the language they're learning; once a day (`claim_article_emails`, `src/lib/article-emails.ts`) |
 | Lesson confirmed | They book 72+ hours ahead, Trevor approves their request, or Trevor books them |
 | Lessons booked (one email for a series) | Trevor books a series for them |
 | Lesson request received | They book less than 72 hours ahead (waits for approval) |

@@ -16,7 +16,7 @@ import {
 // The profile wins; a choice made before it had one is saved to it.
 
 function save(
-  fn: "set_theme" | "set_learning_language" | "set_site_language" | "set_start_page",
+  fn: "set_theme" | "set_learning_language" | "set_site_language" | "set_start_page" | "set_email_choices",
   args: Record<string, string>,
 ) {
   return Promise.resolve()
@@ -84,4 +84,12 @@ export function setStartPage(page: StartPage) {
 export function setLearningLanguage(language: LearningLanguage) {
   writePrefs({ learning: language });
   save("set_learning_language", { lang: language });
+}
+
+export type ArticleDelivery = "email" | "app" | "off";
+export type SummaryDelivery = "email" | "off";
+
+/** How the student hears about new articles and whether the monthly summary is emailed (profile only). */
+export function setEmailChoices(articles: ArticleDelivery, summary: SummaryDelivery) {
+  return save("set_email_choices", { p_articles: articles, p_summary: summary });
 }

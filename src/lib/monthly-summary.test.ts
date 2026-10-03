@@ -31,6 +31,7 @@ const ana: MonthlySummary = {
   full_name: "Ana Pereira",
   email: "ana@example.com",
   timezone: "America/Sao_Paulo",
+  site_language: null,
   learning: "Portuguese",
   month: "2026-09-01",
   classes_taken: 4,
@@ -104,6 +105,32 @@ describe("emails.monthlySummary", () => {
     expect(email.text).not.toContain("Hi, I'm");
     expect(email.text).not.toContain("See you in class");
     expect(emails.monthlySummary({ ...quiet, email: null }, catalog)).toBeNull();
+  });
+});
+
+describe("emails.monthlySummary in the site language", () => {
+  it("writes everything in Portuguese, keeping the lesson titles as they are", () => {
+    const email = emails.monthlySummary({ ...ana, site_language: "pt" }, catalog)!;
+    expect(email.subject).toBe("Seu mês no English & Portuguese with Trevor");
+    expect(email.text).toContain("Oi, Ana!");
+    expect(email.text).toContain("Veja o que você fez em setembro. Mandou bem!");
+    expect(email.text).toContain("Aulas feitas este mês: 4");
+    expect(email.text).toContain("Restam no seu pacote: 2 de 8");
+    expect(email.text).toContain("quarta-feira, 7 de outubro");
+    expect(email.text).toContain("Lições concluídas: 2 (a mais recente: Possessivos)");
+    expect(email.text).toContain("Desafios diários: 4 dias · melhor sequência: 3 dias");
+    expect(email.text).toContain("Lição: Estar Com e Ficar");
+    expect(email.text).toContain("Ver todo o seu progresso");
+    expect(email.text).toContain("Continue assim! Até a aula. Trevor");
+    expect(email.text).not.toContain("Here's what");
+  });
+
+  it("uses Spanish and French too, and English for anything else", () => {
+    expect(emails.monthlySummary({ ...quiet, site_language: "es" }, catalog)!.text).toContain("1 día · mejor racha: 1 día");
+    expect(emails.monthlySummary({ ...ana, site_language: "fr" }, catalog)!.text).toContain("Voici ce que vous avez fait en septembre.");
+    expect(emails.monthlySummary({ ...ana, site_language: "de" }, catalog)!.subject).toBe(
+      "Your month at English & Portuguese with Trevor",
+    );
   });
 });
 
