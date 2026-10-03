@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
       </a>
       <h1 className="mt-8 text-2xl font-semibold">Privacy Policy</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Last updated October 2, 2026</p>
+      <p className="mt-1 text-sm text-muted-foreground">Last updated October 3, 2026</p>
 
       <div className="mt-8 flex flex-col gap-6 text-sm leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_ul]:list-disc [&_ul]:pl-5">
         <p>
@@ -171,6 +171,20 @@ export default function PrivacyPage() {
             account and data are stored with Supabase. Class events and emails go through Google. Every
             site except the scheduling site loads its fonts from Google Fonts, so Google sees your IP address
             when they load.
+          </p>
+          <p>
+            Everything is stored in the United States (Supabase&apos;s servers in Ohio), and it&apos;s used only
+            to run your account, your classes and lessons, and the emails described above. If you&apos;re in
+            Brazil, that means your personal data is transferred to the United States, and you keep the
+            rights the LGPD gives you: to see, correct or delete it, in Settings or by email.
+          </p>
+          <p>
+            The sites and classes are for adults. For a student under 18, a parent or guardian creates and
+            manages the account. The rules for classes themselves are in the{" "}
+            <a href="/policy" className="underline">
+              class policy
+            </a>
+            .
           </p>
         </section>
 

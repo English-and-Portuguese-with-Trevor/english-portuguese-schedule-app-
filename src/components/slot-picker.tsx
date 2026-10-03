@@ -294,6 +294,13 @@ export function SlotPicker({
                 : t("It's confirmed as soon as you book.")}
             </p>
           )}
+          {!isAdmin && (
+            <p className="text-xs text-muted-foreground">
+              <a href="/policy" target="_blank" rel="noreferrer" className="underline">
+                {t("By booking, you agree to the class policy.")}
+              </a>
+            </p>
+          )}
           {askQuestions && (
             <div className="flex flex-col gap-4">
               <fieldset className="flex flex-col gap-2">
