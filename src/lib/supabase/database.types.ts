@@ -621,7 +621,7 @@ export type Database = {
       set_learning_language: { Args: { lang: string }; Returns: undefined }
       set_start_page: { Args: { page: string }; Returns: undefined }
       set_site_language: { Args: { lang: string }; Returns: undefined }
-      set_email_choices: { Args: { p_articles: string; p_summary: string; p_class_update?: string }; Returns: undefined }
+      set_email_choices: { Args: { p_articles: string; p_summary: string; p_class_update: string }; Returns: undefined }
       claim_class_updates: { Args: { p_secret: string; p_week: string }; Returns: Json }
       unclaim_class_updates: { Args: { p_secret: string; p_ids: string[] }; Returns: undefined }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }

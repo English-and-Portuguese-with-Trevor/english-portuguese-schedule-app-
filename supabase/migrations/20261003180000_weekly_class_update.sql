@@ -11,26 +11,24 @@ alter table public.profiles
   add column if not exists class_update_delivery text not null default 'email' check (class_update_delivery in ('email', 'off')),
   add column if not exists class_update_week date;
 
--- set_email_choices gains the third choice. The other sites still call it with
--- two arguments (p_class_update defaults to "leave as is"), so the two-argument
--- version goes, or both would match.
-drop function if exists public.set_email_choices(text, text);
-
-create or replace function public.set_email_choices(p_articles text, p_summary text, p_class_update text default null)
+-- set_email_choices gains a three-argument version for this app's Settings.
+-- The two-argument one stays as it is for the other sites, which don't send
+-- the third choice yet (no default here, or a two-argument call would match
+-- both).
+create or replace function public.set_email_choices(p_articles text, p_summary text, p_class_update text)
 returns void
 language plpgsql
 security definer
 set search_path = ''
 as $$
 begin
-  if p_articles not in ('email', 'app', 'off') or p_summary not in ('email', 'off')
-     or (p_class_update is not null and p_class_update not in ('email', 'off')) then
+  if p_articles not in ('email', 'app', 'off') or p_summary not in ('email', 'off') or p_class_update not in ('email', 'off') then
     raise exception 'Unsupported email choice';
   end if;
   update public.profiles
   set article_delivery = p_articles,
       summary_delivery = p_summary,
-      class_update_delivery = coalesce(p_class_update, class_update_delivery)
+      class_update_delivery = p_class_update
   where id = auth.uid();
 end;
 $$;
