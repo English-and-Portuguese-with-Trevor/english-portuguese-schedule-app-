@@ -55,7 +55,7 @@ export default async function PolicyPage() {
         t(
           "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.",
         ),
-        t("Within 14 days of your first payment, email {email} for a full refund.", { email: CONTACT_EMAIL }),
+        t("Subscriptions aren't refunded."),
       ],
     },
     {

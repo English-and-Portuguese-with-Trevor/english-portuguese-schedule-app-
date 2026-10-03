@@ -292,7 +292,7 @@ export const STRINGS = {
     "Private class packages aren't refunded. You use up a package by taking the classes you paid for.": "Los paquetes de clases particulares no se reembolsan. El paquete se usa tomando las clases que pagaste.",
     "Lesson subscriptions": "Suscripciones a las lecciones",
     "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Puedes cancelar la suscripción a las lecciones cuando quieras en Configuración. Sigue activa hasta el final del periodo que pagaste, y ese periodo no se reembolsa.",
-    "Within 14 days of your first payment, email {email} for a full refund.": "Dentro de los 14 días de tu primer pago, escribe a {email} para un reembolso completo.",
+    "Subscriptions aren't refunded.": "Las suscripciones no se reembolsan.",
   },
   pt: {
     "English & Portuguese with Trevor, main website":
@@ -583,7 +583,7 @@ export const STRINGS = {
     "Private class packages aren't refunded. You use up a package by taking the classes you paid for.": "Os pacotes de aulas particulares não são reembolsados. Você usa o pacote fazendo as aulas que pagou.",
     "Lesson subscriptions": "Assinaturas das lições",
     "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Você pode cancelar a assinatura das lições quando quiser em Configurações. Ela continua ativa até o fim do período que você pagou, e esse período não é reembolsado.",
-    "Within 14 days of your first payment, email {email} for a full refund.": "Até 14 dias depois do seu primeiro pagamento, escreva para {email} para um reembolso total.",
+    "Subscriptions aren't refunded.": "As assinaturas não são reembolsadas.",
   },
   fr: {
     "English & Portuguese with Trevor, main website":
@@ -874,6 +874,6 @@ export const STRINGS = {
     "Private class packages aren't refunded. You use up a package by taking the classes you paid for.": "Les forfaits de cours particuliers ne sont pas remboursés. Vous utilisez le forfait en suivant les cours que vous avez payés.",
     "Lesson subscriptions": "Abonnements aux leçons",
     "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Vous pouvez annuler un abonnement aux leçons à tout moment dans Paramètres. Il reste actif jusqu'à la fin de la période payée, et cette période n'est pas remboursée.",
-    "Within 14 days of your first payment, email {email} for a full refund.": "Dans les 14 jours suivant votre premier paiement, écrivez à {email} pour un remboursement intégral.",
+    "Subscriptions aren't refunded.": "Les abonnements ne sont pas remboursés.",
   },
 } as const;
