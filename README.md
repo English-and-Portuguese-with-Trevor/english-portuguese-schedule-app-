@@ -79,6 +79,8 @@ in summer, 6 AM in winter). It:
   activities finished, flashcards studied, classes held and canceled, the
   next 7 days' classes, and students quiet for 14 days or more. Trevor's own
   practice isn't counted;
+- on Sundays, emails each private student (a class package) with a class in
+  the coming week their weekly class update (`src/lib/class-updates.ts`);
 - on Mondays, when the lessons site releases an article that day, emails the
   students who chose article emails (`src/lib/article-emails.ts`);
 - on the 1st, emails each student who did anything last month and keeps the
@@ -100,19 +102,23 @@ Kept short on purpose (Trevor: no email overload). Before adding one, see
 Gmail) unless noted.
 
 **Students** get only what their own actions (or Trevor's on their classes)
-cause, plus one welcome, a monthly summary and, for those who ask, new
-articles. The welcome and the class emails are in English; the monthly
-summary and the article email are written in the student's site language
-(`profiles.site_language`, English when unset), while what they're about
-follows the language they're learning. Settings > Preferences > Emails on
-every site sets the two choices (`set_email_choices`: `article_delivery`
-email / app / off, default app; `summary_delivery` email / off, default
-email):
+cause, plus one welcome, a monthly summary, a weekly class update for
+Trevor's private students and, for those who ask, new articles. The welcome
+and the class emails are in English; the monthly summary and the article
+email are written in the student's site language (`profiles.site_language`,
+English when unset), while what they're about follows the language they're
+learning; the weekly class update is in the language they're learning first,
+then their own. Settings > Preferences > Emails sets the choices
+(`set_email_choices`: `article_delivery` email / app / off, default app;
+`summary_delivery` email / off, default email; `class_update_delivery`
+email / off, default email, the row is on this app's Settings and the email's
+footer says where):
 
 | Email | When |
 | --- | --- |
 | Welcome | Once, when the account is made |
 | Your month | The 1st, with the daily job, to every student who did anything the month before and keeps the summary on (`summary_delivery = 'email'`): their classes and practice in the language they're learning (`claim_monthly_summaries`) |
+| Your classes this week | Sundays, with the daily job, to private students (`class_package` set) with a class in the coming week who keep it on (`class_update_delivery = 'email'`): the week's classes with their Meet links, classes completed and what's left in the package, in the language they're learning first and their own language under it (`claim_class_updates`, `src/lib/class-updates.ts`) |
 | New article | Mondays, with the daily job, when the lessons site releases an article that day (Denver; `article`/`releaseOn` in `lessons.json`), to students who chose article emails (`article_delivery = 'email'`), only articles in the language they're learning; once a day (`claim_article_emails`, `src/lib/article-emails.ts`) |
 | Lesson confirmed | They book 72+ hours ahead, Trevor approves their request, or Trevor books them |
 | Lessons booked (one email for a series) | Trevor books a series for them |

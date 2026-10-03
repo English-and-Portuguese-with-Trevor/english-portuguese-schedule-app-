@@ -1,5 +1,5 @@
 import { AccountSettings } from "@/components/account-settings";
-import type { ArticleDelivery, SummaryDelivery } from "@/lib/preferences";
+import type { ArticleDelivery, ClassUpdateDelivery, SummaryDelivery } from "@/lib/preferences";
 import { createClient } from "@/lib/supabase/server";
 import type { LessonAccess, Role } from "@/lib/types";
 
@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, { data: billing }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("role, full_name, email, lesson_access, article_delivery, summary_delivery")
+      .select("role, full_name, email, lesson_access, article_delivery, summary_delivery, class_update_delivery")
       .eq("id", user!.id)
       .single(),
     supabase
@@ -35,6 +35,7 @@ export default async function SettingsPage() {
       billing={billing ?? null}
       articleDelivery={(profile?.article_delivery ?? "app") as ArticleDelivery}
       summaryDelivery={(profile?.summary_delivery ?? "email") as SummaryDelivery}
+      classUpdateDelivery={(profile?.class_update_delivery ?? "email") as ClassUpdateDelivery}
     />
   );
 }

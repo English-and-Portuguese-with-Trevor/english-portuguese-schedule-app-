@@ -88,8 +88,9 @@ export function setLearningLanguage(language: LearningLanguage) {
 
 export type ArticleDelivery = "email" | "app" | "off";
 export type SummaryDelivery = "email" | "off";
+export type ClassUpdateDelivery = "email" | "off";
 
-/** How the student hears about new articles and whether the monthly summary is emailed (profile only). */
-export function setEmailChoices(articles: ArticleDelivery, summary: SummaryDelivery) {
-  return save("set_email_choices", { p_articles: articles, p_summary: summary });
+/** How the student hears about new articles, and whether the monthly summary and the weekly class update are emailed (profile only). */
+export function setEmailChoices(articles: ArticleDelivery, summary: SummaryDelivery, classUpdate: ClassUpdateDelivery) {
+  return save("set_email_choices", { p_articles: articles, p_summary: summary, p_class_update: classUpdate });
 }

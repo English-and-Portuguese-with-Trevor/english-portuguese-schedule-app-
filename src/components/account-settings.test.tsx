@@ -279,17 +279,22 @@ describe("Preferences", () => {
         billing={null}
         articleDelivery="app"
         summaryDelivery="email"
+        classUpdateDelivery="email"
       />,
     );
     openPage("Preferences");
     expect(screen.getByLabelText("New articles")).toHaveValue("app");
     fireEvent.change(screen.getByLabelText("New articles"), { target: { value: "email" } });
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "email" }),
+      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "email", p_class_update: "email" }),
     );
     fireEvent.change(screen.getByLabelText("Monthly summary"), { target: { value: "off" } });
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "off" }),
+      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "off", p_class_update: "email" }),
+    );
+    fireEvent.change(screen.getByLabelText("Weekly class update"), { target: { value: "off" } });
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_email_choices", { p_articles: "email", p_summary: "off", p_class_update: "off" }),
     );
   });
 

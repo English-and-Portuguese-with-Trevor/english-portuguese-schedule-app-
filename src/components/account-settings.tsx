@@ -35,6 +35,7 @@ import {
   setSiteLanguage,
   setTheme,
   type ArticleDelivery,
+  type ClassUpdateDelivery,
   type SummaryDelivery,
 } from "@/lib/preferences";
 import {
@@ -74,6 +75,7 @@ export function AccountSettings({
   billing,
   articleDelivery = "app",
   summaryDelivery = "email",
+  classUpdateDelivery = "email",
 }: {
   name: string | null;
   email: string | null;
@@ -83,6 +85,7 @@ export function AccountSettings({
   /** The profile's email choices (Preferences > Emails); the database's defaults when not given. */
   articleDelivery?: ArticleDelivery;
   summaryDelivery?: SummaryDelivery;
+  classUpdateDelivery?: ClassUpdateDelivery;
 }) {
   const [billingError, setBillingError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
@@ -138,7 +141,11 @@ export function AccountSettings({
           {page === "preferences" ? t("Preferences") : t("Account")}
         </h1>
         {page === "preferences" ? (
-          <PreferencesCard articleDelivery={articleDelivery} summaryDelivery={summaryDelivery} />
+          <PreferencesCard
+            articleDelivery={articleDelivery}
+            summaryDelivery={summaryDelivery}
+            classUpdateDelivery={classUpdateDelivery}
+          />
         ) : (
           <Card>
             <CardHeader>
@@ -283,14 +290,16 @@ function InstallRow() {
 
 /**
  * Dark mode, the language being learned and the site language, then the
- * Emails group (new articles, monthly summary); the same settings on every site.
+ * Emails group (new articles, monthly summary, weekly class update); the same settings on every site.
  */
 function PreferencesCard(props: {
   articleDelivery: ArticleDelivery;
   summaryDelivery: SummaryDelivery;
+  classUpdateDelivery: ClassUpdateDelivery;
 }) {
   const [articles, setArticles] = useState(props.articleDelivery);
   const [summary, setSummary] = useState(props.summaryDelivery);
+  const [classUpdate, setClassUpdate] = useState(props.classUpdateDelivery);
   // The cookie is only readable in the browser; the server renders the defaults.
   const [prefs, setPrefs] = useState<Prefs>({});
   const t = useT();
@@ -394,7 +403,7 @@ function PreferencesCard(props: {
             onChange={(e) => {
               const next = e.target.value as ArticleDelivery;
               setArticles(next);
-              setEmailChoices(next, summary);
+              setEmailChoices(next, summary, classUpdate);
             }}
             className="h-11 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
@@ -413,7 +422,25 @@ function PreferencesCard(props: {
             onChange={(e) => {
               const next = e.target.value as SummaryDelivery;
               setSummary(next);
-              setEmailChoices(articles, next);
+              setEmailChoices(articles, next, classUpdate);
+            }}
+            className="h-11 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="email">{t("Email me")}</option>
+            <option value="off">{t("Off")}</option>
+          </select>
+        </div>
+        <div className="flex items-center justify-between gap-4 py-3">
+          <label htmlFor="class-update-delivery" className="text-sm font-medium">
+            {t("Weekly class update")}
+          </label>
+          <select
+            id="class-update-delivery"
+            value={classUpdate}
+            onChange={(e) => {
+              const next = e.target.value as ClassUpdateDelivery;
+              setClassUpdate(next);
+              setEmailChoices(articles, summary, next);
             }}
             className="h-11 rounded-md border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

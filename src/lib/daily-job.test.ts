@@ -9,11 +9,13 @@ const mocks = vi.hoisted(() => ({
   sendWelcomes: vi.fn(async () => 0),
   sendMonthlySummaries: vi.fn(async () => 3),
   sendArticleEmails: vi.fn(async () => 2),
+  sendClassUpdates: vi.fn(async () => 4),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
 vi.mock("@/lib/welcome", () => ({ sendWelcomes: mocks.sendWelcomes }));
 vi.mock("@/lib/monthly-summary", () => ({ sendMonthlySummaries: mocks.sendMonthlySummaries }));
 vi.mock("@/lib/article-emails", () => ({ sendArticleEmails: mocks.sendArticleEmails }));
+vi.mock("@/lib/class-updates", () => ({ sendClassUpdates: mocks.sendClassUpdates }));
 vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection, LESSON_TIMEZONE: "America/Denver" }));
 vi.mock("@/lib/integration-status", () => ({
   recordGoogleStatus: mocks.recordGoogleStatus,
@@ -93,8 +95,25 @@ describe("runDailyJob", () => {
     expect(sent.map((e) => e?.to)).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(sent[0]?.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
     expect(mocks.rpc).not.toHaveBeenCalledWith("weekly_summary", expect.anything());
-    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false, weekly: false, articles: 0, monthly: 0 });
+    expect(result).toEqual({
+      google: "ok",
+      reminders: 1,
+      agenda: true,
+      deeplReminder: false,
+      weekly: false,
+      articles: 0,
+      monthly: 0,
+      classUpdates: 0,
+    });
     expect(mocks.sendArticleEmails).not.toHaveBeenCalled();
+    expect(mocks.sendClassUpdates).not.toHaveBeenCalled();
+  });
+
+  it("on Sunday morning in Denver sends the private students their week of classes", async () => {
+    vi.setSystemTime(new Date("2026-10-04T13:00:00Z"));
+    const result = await runDailyJob("s3cret");
+    expect(mocks.sendClassUpdates).toHaveBeenCalledWith("s3cret", "2026-10-04");
+    expect(result.classUpdates).toBe(4);
   });
 
   it("on the 1st in Denver also sends the students' monthly summaries", async () => {

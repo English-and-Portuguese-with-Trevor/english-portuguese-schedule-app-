@@ -189,6 +189,21 @@ export interface ArticleReader {
 /** The lessons site's lessons.json: every lesson in order, English ones and articles marked. */
 export type LessonCatalog = { id: string; title: string; learning?: string; article?: boolean; releaseOn?: string }[];
 
+/** One private student's week, from claim_class_updates: their classes in the coming week and where their package stands. */
+export type ClassUpdate = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  timezone: string | null;
+  site_language: string | null;
+  learning: string;
+  /** The Sunday the week starts (Denver date). */
+  week: string;
+  class_package: number | null;
+  completed: number | null;
+  classes: { start: string; end: string; meet_link: string | null }[];
+};
+
 /** The language a student email is written in: their site language, English when unknown. */
 function emailLanguage(code: string | null) {
   return siteLanguage({}, code ? [code] : []);
@@ -716,6 +731,56 @@ export const emails = {
         sections,
         button: { label: t("See all your progress"), url: `${site}/progress/` },
         footerNote: `${classes.length ? t("Keep it up! See you in class. Trevor") : t("Keep it up! Trevor")} ${t("You can turn this email off in Settings > Preferences.")}`,
+      }),
+    };
+  },
+
+  /**
+   * Sundays, to a private student with a class this week: the week's classes
+   * with their Meet links, classes completed and what's left in the package.
+   * Written in the language they're learning first, then in their own
+   * language (their site language, or the other of the two). The footer says
+   * how to turn it off (Trevor, 2026-10-03: the option fairly visible).
+   */
+  weeklyClassUpdate(person: ClassUpdate): Email | null {
+    if (!person.email || person.classes.length === 0) return null;
+    const first: SiteLanguage = person.learning === "English" ? "en" : "pt";
+    const site = emailLanguage(person.site_language);
+    const second: SiteLanguage = site === "es" || site === "fr" ? site : first === "en" ? "pt" : "en";
+    const zone = person.timezone || LESSON_TIMEZONE;
+    const left = person.class_package ? person.class_package - ((person.completed ?? 0) % person.class_package) : null;
+    const settings = `${SITE_URL}/settings`;
+
+    const part = (lang: SiteLanguage) => {
+      const t = translator(lang);
+      const classes = person.classes.map((c): [string, string, string?] => [
+        t("Class"),
+        `${studentDateTime(c.start, zone, lang)} (${formatInTimeZone(new Date(c.start), zone, "zzz")})`,
+        c.meet_link ?? undefined,
+      ]);
+      const progress: [string, string][] = [[t("Classes completed"), String(person.completed ?? 0)]];
+      if (left !== null) progress.push([t("Left in your package"), t("{left} of {total}", { left, total: person.class_package! })]);
+      return {
+        t,
+        sections: [
+          { title: t("Your classes this week"), rows: classes },
+          { title: t("Your progress"), rows: progress },
+        ],
+      };
+    };
+    const a = part(first);
+    const b = part(second);
+    const optOut = (t: Translate) => t("Don't want this weekly email? Turn it off at {url} (Settings > Preferences > Emails).", { url: settings });
+    return {
+      to: person.email,
+      subject: a.t("Your classes this week"),
+      ...renderEmail({
+        heading: greeting(person.full_name, a.t),
+        intro: `${a.t("Here are your classes this week. Tap a class to open its Meet link.")} ${b.t("Here are your classes this week. Tap a class to open its Meet link.")}`,
+        details: [],
+        sections: [...a.sections, ...b.sections],
+        button: { label: a.t("Open your schedule"), url: `${SITE_URL}/dashboard` },
+        footerNote: `${a.t("See you in class! Trevor")} ${optOut(a.t)} ${optOut(b.t)}`,
       }),
     };
   },
