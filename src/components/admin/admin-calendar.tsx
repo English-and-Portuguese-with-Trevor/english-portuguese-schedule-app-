@@ -34,7 +34,8 @@ import {
 import { cn } from "@/lib/utils";
 import { DAY_NAMES, type AvailabilityRule } from "@/lib/types";
 
-export type CalendarBooking = AdminBookingRow & { late_cancellation: boolean };
+/** `notes` carries e.g. "Hold: Tim", a time held on Trevor's own account for a student with no account yet; it shows under the name. */
+export type CalendarBooking = AdminBookingRow & { late_cancellation: boolean; notes?: string | null };
 
 /** A booking placed on the calendar, with its times as dates. */
 interface Entry {
@@ -329,6 +330,7 @@ function MonthGrid({
                     className={cn("truncate rounded border px-1 py-px text-[11px] leading-4", statusClasses(b))}
                   >
                     <span className="font-medium tabular-nums">{shortTime(start)}</span> {nameOf(b)}
+                    {b.notes && <span className="opacity-80"> · {b.notes}</span>}
                     {b.late_cancellation && <LateMark />}
                   </span>
                 ))}
@@ -460,6 +462,7 @@ function WeekGrid({
                     {b.late_cancellation && <LateMark />}
                   </span>
                   <span className="block truncate">{nameOf(b)}</span>
+                  {b.notes && <span className="block truncate text-[10px] opacity-80">{b.notes}</span>}
                 </div>
               ))}
             </div>
@@ -498,6 +501,7 @@ function WeekGrid({
                         {shortTime(start)}–{shortTime(end)}
                       </span>{" "}
                       {nameOf(b)}
+                      {b.notes && <span className="opacity-80"> · {b.notes}</span>}
                       {b.late_cancellation && <LateMark />}
                     </span>
                   ))}
@@ -588,6 +592,7 @@ function DayPanel({
             <div key={b.id} className="rounded-md border px-4 py-3">
               <p className={cn("text-sm font-medium", b.status === "CANCELLED" && "text-muted-foreground line-through")}>
                 {nameOf(b)}
+                {b.notes && <span className="font-normal text-muted-foreground"> · {b.notes}</span>}
               </p>
               <p className="text-sm text-muted-foreground">
                 {when} · <span className={cn(b.late_cancellation && "text-destructive")}>{status}</span>

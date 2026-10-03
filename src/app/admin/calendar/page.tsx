@@ -28,7 +28,7 @@ export default async function AdminCalendarPage({
     supabase
       .from("bookings")
       .select(
-        "id, student_id, status, is_admin_override, meet_link, reschedule_of, lesson_language, whatsapp, late_cancellation, session_slots!inner(start_time, end_time)",
+        "id, student_id, status, is_admin_override, meet_link, reschedule_of, lesson_language, whatsapp, late_cancellation, notes, session_slots!inner(start_time, end_time)",
       )
       .gte("session_slots.start_time", from)
       .lt("session_slots.start_time", to),
