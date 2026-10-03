@@ -382,6 +382,7 @@ export type Database = {
           timezone: string
           translation_language: string | null
           welcomed_at: string | null
+          summary_month: string | null
         }
         Insert: {
           class_package?: number | null
@@ -400,6 +401,7 @@ export type Database = {
           timezone?: string
           translation_language?: string | null
           welcomed_at?: string | null
+          summary_month?: string | null
         }
         Update: {
           class_package?: number | null
@@ -418,6 +420,7 @@ export type Database = {
           timezone?: string
           translation_language?: string | null
           welcomed_at?: string | null
+          summary_month?: string | null
         }
         Relationships: []
       }
@@ -481,6 +484,14 @@ export type Database = {
         Returns: Json
       }
       unclaim_welcome_emails: {
+        Args: { p_ids: string[]; p_secret: string }
+        Returns: undefined
+      }
+      claim_monthly_summaries: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      unclaim_monthly_summaries: {
         Args: { p_ids: string[]; p_secret: string }
         Returns: undefined
       }

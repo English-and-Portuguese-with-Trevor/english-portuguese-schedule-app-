@@ -7,9 +7,11 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   sendAlerts: vi.fn(async () => ({ alerts: 0, emailed: false, sent: 0 })),
   sendWelcomes: vi.fn(async () => 0),
+  sendMonthlySummaries: vi.fn(async () => 3),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
 vi.mock("@/lib/welcome", () => ({ sendWelcomes: mocks.sendWelcomes }));
+vi.mock("@/lib/monthly-summary", () => ({ sendMonthlySummaries: mocks.sendMonthlySummaries }));
 vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection }));
 vi.mock("@/lib/integration-status", () => ({
   recordGoogleStatus: mocks.recordGoogleStatus,
@@ -89,7 +91,14 @@ describe("runDailyJob", () => {
     expect(sent.map((e) => e?.to)).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(sent[0]?.subject).toBe("Lesson reminder: Mon, Sep 28, 5:30 PM");
     expect(mocks.rpc).not.toHaveBeenCalledWith("weekly_summary", expect.anything());
-    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false, weekly: false });
+    expect(result).toEqual({ google: "ok", reminders: 1, agenda: true, deeplReminder: false, weekly: false, monthly: 0 });
+  });
+
+  it("on the 1st in Denver also sends the students' monthly summaries", async () => {
+    vi.setSystemTime(new Date("2026-10-01T13:00:00Z"));
+    const result = await runDailyJob("s3cret");
+    expect(mocks.sendMonthlySummaries).toHaveBeenCalledWith("s3cret");
+    expect(result.monthly).toBe(3);
   });
 
   it("on Monday morning in Denver also emails Trevor the weekly summary", async () => {

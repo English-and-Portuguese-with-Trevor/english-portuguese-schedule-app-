@@ -152,6 +152,42 @@ export interface WeeklySummary {
   inactive: { id: string; last_active: string | null }[];
 }
 
+/** One student's last month, from claim_monthly_summaries. */
+export interface MonthlySummary {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  timezone: string | null;
+  learning: string;
+  /** The first day of the month, 'YYYY-MM-DD'. */
+  month: string;
+  classes_taken: number;
+  class_package: number | null;
+  completed: number | null;
+  next_class: string | null;
+  lessons_done: string[];
+  lessons_month: string[];
+  puzzle_days: string[];
+  activities_finished: number;
+  cards_studied: number;
+}
+
+/** The lessons site's lessons.json: every lesson in order, English ones marked. */
+export type LessonCatalog = { id: string; title: string; learning?: string }[];
+
+/** The longest run of days in a row in a list of 'YYYY-MM-DD' days. */
+export function longestStreak(days: string[]) {
+  const sorted = [...new Set(days)].sort();
+  let best = 0;
+  let run = 0;
+  sorted.forEach((day, i) => {
+    const gap = i ? (Date.parse(day) - Date.parse(sorted[i - 1])) / 86_400_000 : 0;
+    run = gap === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+  });
+  return best;
+}
+
 export interface AgendaItem {
   status: string;
   start: string;
@@ -585,6 +621,55 @@ export const emails = {
         ],
         button: { label: "Book a class", url: `${SITE_URL}/dashboard` },
         footerNote: "Any questions, just reply to this email. See you soon! Trevor",
+      }),
+    };
+  },
+
+  /**
+   * On the 1st, to every student who did anything last month: their classes and
+   * their practice in the language they're learning. A line shows only when it
+   * has something in it.
+   */
+  monthlySummary(person: MonthlySummary, catalog: LessonCatalog): Email | null {
+    if (!person.email) return null;
+    const site = "https://englishandportuguesewithtrevor.com";
+    const monthName = formatInTimeZone(new Date(`${person.month}T12:00:00Z`), "UTC", "MMMM");
+    const zone = person.timezone || LESSON_TIMEZONE;
+    const lessons = catalog.filter((l) => (person.learning === "English" ? l.learning === "English" : !l.learning));
+    const title = (id: string) => lessons.find((l) => l.id === id)?.title;
+    const finished = person.lessons_month.filter(title);
+    const done = new Set(person.lessons_done);
+    const next = lessons[lessons.findLastIndex((l) => done.has(l.id)) + 1];
+    const left = person.class_package ? person.class_package - ((person.completed ?? 0) % person.class_package) : null;
+
+    const classes: [string, string][] = [];
+    if (person.classes_taken) classes.push(["Classes taken this month", String(person.classes_taken)]);
+    if (left !== null) classes.push(["Left in your package", `${left} of ${person.class_package}`]);
+    if (person.next_class) classes.push(["Next class", formatInTimeZone(new Date(person.next_class), zone, "EEEE, MMMM d, h:mm a")]);
+
+    const practice: [string, string][] = [];
+    if (finished.length) practice.push(["Lessons finished", `${finished.length} (latest: ${title(finished.at(-1)!)})`]);
+    if (person.puzzle_days.length) {
+      const streak = longestStreak(person.puzzle_days);
+      practice.push(["Daily puzzles", `${person.puzzle_days.length} day${person.puzzle_days.length === 1 ? "" : "s"} · best streak: ${streak} day${streak === 1 ? "" : "s"}`]);
+    }
+    if (person.activities_finished) practice.push(["Activities finished", String(person.activities_finished)]);
+    if (person.cards_studied) practice.push(["Flashcards studied", String(person.cards_studied)]);
+
+    const sections = [];
+    if (classes.length) sections.push({ title: "Your classes with me", rows: classes });
+    if (practice.length) sections.push({ title: "Your practice", rows: practice });
+    if (next) sections.push({ title: "Up next", rows: [["Lesson", next.title, `${site}/lessons/#/${next.id}`]] as [string, string, string][] });
+    return {
+      to: person.email,
+      subject: "Your month at English & Portuguese with Trevor",
+      ...renderEmail({
+        heading: `Hi ${firstName(person.full_name)}!`,
+        intro: `Here's what you did in ${monthName}. Nice work!`,
+        details: [],
+        sections,
+        button: { label: "See all your progress", url: `${site}/progress/` },
+        footerNote: classes.length ? "Keep it up! See you in class. Trevor" : "Keep it up! Trevor",
       }),
     };
   },

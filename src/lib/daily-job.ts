@@ -1,5 +1,6 @@
 import { sendAlerts } from "@/lib/admin-push";
 import { sendWelcomes } from "@/lib/welcome";
+import { sendMonthlySummaries } from "@/lib/monthly-summary";
 import { checkGoogleConnection } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
 import { emails, sendNotification, type WeeklySummary } from "@/lib/notifications";
@@ -13,7 +14,7 @@ export const DEEPL_ON_HOLD = true;
 /**
  * Runs once a day (see vercel.json): checks the Google connection, sends
  * each student one reminder for lessons in the next 36 hours, and sends the
- * admin the day's agenda, and on Mondays the weekly summary. It also sends any sign-up or subscriber alert, and
+ * admin the day's agenda, on Mondays the weekly summary, and on the 1st each active student their month. It also sends any sign-up or subscriber alert, and
  * any welcome email, the database's own call to /api/alerts/push missed. The database functions it
  * calls are guarded by the same CRON_SECRET the request was authorized with.
  */
@@ -76,5 +77,8 @@ export async function runDailyJob(secret: string) {
     await sendNotification(emails.weeklySummary(summary as unknown as WeeklySummary, zone));
   }
 
-  return { google: "ok", reminders: due?.length ?? 0, agenda: agendaEmail !== null, deeplReminder, weekly };
+  // The 1st in the admin's zone: each student who did anything last month gets their summary.
+  const monthly = formatInTimeZone(new Date(), zone, "d") === "1" ? await sendMonthlySummaries(secret) : 0;
+
+  return { google: "ok", reminders: due?.length ?? 0, agenda: agendaEmail !== null, deeplReminder, weekly, monthly };
 }

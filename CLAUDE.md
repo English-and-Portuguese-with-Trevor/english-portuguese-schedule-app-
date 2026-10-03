@@ -38,8 +38,11 @@ Trevor gets an email for every scheduling change (`src/lib/notifications.ts`): t
 ## Weekly summary
 Trevor (2026-10-02): on Mondays the daily job (13:00 UTC, so 7 AM Mountain in summer, 6 AM in winter) also sends him `emails.weeklySummary`, built from the secret-guarded `weekly_summary` RPC (`supabase/migrations/20261003010000_weekly_summary.sql`): the last 7 days in numbers, the week's classes, and students quiet for 14+ days, in short names. Admins' own practice isn't counted. A new number for Trevor goes here, not in a new email.
 
+## Monthly summary (students)
+Trevor (2026-10-03, wording approved): on the 1st (Denver) the daily job sends every student who did anything the month before `emails.monthlySummary` (`sendMonthlySummaries`, `src/lib/monthly-summary.ts`): classes taken that month, classes left in the package, the next class, then lessons finished, puzzle days and best streak, activities and flashcards, all in the language they're learning (lessons filtered with the lessons site's `lessons.json`), and the next lesson; a line shows only when it has something. `claim_monthly_summaries` (`supabase/migrations/20261003081456_monthly_summary.sql`) marks `profiles.summary_month` first, so it goes once a month; a failed email is handed back with `unclaim_monthly_summaries`. It replaces nothing yet (Trevor: "not just yet").
+
 ## Email volume
-Trevor (2026-10-02): "I don't want email overload." Before adding any email, fold it into one that already goes out if you can: Trevor's daily agenda (`emails.adminAgenda`), the 6:30 AM flags summary (`emails.flagDigest`) or the Monday weekly summary. Students get only the emails their own actions (or Trevor's on their classes) trigger, plus the one welcome email. No marketing, newsletters or nudges unless Trevor asks. The README's "Every email the system sends" lists them all; keep it current.
+Trevor (2026-10-02): "I don't want email overload." Before adding any email, fold it into one that already goes out if you can: Trevor's daily agenda (`emails.adminAgenda`), the 6:30 AM flags summary (`emails.flagDigest`) or the Monday weekly summary. Students get only the emails their own actions (or Trevor's on their classes) trigger, plus the one welcome email and the monthly summary. No marketing, newsletters or nudges unless Trevor asks. The README's "Every email the system sends" lists them all; keep it current.
 
 ## Dark mode and shared preferences
 - Dark mode and the language being learned are shared by every site through the `ept-prefs` cookie (`src/lib/prefs.ts`, same logic as `prefs.js` in the other repos; kept through log out). `THEME_SCRIPT` in the root layout's `<head>` sets `<html data-theme="dark">` before paint; don't read cookies in the root layout (that would stop static pages from prerendering).
@@ -68,9 +71,6 @@ CLAUDE.md.)
 
 ## One address, one app
 The other sites share `englishandportuguesewithtrevor.com` (`/lessons/`, `/flashcards/`, `/activities/`, `/dailies/`, `/conversations/`, one installed app from the landing repo's manifest); this app stays at `schedule.englishandportuguesewithtrevor.com`, so links to it open outside the installed app. Instead it's its own installable app, "EPT Schedule" (Trevor, 2026-10-02): `src/app/manifest.ts` (start `/dashboard`, icons in `public/icons/`, copied from the landing repo) and the Get the app row in Settings. No service worker (see Admin alerts). The account menu has "App start" (`start` in `ept-prefs`, `profiles.start_page` via `set_start_page`, `START_PAGES` in `prefs.ts`; Trevor wants it in the main menu, not under Settings): the section the installed app starts on.
-
-## Ideas for later
-- Monthly summary email to every student (Trevor, 2026-10-02: "eventually"): how many classes they have left on their package and what they went over that month (classes taken, lessons finished, activities, puzzles, flashcards). Not built yet; when it is, it replaces other student emails where it can (see Email volume) and needs Trevor's go-ahead on the wording first.
 
 ## Brand in the header
 Every site's header shows the brand on two lines, "English & Portuguese" over

@@ -96,11 +96,12 @@ Kept short on purpose (Trevor: no email overload). Before adding one, see
 Gmail) unless noted.
 
 **Students** get only what their own actions (or Trevor's on their classes)
-cause, plus one welcome:
+cause, plus one welcome and a monthly summary:
 
 | Email | When |
 | --- | --- |
 | Welcome | Once, when the account is made |
+| Your month | The 1st, with the daily job, to every student who did anything the month before: their classes and practice in the language they're learning (`claim_monthly_summaries`) |
 | Lesson confirmed | They book 72+ hours ahead, Trevor approves their request, or Trevor books them |
 | Lessons booked (one email for a series) | Trevor books a series for them |
 | Lesson request received | They book less than 72 hours ahead (waits for approval) |
