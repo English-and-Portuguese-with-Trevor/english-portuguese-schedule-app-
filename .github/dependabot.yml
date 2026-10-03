@@ -1,0 +1,16 @@
+# Dependabot: security fixes only. open-pull-requests-limit 0 turns off the
+# routine version-bump PRs (Trevor pushes straight to main), but security
+# update PRs still come for npm packages with a known vulnerability. They need
+# "Dependabot security updates" on in the repo's Settings > Code security.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
