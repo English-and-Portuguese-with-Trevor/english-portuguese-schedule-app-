@@ -78,7 +78,11 @@ in summer, 6 AM in winter). It:
   done on any site, or a booking), lessons finished, puzzles played,
   activities finished, flashcards studied, classes held and canceled, the
   next 7 days' classes, and students quiet for 14 days or more. Trevor's own
-  practice isn't counted;
+  practice isn't counted. A "Suggestion pills" section (`pill_stats`,
+  `supabase/migrations/20261004020000_pill_events.sql`) shows the week's
+  "Try something new" pills: shown, tapped and closed, "Unlock everything"
+  shown and tapped, and how many students saw any; it's left out if that
+  call fails;
 - on Sundays, emails each private student (a class package) with a class in
   the coming week their weekly class update (`src/lib/class-updates.ts`);
 - on Mondays, when the lessons site releases an article that day, emails the
@@ -106,8 +110,9 @@ cause, plus one welcome, a monthly summary, a weekly class update for
 Trevor's private students and, for those who ask, new articles. The welcome
 and the class emails are in English; the monthly summary and the article
 email are written in the student's site language (`profiles.site_language`,
-English when unset), while what they're about follows the language they're
-learning; the weekly class update is in the language they're learning first,
+English when unset), its tagline at the end too (Spanish or French for
+those; Portuguese alone for Portuguese; English and Portuguese otherwise),
+while what they're about follows the language they're learning; the weekly class update is in the language they're learning first,
 then their own. Settings > Preferences > Emails sets the choices
 (`set_email_choices`: `article_delivery` email / app / off, default app;
 `summary_delivery` email / off, default email; `class_update_delivery`

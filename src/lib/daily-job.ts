@@ -5,7 +5,7 @@ import { sendArticleEmails } from "@/lib/article-emails";
 import { sendClassUpdates } from "@/lib/class-updates";
 import { checkGoogleConnection, LESSON_TIMEZONE } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
-import { emails, sendNotification, type WeeklySummary } from "@/lib/notifications";
+import { emails, sendNotification, type PillStats, type WeeklySummary } from "@/lib/notifications";
 import { formatInTimeZone } from "date-fns-tz";
 
 /** The day of the month the DeepL reminder goes out (the allowance resets about a week later). */
@@ -85,7 +85,12 @@ export async function runDailyJob(secret: string) {
   if (weekly) {
     const { data: summary, error: summaryError } = await supabase.rpc("weekly_summary", { p_secret: secret });
     if (summaryError) throw new Error(`weekly_summary: ${summaryError.message}`);
-    await sendNotification(emails.weeklySummary(summary as unknown as WeeklySummary, zone));
+    // The suggestion pills' week; if it fails (e.g. not set up yet), the summary goes without it.
+    const { data: pills, error: pillsError } = await supabase.rpc("pill_stats", { p_secret: secret });
+    if (pillsError) console.error("[daily-job] pill_stats failed:", pillsError.message);
+    await sendNotification(
+      emails.weeklySummary(summary as unknown as WeeklySummary, zone, pillsError ? null : (pills as unknown as PillStats | null)),
+    );
   }
 
   // Articles are released on Mondays (Denver): tell the students who chose article emails.

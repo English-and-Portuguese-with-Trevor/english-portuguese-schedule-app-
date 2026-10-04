@@ -17,6 +17,7 @@ vi.mock("@/lib/integration-status", () => ({
 
 import { emails, longestStreak, type MonthlySummary } from "@/lib/notifications";
 import { sendMonthlySummaries } from "@/lib/monthly-summary";
+import { TAGLINE_EN, TAGLINE_ES, TAGLINE_FR, TAGLINE_PT } from "@/lib/email-template";
 
 const catalog = [
   { id: "ar", title: "Regular -AR Verbs" },
@@ -123,6 +124,17 @@ describe("emails.monthlySummary in the site language", () => {
     expect(email.text).toContain("Ver todo o seu progresso");
     expect(email.text).toContain("Continue assim! Até a aula. Trevor");
     expect(email.text).not.toContain("Here's what");
+  });
+
+  it("ends with the tagline in the email's language", () => {
+    expect(emails.monthlySummary({ ...ana, site_language: "es" }, catalog)!.text).toContain(TAGLINE_ES);
+    const fr = emails.monthlySummary({ ...ana, site_language: "fr" }, catalog)!;
+    expect(fr.text).toContain(TAGLINE_FR);
+    expect(fr.text).not.toContain(TAGLINE_EN);
+    const pt = emails.monthlySummary({ ...ana, site_language: "pt" }, catalog)!;
+    expect(pt.text).toContain(TAGLINE_PT);
+    expect(pt.text).not.toContain(TAGLINE_EN);
+    expect(emails.monthlySummary({ ...ana, site_language: null }, catalog)!.text).toContain(`${TAGLINE_EN}\n${TAGLINE_PT}`);
   });
 
   it("uses Spanish and French too, and English for anything else", () => {

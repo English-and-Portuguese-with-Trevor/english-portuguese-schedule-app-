@@ -69,6 +69,9 @@ beforeEach(() => {
     if (fn === "admin_timezone") return { data: "America/Denver", error: null };
     if (fn === "claim_student_reminders") return { data: [reminderRow], error: null };
     if (fn === "weekly_summary") return { data: weeklyRow, error: null };
+    if (fn === "pill_stats") {
+      return { data: { shown: 12, tapped: 3, closed: 4, unlock_shown: 2, unlock_tapped: 1, students: 5 }, error: null };
+    }
     if (fn === "admin_agenda") {
       return {
         data: [{ ...reminderRow, status: "CONFIRMED", lesson_language: "PORTUGUESE", whatsapp: null, reschedule_from: null }],
@@ -137,6 +140,22 @@ describe("runDailyJob", () => {
     expect(weekly?.text).toContain("1 (1 late)");
     expect(weekly?.text).toContain("Tue, Oct 6, 2:00 PM: Ana P. · Portuguese");
     expect(weekly?.text).toContain("quiet: never active");
+    expect(result.weekly).toBe(true);
+    expect(mocks.rpc).toHaveBeenCalledWith("pill_stats", { p_secret: "s3cret" });
+    expect(weekly?.text).toContain("Suggestion pills\nShown: 12 · Tapped: 3 · Closed: 4\nUnlock everything: shown 2 · tapped 1\nStudents: 5");
+  });
+
+  it("sends the weekly summary without the pills when pill_stats fails", async () => {
+    vi.setSystemTime(new Date("2026-10-05T13:00:00Z"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const rpc = mocks.rpc.getMockImplementation()!;
+    mocks.rpc.mockImplementation(async (fn: string, args?: unknown) =>
+      fn === "pill_stats" ? { data: null, error: { message: "function public.pill_stats does not exist" } } : rpc(fn, args),
+    );
+    const result = await runDailyJob("s3cret");
+    const weekly = mocks.sendNotification.mock.calls.map(([email]) => email as Email | null).at(-1);
+    expect(weekly?.subject).toBe("Your week: 2 active, 1 new, 1 class ahead");
+    expect(weekly?.text).not.toContain("Suggestion pills");
     expect(result.weekly).toBe(true);
   });
 

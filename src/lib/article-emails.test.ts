@@ -17,6 +17,7 @@ vi.mock("@/lib/integration-status", () => ({
 
 import { emails, type ArticleReader } from "@/lib/notifications";
 import { sendArticleEmails } from "@/lib/article-emails";
+import { TAGLINE_EN, TAGLINE_ES, TAGLINE_FR, TAGLINE_PT } from "@/lib/email-template";
 
 const catalog = [
   { id: "ar", title: "Regular -AR Verbs" },
@@ -61,6 +62,21 @@ describe("emails.newArticles", () => {
     expect(email.text).toContain("Ler: https://englishandportuguesewithtrevor.com/lessons/#/tiny-homes");
     expect(email.text).toContain("Configurações > Preferências");
     expect(email.text).not.toContain("Read it");
+  });
+
+  it("ends with the tagline in the email's language", () => {
+    const en = emails.newArticles(bo, tinyHomes)!;
+    expect(en.text).toContain(`${TAGLINE_EN}\n${TAGLINE_PT}`);
+    const pt = emails.newArticles(ana, tinyHomes)!;
+    expect(pt.text).toContain(TAGLINE_PT);
+    expect(pt.text).not.toContain(TAGLINE_EN);
+    for (const [lang, line] of [["es", TAGLINE_ES], ["fr", TAGLINE_FR]] as const) {
+      const email = emails.newArticles({ ...bo, site_language: lang }, tinyHomes)!;
+      expect(email.text).toContain(line);
+      expect(email.html).toContain(line.replaceAll("'", "&#39;"));
+      expect(email.text).not.toContain(TAGLINE_EN);
+      expect(email.text).not.toContain(TAGLINE_PT);
+    }
   });
 
   it("sends nothing without an article or an address", () => {

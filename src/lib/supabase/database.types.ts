@@ -494,6 +494,10 @@ export type Database = {
         Args: { p_secret: string }
         Returns: Json
       }
+      pill_stats: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
       claim_welcome_emails: {
         Args: { p_secret: string }
         Returns: Json

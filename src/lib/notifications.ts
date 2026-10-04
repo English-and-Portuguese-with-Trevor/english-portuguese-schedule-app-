@@ -155,6 +155,16 @@ export interface WeeklySummary {
   inactive: { id: string; last_active: string | null }[];
 }
 
+/** What pill_stats returns: the "Try something new" pills over the last 7 days, students only. */
+export interface PillStats {
+  shown: number;
+  tapped: number;
+  closed: number;
+  unlock_shown: number;
+  unlock_tapped: number;
+  students: number;
+}
+
 /** One student's last month, from claim_monthly_summaries. */
 export interface MonthlySummary {
   id: string;
@@ -370,7 +380,7 @@ export const emails = {
   },
 
   /** Monday mornings (daily job): the week in numbers, the classes ahead, and students gone quiet. */
-  weeklySummary(summary: WeeklySummary, adminZone: string): Email | null {
+  weeklySummary(summary: WeeklySummary, adminZone: string, pills: PillStats | null = null): Email | null {
     const to = adminEmail();
     if (!to) return null;
     const names = buildDisplayNames(summary.people);
@@ -414,6 +424,16 @@ export const emails = {
           {
             title: "Quiet for 14 days or more",
             rows: summary.inactive.map((s) => [name(s.id), s.last_active ? `last active ${day(s.last_active)}` : "never active"]),
+          },
+          {
+            title: "Suggestion pills",
+            rows: pills
+              ? [
+                  ["Shown", `${pills.shown} · Tapped: ${pills.tapped} · Closed: ${pills.closed}`],
+                  ["Unlock everything", `shown ${pills.unlock_shown} · tapped ${pills.unlock_tapped}`],
+                  ["Students", count(pills.students)],
+                ]
+              : [],
           },
         ],
         button: { label: "Open the admin dashboard", url: "https://englishandportuguesewithtrevor.com/admin/" },
@@ -731,6 +751,7 @@ export const emails = {
         sections,
         button: { label: t("See all your progress"), url: `${site}/progress/` },
         footerNote: `${classes.length ? t("Keep it up! See you in class. Trevor") : t("Keep it up! Trevor")} ${t("You can turn this email off in Settings > Preferences.")}`,
+        language: lang,
       }),
     };
   },
@@ -792,7 +813,8 @@ export const emails = {
    */
   newArticles(person: ArticleReader, articles: LessonCatalog): Email | null {
     if (!person.email || articles.length === 0) return null;
-    const t = translator(emailLanguage(person.site_language));
+    const lang = emailLanguage(person.site_language);
+    const t = translator(lang);
     const link = (id: string) => `https://englishandportuguesewithtrevor.com/lessons/#/${id}`;
     const one = articles.length === 1;
     return {
@@ -805,6 +827,7 @@ export const emails = {
         sections: [{ title: t("Out today"), rows: articles.map((a): [string, string, string] => [t("Article"), a.title, link(a.id)]) }],
         button: { label: t("Read it"), url: link(articles[0].id) },
         footerNote: t("You get this email because you asked for it. You can change this in Settings > Preferences."),
+        language: lang,
       }),
     };
   },
