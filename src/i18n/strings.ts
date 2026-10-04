@@ -163,8 +163,8 @@ export const STRINGS = {
       "Suscriptor: todas las lecciones están abiertas, en los dos idiomas. Se renueva el {date}.",
     "Subscriber: every lesson is open, in both languages.":
       "Suscriptor: todas las lecciones están abiertas, en los dos idiomas.",
-    "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
-      "Lecciones gratis: las lecciones 1–4 están abiertas. Suscríbete en el sitio de lecciones o pídele a Trevor acceso de alumno.",
+    "Free lessons: the first five lessons are open. Support my teaching on the lessons site to open them all, or ask Trevor for student access.":
+      "Lecciones gratis: las cinco primeras lecciones están abiertas. Apoya mi trabajo en el sitio de lecciones para abrirlas todas o pídele a Trevor acceso de alumno.",
     "That time overlaps an existing class. Please pick another time.":
       "Ese horario se superpone con otra clase. Elige otro.",
     "Something went wrong. Please try again.": "Algo salió mal. Inténtalo de nuevo.",
@@ -453,8 +453,8 @@ export const STRINGS = {
       "Assinante: todas as aulas estão liberadas, nos dois idiomas. Renova em {date}.",
     "Subscriber: every lesson is open, in both languages.":
       "Assinante: todas as aulas estão liberadas, nos dois idiomas.",
-    "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
-      "Aulas grátis: as aulas 1–4 estão liberadas. Assine no site de aulas ou peça ao Trevor acesso de aluno.",
+    "Free lessons: the first five lessons are open. Support my teaching on the lessons site to open them all, or ask Trevor for student access.":
+      "Aulas grátis: as cinco primeiras aulas estão liberadas. Apoie meu trabalho no site de aulas para liberar todas ou peça ao Trevor acesso de aluno.",
     "That time overlaps an existing class. Please pick another time.":
       "Esse horário coincide com outra aula. Escolha outro.",
     "Something went wrong. Please try again.": "Algo deu errado. Tente de novo.",
@@ -745,8 +745,8 @@ export const STRINGS = {
       "Abonné : toutes les leçons sont ouvertes, dans les deux langues. Se renouvelle le {date}.",
     "Subscriber: every lesson is open, in both languages.":
       "Abonné : toutes les leçons sont ouvertes, dans les deux langues.",
-    "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.":
-      "Leçons gratuites : les leçons 1 à 4 sont ouvertes. Abonnez-vous sur le site des leçons, ou demandez à Trevor un accès élève.",
+    "Free lessons: the first five lessons are open. Support my teaching on the lessons site to open them all, or ask Trevor for student access.":
+      "Leçons gratuites : les cinq premières leçons sont ouvertes. Soutenez mon travail sur le site des leçons pour toutes les ouvrir, ou demandez à Trevor un accès élève.",
     "That time overlaps an existing class. Please pick another time.":
       "Cet horaire chevauche un autre cours. Choisissez-en un autre.",
     "Something went wrong. Please try again.": "Une erreur s'est produite. Réessayez.",

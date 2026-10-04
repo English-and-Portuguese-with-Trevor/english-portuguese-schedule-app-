@@ -50,7 +50,7 @@ export function accessSummary(
       : t("Subscriber: every lesson is open, in both languages.");
   }
   return t(
-    "Free lessons: lessons 1–4 are open. Subscribe on the lessons site, or ask Trevor for student access.",
+    "Free lessons: the first five lessons are open. Support my teaching on the lessons site to open them all, or ask Trevor for student access.",
   );
 }
 

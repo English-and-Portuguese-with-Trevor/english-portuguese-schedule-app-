@@ -430,7 +430,7 @@ export const emails = {
             rows: pills
               ? [
                   ["Shown", `${pills.shown} · Tapped: ${pills.tapped} · Closed: ${pills.closed}`],
-                  ["Unlock everything", `shown ${pills.unlock_shown} · tapped ${pills.unlock_tapped}`],
+                  ["Support my teaching", `shown ${pills.unlock_shown} · tapped ${pills.unlock_tapped}`],
                   ["Students", count(pills.students)],
                 ]
               : [],

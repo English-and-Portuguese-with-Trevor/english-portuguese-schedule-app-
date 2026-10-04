@@ -142,7 +142,7 @@ describe("runDailyJob", () => {
     expect(weekly?.text).toContain("quiet: never active");
     expect(result.weekly).toBe(true);
     expect(mocks.rpc).toHaveBeenCalledWith("pill_stats", { p_secret: "s3cret" });
-    expect(weekly?.text).toContain("Suggestion pills\nShown: 12 · Tapped: 3 · Closed: 4\nUnlock everything: shown 2 · tapped 1\nStudents: 5");
+    expect(weekly?.text).toContain("Suggestion pills\nShown: 12 · Tapped: 3 · Closed: 4\nSupport my teaching: shown 2 · tapped 1\nStudents: 5");
   });
 
   it("sends the weekly summary without the pills when pill_stats fails", async () => {
