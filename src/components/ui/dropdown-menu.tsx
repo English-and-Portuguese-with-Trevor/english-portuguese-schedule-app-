@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 const DropdownMenu = DropdownMenuPrimitive.Root;
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
+// Menus scroll when zoomed in too far to fit: Radix gives the room left on screen
+// as --radix-dropdown-menu-content-available-height (it updates on resize, which zooming fires).
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
@@ -17,7 +19,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-56 overflow-hidden rounded-md border bg-background p-1 text-foreground shadow-md",
+        "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-56 overflow-y-auto overscroll-contain rounded-md border bg-background p-1 text-foreground shadow-md",
         className,
       )}
       {...props}
@@ -84,7 +86,7 @@ const DropdownMenuSubContent = React.forwardRef<
     <DropdownMenuPrimitive.SubContent
       ref={ref}
       className={cn(
-        "z-50 min-w-48 overflow-hidden rounded-md border bg-background p-1 text-foreground shadow-md",
+        "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-48 overflow-y-auto overscroll-contain rounded-md border bg-background p-1 text-foreground shadow-md",
         className,
       )}
       {...props}
