@@ -98,6 +98,7 @@ const START_LABELS: Record<StartPage, string> = {
   flashcards: tr("Flashcards"),
   activities: tr("Activities"),
   dailies: tr("Daily puzzles"),
+  conversations: tr("Conversations"),
 };
 
 function firstName(name: string | null, email: string | null) {

@@ -25,7 +25,7 @@ export type Theme = "light" | "dark";
 export type LearningLanguage = "Portuguese" | "English";
 // The sections the installed app can open on (Settings > Preferences > "Open
 // the app on"); each is a folder of englishandportuguesewithtrevor.com.
-export const START_PAGES = ["lessons", "flashcards", "activities", "dailies"] as const;
+export const START_PAGES = ["lessons", "flashcards", "activities", "dailies", "conversations"] as const;
 export type StartPage = (typeof START_PAGES)[number];
 export interface Prefs {
   theme?: Theme;
