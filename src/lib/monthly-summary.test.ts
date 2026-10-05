@@ -92,7 +92,7 @@ describe("emails.monthlySummary", () => {
     expect(email.text).toContain("4 days · best streak: 3 days");
     expect(email.text).toContain("Estar Com e Ficar");
     expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/lessons/#/estar-com-ficar"');
-    expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/progress/"');
+    expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/notebook/#/progress"');
     expect(email.text).toContain("See you in class");
   });
 

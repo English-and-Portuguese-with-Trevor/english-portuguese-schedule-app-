@@ -38,7 +38,7 @@ describe("emails.notesExpiring", () => {
     expect(email).toMatchObject({ to: "bo@example.com", subject: "Your notes will be deleted on November 20, 2026" });
     expect(email.text).toContain("Hi there!");
     expect(email.text).toContain("just open them before then");
-    expect(email.text).toContain("https://englishandportuguesewithtrevor.com/notes/");
+    expect(email.text).toContain("https://englishandportuguesewithtrevor.com/notebook/");
   });
 
   it("is written in the student's site language", () => {

@@ -3,7 +3,7 @@ import { createServerJobClient } from "@/lib/integration-status";
 import { emails, sendNotification, type NotesOwner } from "@/lib/notifications";
 
 /**
- * Daily: students' notes (the landing site's /notes/) are kept a year from
+ * Daily: students' notes (the notebook site, /notebook/) are kept a year from
  * their last use. Students whose notes nobody opened or changed for 11
  * months get one warning email (claim_notes_warnings marks them first; a
  * failed email hands them back), and notes a year unused, warned at least

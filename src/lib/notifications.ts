@@ -763,7 +763,7 @@ export const emails = {
         intro: t("Here's what you did in {month}. Nice work!", { month: monthName }),
         details: [],
         sections,
-        button: { label: t("See all your progress"), url: `${site}/progress/` },
+        button: { label: t("See all your progress"), url: `${site}/notebook/#/progress` },
         footerNote: `${classes.length ? t("Keep it up! See you in class. Trevor") : t("Keep it up! Trevor")} ${t("You can turn this email off in Settings > Preferences.")}`,
         language: lang,
       }),
@@ -866,7 +866,7 @@ export const emails = {
           { day },
         ),
         details: [[t("Notes"), String(person.notes)]],
-        button: { label: t("Open my notes"), url: "https://englishandportuguesewithtrevor.com/notes/" },
+        button: { label: t("Open my notes"), url: "https://englishandportuguesewithtrevor.com/notebook/" },
         language: lang,
       }),
     };

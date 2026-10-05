@@ -75,7 +75,7 @@ describe("AppShell", () => {
     ).toHaveAttribute("href", LANDING_URL);
     expect(
       within(menu).getByRole("menuitem", { name: "My progress" }),
-    ).toHaveAttribute("href", "https://englishandportuguesewithtrevor.com/progress/");
+    ).toHaveAttribute("href", "https://englishandportuguesewithtrevor.com/notebook/#/progress");
     expect(
       within(menu).getByRole("menuitem", { name: "Settings" }),
     ).toHaveAttribute("href", "/settings");

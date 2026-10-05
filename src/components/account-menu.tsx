@@ -39,8 +39,8 @@ import { setStartPage, START_LABELS } from "@/lib/preferences";
 import { logout } from "@/lib/actions/auth";
 
 /**
- * The account menu is the same on every site: Home, My progress (the landing
- * site's /progress/, another origin), My notes (its /notes/), Daily puzzles (gold
+ * The account menu is the same on every site: Home, My progress and My notes (the
+ * notebook site, /notebook/, another origin), Daily puzzles (gold
  * lettering, so it stands out), Articles (underlined, so it stands out too), a Learn sub-menu with the learning sites, Schedule a class,
  * App start, Settings, Log out.
  */
@@ -95,13 +95,13 @@ export default function AccountMenu({ fullName, email }: { fullName: string | nu
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href={`${LANDING_URL}/progress/`}>
+          <a href={`${LANDING_URL}/notebook/#/progress`}>
             <ChartLine />
             {t("My progress")}
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href={`${LANDING_URL}/notes/`}>
+          <a href={`${LANDING_URL}/notebook/`}>
             <NotebookPen />
             {t("My notes")}
           </a>
