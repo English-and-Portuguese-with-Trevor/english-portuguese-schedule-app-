@@ -34,7 +34,7 @@ describe("emails.welcome", () => {
     expect(email.text).toContain("Welcome, Ana!");
     expect(email.text).toContain("The first five lessons in Portuguese and in English");
     expect(email.text).toContain("Three free games every day");
-    expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/placement/"');
+    expect(email.html).not.toContain("/placement/");
     expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/?install=1"');
     expect(email.html).toContain('href="https://schedule.englishandportuguesewithtrevor.com/dashboard"');
     expect(email.html).toContain("Portuguese With Trevor");

@@ -668,7 +668,7 @@ export const emails = {
     };
   },
 
-  /** Sent once to every new account (claim_welcome_emails): what's free, the placement test, the app, and booking a class. */
+  /** Sent once to every new account (claim_welcome_emails): what's free, the app, and booking a class. */
   welcome(person: { full_name: string | null; email: string | null }): Email | null {
     if (!person.email) return null;
     const site = "https://englishandportuguesewithtrevor.com";
@@ -690,10 +690,6 @@ export const emails = {
               ["Activities", "The first activities of every skill, and the games", `${site}/activities/`],
               ["Flashcards", "Study the decks and make your own", `${site}/flashcards/`],
             ],
-          },
-          {
-            title: "Not sure where to start?",
-            rows: [["Placement test", "About 10 minutes, then the lesson to start with", `${site}/placement/`]],
           },
           {
             title: "Get the app",
