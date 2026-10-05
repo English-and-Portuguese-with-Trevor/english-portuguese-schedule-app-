@@ -105,7 +105,7 @@ export default function PrivacyPage() {
               your Word of the day guesses, for your stats and streaks.
             </li>
             <li>
-              <strong>Placement test:</strong> when you&apos;re logged in, your level, score and skills, and the
+              <strong>Level check:</strong> when you&apos;re logged in, your level, score and skills, and the
               questions you missed with the answers you picked.
             </li>
             <li>
