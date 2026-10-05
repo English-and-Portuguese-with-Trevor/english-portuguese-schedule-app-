@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Geist, Geist_Mono } from "next/font/google";
+import { DM_Serif_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { THEME_SCRIPT } from "@/lib/prefs";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// The sites' text face.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// The landing page's wordmark font.
+// The landing page's wordmark and heading font.
 const dmSerifDisplay = DM_Serif_Display({
   variable: "--font-dm-serif-display",
   weight: "400",
@@ -41,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${dmSerifDisplay.variable} h-full antialiased`}
+      className={`${inter.variable} ${dmSerifDisplay.variable} h-full antialiased`}
       // The inline script below may set data-theme before React hydrates.
       suppressHydrationWarning
     >

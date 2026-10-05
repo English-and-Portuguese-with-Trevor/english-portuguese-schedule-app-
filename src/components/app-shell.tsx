@@ -247,11 +247,11 @@ export function AppShell({
         startPage={startPage}
       />
       <div className="flex min-h-svh flex-col">
-        <header className="border-b">
+        <header className="sticky top-0 z-40 border-b border-line bg-background/90 backdrop-blur-md">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
             <a
               href={LANDING_URL}
-              className="font-display text-lg leading-tight text-brand sm:text-xl"
+              className="title text-lg leading-tight sm:text-xl"
               aria-label={translate(
                 siteLanguage,
                 tr("English & Portuguese with Trevor, main website"),

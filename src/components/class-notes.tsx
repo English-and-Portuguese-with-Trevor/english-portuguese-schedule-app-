@@ -16,10 +16,10 @@ export function ClassNotes({ notes }: { notes: ClassNote[] }) {
   if (notes.length === 0) return null;
   return (
     <section>
-      <h2 className="mb-3 text-lg font-semibold">{t("Notes from Trevor")}</h2>
+      <h2 className="title mb-3 text-2xl">{t("Notes from Trevor")}</h2>
       <div className="flex flex-col gap-2">
         {notes.map((n) => (
-          <details key={n.bookingId} className="rounded-xl border bg-card px-4 py-3">
+          <details key={n.bookingId} className="glass rounded-2xl px-4 py-3">
             <summary className="cursor-pointer font-medium">{formatDate(n.start, "dayAtTime", lang)}</summary>
             <p className="mt-2 whitespace-pre-wrap break-words text-sm">{n.notes}</p>
           </details>

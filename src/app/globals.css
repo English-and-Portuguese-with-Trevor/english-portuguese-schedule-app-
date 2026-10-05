@@ -5,26 +5,38 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  /* The sites' palette (the landing repo's index.css): cream, forest, gold, sky. */
+  --background: #f5f0e8;
+  --foreground: #12231a;
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #12231a;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary: #0f172a;
-  --primary-foreground: #f8fafc;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #dc2626;
-  --destructive-foreground: #f8fafc;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0f172a;
-  --radius: 0.65rem;
+  --popover-foreground: #12231a;
+  --primary: #1b4332;
+  --primary-foreground: #f5f0e8;
+  --secondary: #ebe4d5;
+  --secondary-foreground: #12231a;
+  --muted: #ebe4d5;
+  --muted-foreground: #4a5e54;
+  --accent: #ebe4d5;
+  --accent-foreground: #12231a;
+  --destructive: #b3261e;
+  --destructive-foreground: #f5f0e8;
+  --border: rgba(18, 35, 26, 0.14);
+  --input: #d7dcd1;
+  --ring: #1b4332;
+  --radius: 1rem;
+  --gold: #f4c430;
+  --gold-deep: #c9970a;
+  --on-gold: #12231a;
+  /* The ribbon style (Trevor, 2026-10-04, from the home and About pages):
+     fine lines behind a soft surface, glass cards. */
+  --line: rgba(18, 35, 26, 0.12);
+  --shadow-soft: rgba(18, 35, 26, 0.16);
+  --glow-a: rgba(45, 106, 79, 0.16);
+  --glow-b: rgba(244, 196, 48, 0.22);
+  --ra: #2d6a4f;
+  --rb: #c9970a;
   /* Landing page wordmark colors */
   --brand: #1b4332;
   --brand-accent: #c9970a;
@@ -59,11 +71,14 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
   --font-display: var(--font-dm-serif-display);
   --color-brand: var(--brand);
   --color-brand-accent: var(--brand-accent);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-on-gold: var(--on-gold);
+  --color-line: var(--line);
   --color-gold-text: var(--gold-text);
   --color-logout: var(--logout);
   --color-logout-foreground: var(--logout-foreground);
@@ -93,19 +108,82 @@
   --accent-foreground: #e9efea;
   --destructive: #ff8a7f;
   --destructive-foreground: #12231a;
-  --border: #2f4038;
+  --border: rgba(233, 239, 234, 0.16);
   --input: #3a4d43;
   --ring: #7bc8a0;
+  --gold-deep: #e4b84d;
+  --line: rgba(233, 239, 234, 0.14);
+  --shadow-soft: rgba(0, 0, 0, 0.45);
+  --glow-a: rgba(85, 184, 138, 0.16);
+  --glow-b: rgba(244, 196, 48, 0.12);
+  --ra: #55b88a;
+  --rb: #e4b84d;
   --logout: #1c2e3a;
   --logout-foreground: #9cc8e8;
   --logout-border: #2f4a5c;
   --logout-hover: #243b4a;
 }
 
+/* Readability first (Trevor, 2026-10-05): a notch bigger than the browser's
+   16px, Inter like the other sites, roomy line height. */
+html {
+  font-size: 106.25%;
+}
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── The ribbon style ─────────────────────── */
+/* A stage: a surface with soft glows and the ribbons (Ribbons) behind it.
+   Content on it sits above the canvas (position: relative). */
+.stage {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(60% 55% at 28% 30%, var(--glow-a), transparent 70%),
+    radial-gradient(55% 60% at 76% 72%, var(--glow-b), transparent 70%),
+    var(--card);
+  border: 1px solid var(--line);
+}
+.stage > :not(.ribbons) {
+  position: relative;
+  z-index: 1;
+}
+.ribbons {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 50%, #000 55%, transparent 100%);
+  mask-image: radial-gradient(120% 90% at 50% 50%, #000 55%, transparent 100%);
+}
+/* A stage with text on it keeps the ribbons faint, so the words come first. */
+.stage-soft .ribbons {
+  opacity: 0.45;
+}
+/* A glass card: the sites' pills and cards, opaque enough to read on. */
+.glass {
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  -webkit-backdrop-filter: blur(10px) saturate(1.3);
+  backdrop-filter: blur(10px) saturate(1.3);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 30px -18px var(--shadow-soft);
+}
+/* Page and section titles in the serif, like the other sites. */
+.title {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  color: var(--brand);
+  text-wrap: balance;
 }
 
 @layer base {

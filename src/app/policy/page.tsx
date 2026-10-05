@@ -74,17 +74,17 @@ export default async function PolicyPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
-      <a href="https://englishandportuguesewithtrevor.com" className="font-display text-xl text-brand">
+      <a href="https://englishandportuguesewithtrevor.com" className="title text-xl">
         English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
       </a>
-      <h1 className="mt-8 text-2xl font-semibold">{t("Class policy")}</h1>
+      <h1 className="title mt-8 text-3xl">{t("Class policy")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("Last updated {date}", { date: updated })}</p>
 
-      <div className="mt-8 flex flex-col gap-6 text-sm leading-relaxed">
+      <div className="mt-8 flex flex-col gap-6 leading-relaxed">
         <p>{t("These are the rules for private classes with Trevor. Booking a class means you agree to them.")}</p>
         {sections.map((section) => (
           <section key={section.title} className="flex flex-col gap-2">
-            <h2 className="text-base font-semibold">{section.title}</h2>
+            <h2 className="title text-xl">{section.title}</h2>
             {section.lines.map((line) => (
               <p key={line}>{line}</p>
             ))}

@@ -9,13 +9,13 @@ const CONTACT_EMAIL = "englishportuguesewithtrevor@gmail.com";
 export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
-      <a href="https://englishandportuguesewithtrevor.com" className="font-display text-xl text-brand">
+      <a href="https://englishandportuguesewithtrevor.com" className="title text-xl">
         English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
       </a>
-      <h1 className="mt-8 text-2xl font-semibold">Privacy Policy</h1>
+      <h1 className="title mt-8 text-3xl">Privacy Policy</h1>
       <p className="mt-1 text-sm text-muted-foreground">Last updated October 3, 2026</p>
 
-      <div className="mt-8 flex flex-col gap-6 text-sm leading-relaxed [&_h2]:text-base [&_h2]:font-semibold [&_ul]:list-disc [&_ul]:pl-5">
+      <div className="mt-8 flex flex-col gap-6 leading-relaxed [&_h2]:font-display [&_h2]:text-xl [&_h2]:text-brand [&_ul]:list-disc [&_ul]:pl-5">
         <p>
           This policy explains what information the English &amp; Portuguese with Trevor sites collect, what
           it&apos;s used for, and how to delete it. If anything here is unclear, just email{" "}

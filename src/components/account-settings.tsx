@@ -137,7 +137,7 @@ export function AccountSettings({
         <Button variant="ghost" className="-ml-3 self-start" onClick={() => setPage(null)}>
           ‹ {t("Settings")}
         </Button>
-        <h1 className="-mt-4 text-2xl font-semibold">
+        <h1 className="title -mt-4 text-3xl">
           {page === "preferences" ? t("Preferences") : t("Account")}
         </h1>
         {page === "preferences" ? (
@@ -179,7 +179,7 @@ export function AccountSettings({
       <Button variant="ghost" className="-ml-3 self-start" asChild>
         <Link href={role === "admin" ? "/admin" : "/dashboard"}>‹ {t("Back")}</Link>
       </Button>
-      <h1 className="-mt-4 text-2xl font-semibold">{t("Settings")}</h1>
+      <h1 className="title -mt-4 text-3xl">{t("Settings")}</h1>
 
       <div className="flex flex-col gap-2">
         <Button

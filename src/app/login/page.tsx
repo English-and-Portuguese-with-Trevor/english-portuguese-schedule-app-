@@ -10,6 +10,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { GoogleIcon } from "@/components/google-icon";
+import { Ribbons } from "@/components/ribbons";
 import { translator } from "@/i18n/translate";
 import { readPrefs, siteLanguage, type SiteLanguage } from "@/lib/prefs";
 import { safeNextPath } from "@/lib/safe-next-path";
@@ -60,9 +61,15 @@ export default function LoginPage() {
 
   return (
     <main lang={lang} className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+      <Card className="stage stage-soft w-full max-w-sm">
+        <Ribbons animate at={3} />
         <CardHeader>
-          <h1 className="text-lg font-semibold leading-none tracking-tight">{t("Welcome")}</h1>
+          <p className="title text-xl leading-tight">
+            English <em className="text-brand-accent">&amp;</em> Portuguese
+            <br />
+            with Trevor
+          </p>
+          <h1 className="pt-3 text-lg font-semibold leading-none tracking-tight">{t("Welcome")}</h1>
           <CardDescription>
             {t("Log in with your Google account or your email and password.")}
           </CardDescription>

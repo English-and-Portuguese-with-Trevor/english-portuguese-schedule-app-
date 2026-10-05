@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Ribbons } from "@/components/ribbons";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_PATTERN, type BookingAnswers, type LessonLanguage, type Role } from "@/lib/types";
 import { useSiteLanguage, useT } from "@/i18n/client";
@@ -185,8 +186,8 @@ export function SlotPicker({
               aria-label={`${formatDate(day, "longDay", lang)}, ${count > 0 ? t("{n} open", { n: count }) : t("no availability")}`}
               onClick={() => setSelectedKey(key)}
               className={cn(
-                "flex w-16 shrink-0 snap-start flex-col items-center gap-0.5 rounded-lg border px-2 py-2 text-center transition-colors",
-                selected ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
+                "glass flex w-16 shrink-0 snap-start flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-center transition-colors",
+                selected ? "border-primary bg-primary text-primary-foreground shadow-none" : "hover:bg-accent",
                 !selected && count === 0 && "opacity-50",
               )}
             >
@@ -200,15 +201,16 @@ export function SlotPicker({
         })}
       </div>
 
-      <div className="rounded-lg border p-4">
-        <h3 className="mb-3 font-semibold">{formatDate(selectedDay, "longDay", lang)}</h3>
+      <div className="stage stage-soft rounded-2xl p-4">
+        <Ribbons at={9} />
+        <h3 className="mb-3 text-base font-semibold">{formatDate(selectedDay, "longDay", lang)}</h3>
 
         {info && info.busy.length > 0 && (
           <ul className="mb-4 flex flex-col gap-1">
             {info.busy.map((b) => (
               <li
                 key={b.start.toISOString()}
-                className="rounded-md bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
+                className="rounded-full bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
               >
                 {formatTimeRange(b.start, b.end, lang)} · {t("Booked")}
                 {isAdmin && b.studentName ? ` (${b.studentName})` : ""}
@@ -315,7 +317,7 @@ export function SlotPicker({
                     <label
                       key={value}
                       className={cn(
-                        "flex flex-1 cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
+                        "flex flex-1 cursor-pointer items-center justify-center rounded-full border px-3 py-2 text-sm font-medium has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
                         language === value && "border-primary bg-primary text-primary-foreground",
                       )}
                     >
@@ -352,7 +354,7 @@ export function SlotPicker({
             </div>
           )}
           {dialogError && (
-            <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {dialogError}
             </p>
           )}
@@ -360,7 +362,7 @@ export function SlotPicker({
             <Button variant="outline" disabled={isPending} onClick={() => setPendingSlot(null)}>
               {t("Back")}
             </Button>
-            <Button disabled={isPending || !answersValid} onClick={confirm}>
+            <Button variant="gold" disabled={isPending || !answersValid} onClick={confirm}>
               {isPending ? t("Sending…") : pendingNeedsApproval || rescheduleFrom ? t("Request") : t("Book")}
             </Button>
           </DialogFooter>

@@ -182,7 +182,7 @@ export function BookingBoard({
     <div className="flex flex-col gap-8">
       <section>
         <p className="mb-1 text-xs text-muted-foreground">{t("Times shown in {zone}.", { zone: tzLabel })}</p>
-        <h2 className="mb-3 text-lg font-semibold">{t("My bookings")}</h2>
+        <h2 className="title mb-3 text-2xl">{t("My bookings")}</h2>
         {myBookings.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("You have no upcoming classes yet.")}</p>
         ) : (
@@ -249,7 +249,7 @@ export function BookingBoard({
 
       {canFlag && recentClasses.length > 0 && (
         <section>
-          <h2 className="mb-1 text-lg font-semibold">{t("Recent classes")}</h2>
+          <h2 className="title mb-1 text-2xl">{t("Recent classes")}</h2>
           <p className="mb-3 text-sm text-muted-foreground">
             {t("Something wrong with a class? Tap its flag to let Trevor know.")}
           </p>
@@ -272,14 +272,14 @@ export function BookingBoard({
       )}
 
       <section ref={pickerRef} className="scroll-mt-4">
-        <h2 className="mb-3 text-lg font-semibold">{rescheduling ? t("Pick a new time") : t("Book a class")}</h2>
+        <h2 className="title mb-3 text-2xl">{rescheduling ? t("Pick a new time") : t("Book a class")}</h2>
         {shortClasses && (
           <p className="mb-4 text-sm text-muted-foreground">
             {t("New students book 30-minute classes. Once Trevor adds you as his student, you can book longer classes.")}
           </p>
         )}
         {rescheduling && (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-md border border-primary/30 bg-secondary px-4 py-3 text-sm">
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-secondary px-4 py-3 text-sm">
             <span>
               {t("Moving your class on {time}. It stays booked until Trevor approves the new time.", {
                 time: formatDate(rescheduling.start, "dayAtTime", lang),
@@ -307,7 +307,7 @@ export function BookingBoard({
         <div
           role="status"
           className={cn(
-            "fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-md border px-4 py-3 text-sm shadow-lg",
+            "fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-xl border px-4 py-3 text-sm shadow-lg",
             // Clear the admin's bottom tab bar on phones.
             role === "admin" && "bottom-20 sm:bottom-4",
             notice.kind === "success"

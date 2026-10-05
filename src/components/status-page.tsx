@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Ribbons } from "@/components/ribbons";
 import {
   Card,
   CardContent,
@@ -38,9 +39,10 @@ export function StatusPage({
 
   return (
     <main lang={lang} className="flex min-h-svh items-center justify-center p-6">
-      <Card className="w-full max-w-sm">
+      <Card className="stage stage-soft w-full max-w-sm">
+        <Ribbons at={7} />
         <CardHeader>
-          <h1 className="text-lg font-semibold leading-none tracking-tight">{t(title)}</h1>
+          <h1 className="title text-2xl">{t(title)}</h1>
           <CardDescription>{t(message)}</CardDescription>
         </CardHeader>
         <CardContent>
