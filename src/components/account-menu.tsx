@@ -13,6 +13,7 @@ import {
   Layers,
   LogOut,
   Menu,
+  Newspaper,
   Settings as SettingsIcon,
   Smartphone,
 } from "lucide-react";
@@ -39,7 +40,7 @@ import { logout } from "@/lib/actions/auth";
 /**
  * The account menu is the same on every site: Home, My progress (the landing
  * site's /progress/, another origin), Daily puzzles (gold
- * lettering, so it stands out), a Learn sub-menu with the learning sites, Schedule a class,
+ * lettering, so it stands out), Articles (underlined, so it stands out too), a Learn sub-menu with the learning sites, Schedule a class,
  * App start, Settings, Log out.
  */
 export const LEARN_LINKS = [
@@ -114,6 +115,13 @@ export default function AccountMenu({ fullName, email }: { fullName: string | nu
           <a href="https://englishandportuguesewithtrevor.com/dailies/">
             <Puzzle />
             {t("Daily puzzles")}
+          </a>
+        </DropdownMenuItem>
+        {/* Underlined so the articles stand out from the other rows (Trevor, 2026-10-05). */}
+        <DropdownMenuItem asChild className="underline decoration-2 underline-offset-4">
+          <a href="https://englishandportuguesewithtrevor.com/lessons/#/articles">
+            <Newspaper />
+            {t("Articles")}
           </a>
         </DropdownMenuItem>
         <DropdownMenuSub>
