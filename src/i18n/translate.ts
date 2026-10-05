@@ -27,9 +27,4 @@ export function translator(language: SiteLanguage): Translate {
   return (text, vars) => translate(language, text, vars);
 }
 
-/**
- * Marks English text outside components (error messages, data) for
- * translation; it's translated where it's shown. i18n.test.ts checks that
- * every literal passed to tr or t has a translation.
- */
-export const tr = (text: string) => text;
+export { tr } from "@/i18n/tr";

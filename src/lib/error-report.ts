@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/load-client";
 
 // Error reports: an error nothing caught on a page is sent to Trevor's admin
 // dashboard (Errors screen, landing repo) through the report_client_error RPC
@@ -44,7 +44,7 @@ let report: ReturnType<typeof makeErrorReporter> | null = null;
 export function startErrorReports() {
   if (!report) {
     // The RPC isn't in database.types.ts (it's the landing repo's), hence the cast.
-    report = makeErrorReporter("schedule", () => createClient() as unknown as Rpc);
+    report = makeErrorReporter("schedule", () => loadClient() as unknown as Promise<Rpc>);
     const send = report;
     window.addEventListener("error", (event) => send(event.error, event.message));
     window.addEventListener("unhandledrejection", (event) => send(event.reason));

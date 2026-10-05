@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/load-client";
 import {
   applyThemeAttribute,
   readPrefs,
@@ -19,8 +19,8 @@ function save(
   fn: "set_theme" | "set_learning_language" | "set_site_language" | "set_start_page" | "set_email_choices",
   args: Record<string, string>,
 ) {
-  return Promise.resolve()
-    .then(() => createClient().rpc(fn, args as never))
+  return loadClient()
+    .then((supabase) => supabase.rpc(fn, args as never))
     .then(
       (res) =>
         res?.error &&

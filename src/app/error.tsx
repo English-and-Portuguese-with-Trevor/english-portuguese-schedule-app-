@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { StatusPage } from "@/components/status-page";
-import { tr } from "@/i18n/translate";
+import { tr } from "@/i18n/tr";
 import { reportCaught } from "@/lib/error-report";
 
 export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {

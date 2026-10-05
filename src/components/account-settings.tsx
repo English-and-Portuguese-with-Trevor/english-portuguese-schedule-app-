@@ -50,7 +50,7 @@ import {
   promptInstall,
   subscribeInstallState,
 } from "@/lib/install-prompt";
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/load-client";
 import type { LessonAccess, Role } from "@/lib/types";
 
 /** Reads the JSON error an edge function returned with a non-2xx status. */
@@ -99,8 +99,8 @@ export function AccountSettings({
   // portal shows here even if its webhook message went missing.
   useEffect(() => {
     let cancelled = false;
-    createClient()
-      .functions.invoke("billing", { body: { action: "refresh" } })
+    loadClient()
+      .then((supabase) => supabase.functions.invoke("billing", { body: { action: "refresh" } }))
       .then(({ data, error }) => {
         if (!cancelled && !error && data?.synced) router.refresh();
       })
@@ -115,7 +115,7 @@ export function AccountSettings({
   function manageSubscription() {
     setBillingError(null);
     startOpening(async () => {
-      const { data, error } = await createClient().functions.invoke("billing", {
+      const { data, error } = await (await loadClient()).functions.invoke("billing", {
         body: { action: "portal", returnUrl: window.location.href },
       });
       if (data?.url) {
@@ -478,7 +478,7 @@ function DeleteAccountDialog({
     if (!canDelete) return;
     setError(null);
     startDeleting(async () => {
-      const supabase = createClient();
+      const supabase = await loadClient();
       const { error: fnError } = await supabase.functions.invoke(
         "delete-account",
         { method: "POST" },

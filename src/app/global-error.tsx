@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 import "./globals.css";
 import { StatusPage } from "@/components/status-page";
-import { tr } from "@/i18n/translate";
+import { tr } from "@/i18n/tr";
 import { reportCaught } from "@/lib/error-report";
 import { applyThemeAttribute, readPrefs } from "@/lib/prefs";
 

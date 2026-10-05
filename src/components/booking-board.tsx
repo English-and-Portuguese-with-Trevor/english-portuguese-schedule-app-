@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { CancelBookingDialog, type CancellableBooking } from "@/components/cancel-booking-dialog";
 import { FlagClassDialog } from "@/components/flag-class-dialog";
 import { SlotPicker, timeZoneLabel, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/load-client";
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
 import { cn } from "@/lib/utils";
@@ -63,19 +63,25 @@ export function BookingBoard({
   const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel("dashboard-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "session_slots" }, () =>
-        router.refresh(),
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () =>
-        router.refresh(),
-      )
-      .subscribe();
+    let active = true;
+    let stop = () => {};
+    void loadClient().then((supabase) => {
+      if (!active) return;
+      const channel = supabase
+        .channel("dashboard-live")
+        .on("postgres_changes", { event: "*", schema: "public", table: "session_slots" }, () =>
+          router.refresh(),
+        )
+        .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () =>
+          router.refresh(),
+        )
+        .subscribe();
+      stop = () => void supabase.removeChannel(channel);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      stop();
     };
   }, [router]);
 

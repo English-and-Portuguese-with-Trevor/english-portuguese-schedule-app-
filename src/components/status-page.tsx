@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Ribbons } from "@/components/ribbons";
@@ -11,14 +10,7 @@ import {
   CardDescription,
   CardHeader,
 } from "@/components/ui/card";
-import { translator } from "@/i18n/translate";
-import { readPrefs, siteLanguage, type SiteLanguage } from "@/lib/prefs";
-
-const noopSubscribe = () => () => {};
-// These pages show outside AppShell (and may show when nothing else works), so
-// the site language comes from the shared cookie or the browser, like /login.
-const cookieLanguage = () => siteLanguage(readPrefs(), navigator.languages);
-const serverLanguage = (): SiteLanguage => "en";
+import { useCookieLanguage } from "@/i18n/cookie-language";
 
 /**
  * The page people see instead of a bare error: not found, something broke, or
@@ -34,8 +26,9 @@ export function StatusPage({
   message: string;
   retry?: () => void;
 }) {
-  const lang = useSyncExternalStore(noopSubscribe, cookieLanguage, serverLanguage);
-  const t = translator(lang);
+  // These pages show outside AppShell (and may show when nothing else works), so
+  // the site language comes from the shared cookie or the browser, like /login.
+  const { lang, t } = useCookieLanguage();
 
   return (
     <main lang={lang} className="flex min-h-svh items-center justify-center p-6">

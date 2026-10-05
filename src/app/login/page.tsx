@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,17 +11,10 @@ import {
 } from "@/components/ui/card";
 import { GoogleIcon } from "@/components/google-icon";
 import { Ribbons } from "@/components/ribbons";
-import { translator } from "@/i18n/translate";
-import { readPrefs, siteLanguage, type SiteLanguage } from "@/lib/prefs";
+import { useCookieLanguage } from "@/i18n/cookie-language";
 import { safeNextPath } from "@/lib/safe-next-path";
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/load-client";
 import { sharedLoginUrl } from "@/lib/shared-login";
-
-const noopSubscribe = () => () => {};
-// Nobody is logged in here, so the site language comes from the shared
-// cookie (or the browser); the server can't know it, so English until hydrated.
-const cookieLanguage = () => siteLanguage(readPrefs(), navigator.languages);
-const serverLanguage = (): SiteLanguage => "en";
 
 /** Where to go after login: the page that sent us here (see supabase/proxy.ts), else the dashboard. */
 function nextPath() {
@@ -31,8 +24,8 @@ function nextPath() {
 export default function LoginPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const lang = useSyncExternalStore(noopSubscribe, cookieLanguage, serverLanguage);
-  const t = translator(lang);
+  // Nobody is logged in here, so the site language comes from the shared cookie (or the browser).
+  const { lang, t } = useCookieLanguage();
 
   useEffect(() => {
     // Stay here only to show a failed Google login, or when running locally.
@@ -46,7 +39,7 @@ export default function LoginPage() {
   async function handleGoogleSignIn() {
     setPending(true);
     setError(null);
-    const supabase = createClient();
+    const supabase = await loadClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

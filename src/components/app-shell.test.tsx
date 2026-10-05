@@ -63,7 +63,7 @@ describe("AppShell", () => {
     const user = renderShell("student");
     expect(screen.queryByText("Log out")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Hi, Trevor" }));
+    await user.click(await screen.findByRole("button", { name: "Hi, Trevor" }));
     const menu = screen.getByRole("menu");
     expect(
       within(menu)

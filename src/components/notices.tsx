@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useT } from "@/i18n/client";
 import { readPrefs } from "@/lib/prefs";
-import { createClient } from "@/lib/supabase/client";
+import { loadClient } from "@/lib/supabase/load-client";
 
 // Trevor's notices (written on the admin dashboard, landing repo), shown
 // under the header until dismissed on this device.
@@ -26,9 +26,10 @@ export function Notices() {
   const [notices, setNotices] = useState<Notice[]>([]);
 
   useEffect(() => {
-    const supabase = createClient();
     let active = true;
+    let unsubscribe = () => {};
     async function load() {
+      const supabase = await loadClient();
       const { data, error } = await supabase.rpc("my_announcements", {
         p_learning: readPrefs().learning ?? undefined,
       });
@@ -36,14 +37,18 @@ export function Notices() {
       const dismissed = readDismissed();
       setNotices(data.filter((n) => !dismissed.includes(n.id)));
     }
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "TOKEN_REFRESHED") return;
-      // Outside the callback: awaiting Supabase inside it can deadlock.
-      setTimeout(() => void load().catch(() => {}), 0);
+    void loadClient().then((supabase) => {
+      if (!active) return;
+      const { data } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "TOKEN_REFRESHED") return;
+        // Outside the callback: awaiting Supabase inside it can deadlock.
+        setTimeout(() => void load().catch(() => {}), 0);
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
     });
     return () => {
       active = false;
-      data.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 

@@ -11,6 +11,10 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Turbopack copies small shared modules into every chunk group below 50 kB
+  // (the default), so the error and not-found pages each carried their own
+  // copy of the status page into every page's first load. Smaller chunks share them.
+  experimental: { turbopackChunking: { minChunkSize: 10000 } },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
