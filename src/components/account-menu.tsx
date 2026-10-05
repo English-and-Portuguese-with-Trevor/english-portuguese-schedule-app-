@@ -34,7 +34,7 @@ import {
 import { useT } from "@/i18n/client";
 import { tr } from "@/i18n/translate";
 import { readPrefs, START_PAGES, type StartPage } from "@/lib/prefs";
-import { setStartPage } from "@/lib/preferences";
+import { setStartPage, START_LABELS } from "@/lib/preferences";
 import { logout } from "@/lib/actions/auth";
 
 /**
@@ -65,15 +65,6 @@ export const LEARN_LINKS = [
     icon: MessagesSquare,
   },
 ] as const;
-
-// "App start": where the installed app starts (the shared `start` preference).
-const START_LABELS: Record<StartPage, string> = {
-  lessons: tr("Lessons"),
-  flashcards: tr("Flashcards"),
-  activities: tr("Activities"),
-  dailies: tr("Daily puzzles"),
-  conversations: tr("Conversations"),
-};
 
 function firstName(name: string | null, email: string | null) {
   // No name on the profile: the part of the email before the @ will do.

@@ -1,3 +1,4 @@
+import { tr } from "@/i18n/tr";
 import { loadClient } from "@/lib/supabase/load-client";
 import {
   applyThemeAttribute,
@@ -16,8 +17,8 @@ import {
 // The profile wins; a choice made before it had one is saved to it.
 
 function save(
-  fn: "set_theme" | "set_learning_language" | "set_site_language" | "set_start_page" | "set_email_choices",
-  args: Record<string, string>,
+  fn: "set_theme" | "set_learning_language" | "set_site_language" | "set_start_page" | "set_email_choices" | "set_app_uses",
+  args: Record<string, string | string[]>,
 ) {
   return loadClient()
     .then((supabase) => supabase.rpc(fn, args as never))
@@ -75,10 +76,24 @@ export function setSiteLanguage(language: SiteLanguage): Promise<unknown> {
   return save("set_site_language", { lang: language });
 }
 
-/** Which section the installed app opens on (Settings > Preferences > "App start"). */
+// The sections' names, for "App start" and "What I use the app for".
+export const START_LABELS: Record<StartPage, string> = {
+  lessons: tr("Lessons"),
+  flashcards: tr("Flashcards"),
+  activities: tr("Activities"),
+  dailies: tr("Daily puzzles"),
+  conversations: tr("Conversations"),
+};
+
+/** Which section the installed app opens on (the account menu's "App start"). */
 export function setStartPage(page: StartPage) {
   writePrefs({ start: page });
   save("set_start_page", { page });
+}
+
+/** The sections the student uses the app for (Settings > Preferences; profile only). */
+export function setAppUses(uses: StartPage[]) {
+  return save("set_app_uses", { p_uses: uses });
 }
 
 export function setLearningLanguage(language: LearningLanguage) {

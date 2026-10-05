@@ -30,10 +30,13 @@ import {
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { tr } from "@/i18n/translate";
 import {
+  setAppUses,
   setEmailChoices,
   setLearningLanguage,
   setSiteLanguage,
+  setStartPage,
   setTheme,
+  START_LABELS,
   type ArticleDelivery,
   type ClassUpdateDelivery,
   type SummaryDelivery,
@@ -41,9 +44,11 @@ import {
 import {
   readPrefs,
   SITE_LANGUAGES,
+  START_PAGES,
   type LearningLanguage,
   type Prefs,
   type SiteLanguage,
+  type StartPage,
 } from "@/lib/prefs";
 import {
   getInstallState,
@@ -76,6 +81,8 @@ export function AccountSettings({
   articleDelivery = "app",
   summaryDelivery = "email",
   classUpdateDelivery = "email",
+  appUses = [],
+  startPage = null,
 }: {
   name: string | null;
   email: string | null;
@@ -86,6 +93,9 @@ export function AccountSettings({
   articleDelivery?: ArticleDelivery;
   summaryDelivery?: SummaryDelivery;
   classUpdateDelivery?: ClassUpdateDelivery;
+  /** The profile's app_uses and start_page (Preferences > What I use the app for). */
+  appUses?: StartPage[];
+  startPage?: StartPage | null;
 }) {
   const [billingError, setBillingError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
@@ -145,6 +155,8 @@ export function AccountSettings({
             articleDelivery={articleDelivery}
             summaryDelivery={summaryDelivery}
             classUpdateDelivery={classUpdateDelivery}
+            appUses={appUses}
+            startPage={startPage}
           />
         ) : (
           <Card>
@@ -290,12 +302,15 @@ function InstallRow() {
 
 /**
  * Dark mode, the language being learned and the site language, then the
- * Emails group (new articles, monthly summary, weekly class update); the same settings on every site.
+ * Emails group (new articles, monthly summary, weekly class update) and
+ * What I use the app for; the same settings on every site.
  */
 function PreferencesCard(props: {
   articleDelivery: ArticleDelivery;
   summaryDelivery: SummaryDelivery;
   classUpdateDelivery: ClassUpdateDelivery;
+  appUses: StartPage[];
+  startPage: StartPage | null;
 }) {
   const [articles, setArticles] = useState(props.articleDelivery);
   const [summary, setSummary] = useState(props.summaryDelivery);
@@ -448,8 +463,87 @@ function PreferencesCard(props: {
             <option value="off">{t("Off")}</option>
           </select>
         </div>
+        <AppUses appUses={props.appUses} startPage={props.startPage} />
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * What I use the app for: every section the student uses (profile app_uses)
+ * and, of those, the one the installed app opens on (the account menu's App start).
+ */
+function AppUses(props: { appUses: StartPage[]; startPage: StartPage | null }) {
+  const t = useT();
+  const [start, setStart] = useState(props.startPage);
+  const [saved, setSaved] = useState(props.appUses);
+  // The start page always shows checked.
+  const [uses, setUses] = useState(() =>
+    START_PAGES.filter((p) => props.appUses.includes(p) || p === props.startPage),
+  );
+
+  function save(next: StartPage[]) {
+    setUses(next);
+    setSaved(next);
+    setAppUses(next);
+  }
+
+  function toggle(page: StartPage, checked: boolean) {
+    save(START_PAGES.filter((p) => (p === page ? checked : uses.includes(p))));
+    if (checked && !start) choose(page);
+  }
+
+  function choose(page: StartPage) {
+    setStartPage(page);
+    setStart(page);
+  }
+
+  return (
+    <>
+      <div className="pt-5 pb-2">
+        <p className="pb-1 text-sm font-semibold">{t("What I use the app for")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("Check every section you use, and pick the one the app opens on.")}
+        </p>
+      </div>
+      {START_PAGES.map((page) => {
+        const checked = uses.includes(page);
+        return (
+          <div key={page} className="flex min-h-11 items-center justify-between gap-4 py-1">
+            <label className="flex min-h-11 flex-1 items-center gap-3 text-sm font-medium">
+              <input
+                type="checkbox"
+                className="size-5 accent-primary"
+                checked={checked}
+                disabled={page === start}
+                onChange={(e) => toggle(page, e.target.checked)}
+              />
+              {t(START_LABELS[page])}
+            </label>
+            {checked && (
+              <label className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="app-start"
+                  className="size-5 accent-primary"
+                  checked={page === start}
+                  onChange={() => {
+                    choose(page);
+                    if (!saved.includes(page)) save(uses);
+                  }}
+                />
+                {t("Opens here")}
+              </label>
+            )}
+          </div>
+        );
+      })}
+      {start && (
+        <p className="pt-3 text-sm font-medium">
+          {t("The app will open on {page}.", { page: t(START_LABELS[start]) })}
+        </p>
+      )}
+    </>
   );
 }
 

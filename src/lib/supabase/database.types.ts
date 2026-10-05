@@ -374,6 +374,7 @@ export type Database = {
           id: string
           learning_language: string | null
           start_page: string | null
+          app_uses: string[] | null
           site_language: string | null
           lesson_access: string
           phone: string | null
@@ -398,6 +399,7 @@ export type Database = {
           id: string
           learning_language?: string | null
           start_page?: string | null
+          app_uses?: string[] | null
           site_language?: string | null
           lesson_access?: string
           phone?: string | null
@@ -422,6 +424,7 @@ export type Database = {
           id?: string
           learning_language?: string | null
           start_page?: string | null
+          app_uses?: string[] | null
           site_language?: string | null
           lesson_access?: string
           phone?: string | null
@@ -624,6 +627,7 @@ export type Database = {
       }
       set_learning_language: { Args: { lang: string }; Returns: undefined }
       set_start_page: { Args: { page: string }; Returns: undefined }
+      set_app_uses: { Args: { p_uses: string[] }; Returns: undefined }
       set_site_language: { Args: { lang: string }; Returns: undefined }
       set_email_choices: { Args: { p_articles: string; p_summary: string; p_class_update: string }; Returns: undefined }
       claim_class_updates: { Args: { p_secret: string; p_week: string }; Returns: Json }

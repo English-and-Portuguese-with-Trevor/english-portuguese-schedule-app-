@@ -298,6 +298,40 @@ describe("Preferences", () => {
     );
   });
 
+  it("saves the sections the app is used for and the one it opens on", async () => {
+    render(
+      <AccountSettings
+        name="Ana"
+        email="ana@example.com"
+        role="student"
+        lessonAccess="none"
+        billing={null}
+        appUses={["flashcards"]}
+        startPage="lessons"
+      />,
+    );
+    openPage("Preferences");
+    // The start page shows checked, and can't be unchecked.
+    expect(screen.getByRole("checkbox", { name: "Lessons" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Lessons" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Flashcards" })).toBeChecked();
+    expect(screen.getByText("The app will open on Lessons.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Daily puzzles" }));
+    await waitFor(() =>
+      expect(rpc).toHaveBeenCalledWith("set_app_uses", { p_uses: ["lessons", "flashcards", "dailies"] }),
+    );
+
+    const radios = screen.getAllByRole("radio", { name: "Opens here" });
+    expect(radios).toHaveLength(3);
+    fireEvent.click(radios[2]);
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("set_start_page", { page: "dailies" }));
+    expect(decodeURIComponent(document.cookie)).toContain('"start":"dailies"');
+    expect(screen.getByText("The app will open on Daily puzzles.")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Lessons" })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: "Daily puzzles" })).toBeDisabled();
+  });
+
   it("shows the settings in the site language", () => {
     render(
       <SiteLanguageProvider lang="fr">
