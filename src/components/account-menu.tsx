@@ -2,6 +2,7 @@
 
 import {
   ChartLine,
+  NotebookPen,
   Check,
   BookOpen,
   CalendarPlus,
@@ -39,7 +40,7 @@ import { logout } from "@/lib/actions/auth";
 
 /**
  * The account menu is the same on every site: Home, My progress (the landing
- * site's /progress/, another origin), Daily puzzles (gold
+ * site's /progress/, another origin), My notes (its /notes/), Daily puzzles (gold
  * lettering, so it stands out), Articles (underlined, so it stands out too), a Learn sub-menu with the learning sites, Schedule a class,
  * App start, Settings, Log out.
  */
@@ -97,6 +98,12 @@ export default function AccountMenu({ fullName, email }: { fullName: string | nu
           <a href={`${LANDING_URL}/progress/`}>
             <ChartLine />
             {t("My progress")}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={`${LANDING_URL}/notes/`}>
+            <NotebookPen />
+            {t("My notes")}
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem

@@ -11,12 +11,14 @@ const mocks = vi.hoisted(() => ({
   sendArticleEmails: vi.fn(async () => 2),
   articlesReleasedOn: vi.fn(async (_day: string) => [] as { id: string; title: string }[]),
   sendClassUpdates: vi.fn(async () => 4),
+  cleanUpNotes: vi.fn(async () => ({ warned: 1, deleted: 0 })),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
 vi.mock("@/lib/welcome", () => ({ sendWelcomes: mocks.sendWelcomes }));
 vi.mock("@/lib/monthly-summary", () => ({ sendMonthlySummaries: mocks.sendMonthlySummaries }));
 vi.mock("@/lib/article-emails", () => ({ sendArticleEmails: mocks.sendArticleEmails, articlesReleasedOn: mocks.articlesReleasedOn }));
 vi.mock("@/lib/class-updates", () => ({ sendClassUpdates: mocks.sendClassUpdates }));
+vi.mock("@/lib/notes-cleanup", () => ({ cleanUpNotes: mocks.cleanUpNotes }));
 vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection, LESSON_TIMEZONE: "America/Denver" }));
 vi.mock("@/lib/integration-status", () => ({
   recordGoogleStatus: mocks.recordGoogleStatus,
@@ -108,7 +110,9 @@ describe("runDailyJob", () => {
       articles: 0,
       monthly: 0,
       classUpdates: 0,
+      notes: { warned: 1, deleted: 0 },
     });
+    expect(mocks.cleanUpNotes).toHaveBeenCalledWith("s3cret");
     expect(mocks.sendArticleEmails).not.toHaveBeenCalled();
     expect(mocks.sendClassUpdates).not.toHaveBeenCalled();
   });

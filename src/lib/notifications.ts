@@ -196,6 +196,16 @@ export interface ArticleReader {
   learning: string;
 }
 
+/** A student whose notes are about to go, from claim_notes_warnings. */
+export interface NotesOwner {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  site_language: string | null;
+  notes: number;
+  delete_on: string;
+}
+
 /** The lessons site's lessons.json: every lesson in order, English ones and articles marked. */
 export type LessonCatalog = { id: string; title: string; learning?: string; article?: boolean; releaseOn?: string }[];
 
@@ -831,6 +841,32 @@ export const emails = {
         sections: [{ title: t("Out today"), rows: articles.map((a): [string, string, string] => [t("Article"), a.title, link(a.id)]) }],
         button: { label: t("Read it"), url: link(articles[0].id) },
         footerNote: t("You get this email because you asked for it. You can change this in Settings > Preferences."),
+        language: lang,
+      }),
+    };
+  },
+
+  /**
+   * To a student whose notes nobody opened or changed for 11 months
+   * (claim_notes_warnings): they're deleted on `delete_on` unless the
+   * student opens them first. In their site language.
+   */
+  notesExpiring(person: NotesOwner): Email | null {
+    if (!person.email) return null;
+    const lang = emailLanguage(person.site_language);
+    const t = translator(lang);
+    const day = new Date(person.delete_on).toLocaleDateString(LOCALES[lang], { timeZone: LESSON_TIMEZONE, year: "numeric", month: "long", day: "numeric" });
+    return {
+      to: person.email,
+      subject: t("Your notes will be deleted on {day}", { day }),
+      ...renderEmail({
+        heading: greeting(person.full_name, t),
+        intro: t(
+          "You haven't opened your notes in almost a year, so they'll be deleted on {day}. To keep them, just open them before then. Anything you change starts the year again.",
+          { day },
+        ),
+        details: [[t("Notes"), String(person.notes)]],
+        button: { label: t("Open my notes"), url: "https://englishandportuguesewithtrevor.com/notes/" },
         language: lang,
       }),
     };

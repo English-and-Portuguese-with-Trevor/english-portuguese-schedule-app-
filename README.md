@@ -108,10 +108,10 @@ Kept short on purpose (Trevor: no email overload). Before adding one, see
 Gmail) unless noted.
 
 **Students** get only what their own actions (or Trevor's on their classes)
-cause, plus one welcome, a monthly summary, a weekly class update for
+cause, plus one welcome, a warning before unused notes are deleted, a monthly summary, a weekly class update for
 Trevor's private students and, for those who ask, new articles. The welcome
-and the class emails are in English; the monthly summary and the article
-email are written in the student's site language (`profiles.site_language`,
+and the class emails are in English; the monthly summary, the article
+email and the notes warning are written in the student's site language (`profiles.site_language`,
 English when unset), its tagline at the end too (Spanish or French for
 those; Portuguese alone for Portuguese; English and Portuguese otherwise),
 while what they're about follows the language they're learning; the weekly class update is in the language they're learning first,
@@ -127,6 +127,7 @@ footer says where):
 | Your month | The 1st, with the daily job, to every student who did anything the month before and keeps the summary on (`summary_delivery = 'email'`): their classes and practice in the language they're learning (`claim_monthly_summaries`) |
 | Your classes this week | Sundays, with the daily job, to private students (`class_package` set) with a class in the coming week who keep it on (`class_update_delivery = 'email'`): the week's classes with their Meet links, classes completed and what's left in the package, in the language they're learning first and their own language under it (`claim_class_updates`, `src/lib/class-updates.ts`) |
 | New article | Mondays, with the daily job, when the lessons site releases an article that day (Denver; `article`/`releaseOn` in `lessons.json`), to students who chose article emails (`article_delivery = 'email'`), only articles in the language they're learning; once a day (`claim_article_emails`, `src/lib/article-emails.ts`) |
+| Your notes will be deleted | Daily job, once, when nobody has opened or changed their notes (the landing site's `/notes/`) for 11 months; the notes are deleted a year after the last use and at least 30 days after it (`claim_notes_warnings`, `delete_stale_notes`, `src/lib/notes-cleanup.ts`); in their site language |
 | Lesson confirmed | They book 72+ hours ahead, Trevor approves their request, or Trevor books them |
 | Lessons booked (one email for a series) | Trevor books a series for them |
 | Lesson request received | They book less than 72 hours ahead (waits for approval) |

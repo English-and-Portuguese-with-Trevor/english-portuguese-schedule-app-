@@ -632,6 +632,9 @@ export type Database = {
       set_email_choices: { Args: { p_articles: string; p_summary: string; p_class_update: string }; Returns: undefined }
       claim_class_updates: { Args: { p_secret: string; p_week: string }; Returns: Json }
       unclaim_class_updates: { Args: { p_secret: string; p_ids: string[] }; Returns: undefined }
+      claim_notes_warnings: { Args: { p_secret: string }; Returns: Json }
+      unclaim_notes_warnings: { Args: { p_secret: string; p_ids: string[] }; Returns: undefined }
+      delete_stale_notes: { Args: { p_secret: string }; Returns: number }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
       set_theme: { Args: { theme: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }

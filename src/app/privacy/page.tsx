@@ -109,6 +109,11 @@ export default function PrivacyPage() {
               questions you missed with the answers you picked.
             </li>
             <li>
+              <strong>My notes:</strong> the notes you write (titles, text and tags) and when you last opened
+              or changed them. Only you can read them. Notes nobody opens or changes for a year are deleted; you
+              get an email a month before.
+            </li>
+            <li>
               <strong>From Trevor:</strong> the lessons and activities he assigns you.
             </li>
             <li>
@@ -118,7 +123,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             Trevor can see your progress, your practice results and the answers you got wrong, so he can see
-            what to help you with.
+            what to help you with. He can't see your notes.
           </p>
         </section>
 
@@ -225,7 +230,7 @@ export default function PrivacyPage() {
           <p>
             Open Settings from the account menu and choose Delete account. If you have a class coming up,
             cancel it first. Deleting cancels any subscription and removes your account, profile, bookings,
-            flashcards, progress and results from every site. Otherwise, your information is kept for as long as your
+            flashcards, notes, progress and results from every site. Otherwise, your information is kept for as long as your
             account exists.
           </p>
           <p>A few things stay for a while or are out of our hands:</p>
