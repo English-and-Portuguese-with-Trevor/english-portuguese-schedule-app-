@@ -67,7 +67,7 @@ export default function LoginPage() {
           <p className="title text-xl leading-tight">
             English <em className="text-brand-accent">&amp;</em> Portuguese
             <br />
-            with Trevor
+            With Trevor
           </p>
           <h1 className="pt-3 text-lg font-semibold leading-none tracking-tight">{t("Welcome")}</h1>
           <CardDescription>

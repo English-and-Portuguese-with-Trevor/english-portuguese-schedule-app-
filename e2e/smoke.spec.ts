@@ -48,7 +48,7 @@ test("the privacy page loads with the brand", async ({ page }) => {
   const errors = pageErrors(page);
   const response = await page.goto("/privacy");
   expect(response?.status()).toBe(200);
-  await expect(page.getByText("Portuguese with Trevor").first()).toBeVisible();
+  await expect(page.getByText("Portuguese With Trevor").first()).toBeVisible();
   expect(errors).toEqual([]);
   await expectAccessible(page);
 });

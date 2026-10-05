@@ -102,7 +102,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
   <body style="margin:0;padding:24px 12px;background:${CREAM};font-family:Arial,Helvetica,sans-serif">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:10px;padding:28px 24px">
       <p style="margin:0 0 20px;font-family:Georgia,serif;font-size:20px;color:${FOREST}">
-        English <em style="color:${GOLD}">&amp;</em> Portuguese with Trevor
+        English <em style="color:${GOLD}">&amp;</em> Portuguese With Trevor
       </p>
       <h1 style="margin:0 0 12px;font-size:20px;color:${INK}">${escape(content.heading)}</h1>
       ${content.intro ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:${INK}">${escape(content.intro)}</p>` : ""}
@@ -136,7 +136,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
     ...taglines(content.language),
     ...(content.footerNote ? ["", content.footerNote] : []),
     "",
-    "English & Portuguese with Trevor",
+    "English & Portuguese With Trevor",
   ].join("\n");
 
   return { html, text };

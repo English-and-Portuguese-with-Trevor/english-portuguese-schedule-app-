@@ -30,14 +30,14 @@ afterEach(() => vi.clearAllMocks());
 describe("emails.welcome", () => {
   it("is a branded email with what's free, the app and booking", () => {
     const email = emails.welcome(ana)!;
-    expect(email).toMatchObject({ to: "ana@example.com", subject: "Welcome to English & Portuguese with Trevor" });
+    expect(email).toMatchObject({ to: "ana@example.com", subject: "Welcome to English & Portuguese With Trevor" });
     expect(email.text).toContain("Welcome, Ana!");
     expect(email.text).toContain("The first five lessons in Portuguese and in English");
     expect(email.text).toContain("Three free games every day");
     expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/placement/"');
     expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/?install=1"');
     expect(email.html).toContain('href="https://schedule.englishandportuguesewithtrevor.com/dashboard"');
-    expect(email.html).toContain("Portuguese with Trevor");
+    expect(email.html).toContain("Portuguese With Trevor");
     expect(emails.welcome(bo)!.text).toContain("Welcome, there!");
     expect(emails.welcome({ full_name: "No Email", email: null })).toBeNull();
   });

@@ -1,6 +1,6 @@
 # EPT Scheduling
 
-Booking app for English & Portuguese with Trevor, live at
+Booking app for English & Portuguese With Trevor, live at
 [schedule.englishandportuguesewithtrevor.com](https://schedule.englishandportuguesewithtrevor.com).
 Next.js on Vercel, with Supabase for auth (Google, shared with the flashcards
 app) and the database.

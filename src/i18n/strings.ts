@@ -3,8 +3,8 @@
 // missing. Trevor's admin pages stay in English.
 export const STRINGS = {
   es: {
-    "English & Portuguese with Trevor, main website":
-      "English & Portuguese with Trevor, sitio principal",
+    "English & Portuguese With Trevor, main website":
+      "English & Portuguese With Trevor, sitio principal",
     "{day} at {time}": "{day} a las {time}",
     "Hi, {name}": "Hola, {name}",
     Account: "Cuenta",
@@ -223,7 +223,7 @@ export const STRINGS = {
       "Ir a la página de inicio",
     Notices: "Avisos",
     Dismiss: "Cerrar",
-    "Your month at English & Portuguese with Trevor": "Tu mes en English & Portuguese with Trevor",
+    "Your month at English & Portuguese With Trevor": "Tu mes en English & Portuguese With Trevor",
     "Hi {name}!": "¡Hola, {name}!",
     "Hi there!": "¡Hola!",
     "Here's what you did in {month}. Nice work!": "Esto es lo que hiciste en {month}. ¡Buen trabajo!",
@@ -295,8 +295,8 @@ export const STRINGS = {
     "Subscriptions aren't refunded.": "Las suscripciones no se reembolsan.",
   },
   pt: {
-    "English & Portuguese with Trevor, main website":
-      "English & Portuguese with Trevor, site principal",
+    "English & Portuguese With Trevor, main website":
+      "English & Portuguese With Trevor, site principal",
     "{day} at {time}": "{day} às {time}",
     "Hi, {name}": "Olá, {name}",
     Account: "Conta",
@@ -514,7 +514,7 @@ export const STRINGS = {
       "Ir para a página inicial",
     Notices: "Avisos",
     Dismiss: "Fechar",
-    "Your month at English & Portuguese with Trevor": "Seu mês no English & Portuguese with Trevor",
+    "Your month at English & Portuguese With Trevor": "Seu mês no English & Portuguese With Trevor",
     "Hi {name}!": "Oi, {name}!",
     "Hi there!": "Oi!",
     "Here's what you did in {month}. Nice work!": "Veja o que você fez em {month}. Mandou bem!",
@@ -586,8 +586,8 @@ export const STRINGS = {
     "Subscriptions aren't refunded.": "As assinaturas não são reembolsadas.",
   },
   fr: {
-    "English & Portuguese with Trevor, main website":
-      "English & Portuguese with Trevor, site principal",
+    "English & Portuguese With Trevor, main website":
+      "English & Portuguese With Trevor, site principal",
     "{day} at {time}": "{day} à {time}",
     "Hi, {name}": "Bonjour, {name}",
     Account: "Compte",
@@ -805,7 +805,7 @@ export const STRINGS = {
       "Aller à la page d'accueil",
     Notices: "Annonces",
     Dismiss: "Fermer",
-    "Your month at English & Portuguese with Trevor": "Votre mois chez English & Portuguese with Trevor",
+    "Your month at English & Portuguese With Trevor": "Votre mois chez English & Portuguese With Trevor",
     "Hi {name}!": "Bonjour {name} !",
     "Hi there!": "Bonjour !",
     "Here's what you did in {month}. Nice work!": "Voici ce que vous avez fait en {month}. Beau travail !",

@@ -82,7 +82,7 @@ describe("longestStreak", () => {
 describe("emails.monthlySummary", () => {
   it("lists the month's classes and practice, and the next lesson", () => {
     const email = emails.monthlySummary(ana, catalog)!;
-    expect(email).toMatchObject({ to: "ana@example.com", subject: "Your month at English & Portuguese with Trevor" });
+    expect(email).toMatchObject({ to: "ana@example.com", subject: "Your month at English & Portuguese With Trevor" });
     expect(email.text).toContain("Hi Ana!");
     expect(email.text).toContain("Here's what you did in September.");
     expect(email.text).toContain("Classes taken this month");
@@ -112,7 +112,7 @@ describe("emails.monthlySummary", () => {
 describe("emails.monthlySummary in the site language", () => {
   it("writes everything in Portuguese, keeping the lesson titles as they are", () => {
     const email = emails.monthlySummary({ ...ana, site_language: "pt" }, catalog)!;
-    expect(email.subject).toBe("Seu mês no English & Portuguese with Trevor");
+    expect(email.subject).toBe("Seu mês no English & Portuguese With Trevor");
     expect(email.text).toContain("Oi, Ana!");
     expect(email.text).toContain("Veja o que você fez em setembro. Mandou bem!");
     expect(email.text).toContain("Aulas feitas este mês: 4");
@@ -141,7 +141,7 @@ describe("emails.monthlySummary in the site language", () => {
     expect(emails.monthlySummary({ ...quiet, site_language: "es" }, catalog)!.text).toContain("1 día · mejor racha: 1 día");
     expect(emails.monthlySummary({ ...ana, site_language: "fr" }, catalog)!.text).toContain("Voici ce que vous avez fait en septembre.");
     expect(emails.monthlySummary({ ...ana, site_language: "de" }, catalog)!.subject).toBe(
-      "Your month at English & Portuguese with Trevor",
+      "Your month at English & Portuguese With Trevor",
     );
   });
 });

@@ -22,12 +22,12 @@ const description = "Book your English or Portuguese lesson with Trevor.";
 export const metadata: Metadata = {
   // Link previews (WhatsApp, iMessage…) need absolute URLs for the image.
   metadataBase: new URL("https://schedule.englishandportuguesewithtrevor.com"),
-  title: "English & Portuguese with Trevor — Scheduling",
+  title: "English & Portuguese With Trevor — Scheduling",
   description,
   openGraph: {
-    title: "English & Portuguese with Trevor",
+    title: "English & Portuguese With Trevor",
     description,
-    siteName: "English & Portuguese with Trevor",
+    siteName: "English & Portuguese With Trevor",
     type: "website",
   },
   twitter: { card: "summary_large_image" },

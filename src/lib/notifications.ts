@@ -666,7 +666,7 @@ export const emails = {
     const site = "https://englishandportuguesewithtrevor.com";
     return {
       to: person.email,
-      subject: "Welcome to English & Portuguese with Trevor",
+      subject: "Welcome to English & Portuguese With Trevor",
       ...renderEmail({
         heading: `Welcome, ${firstName(person.full_name)}!`,
         intro:
@@ -743,7 +743,7 @@ export const emails = {
     if (next) sections.push({ title: t("Up next"), rows: [[t("Lesson"), next.title, `${site}/lessons/#/${next.id}`]] as [string, string, string][] });
     return {
       to: person.email,
-      subject: t("Your month at English & Portuguese with Trevor"),
+      subject: t("Your month at English & Portuguese With Trevor"),
       ...renderEmail({
         heading: greeting(person.full_name, t),
         intro: t("Here's what you did in {month}. Nice work!", { month: monthName }),

@@ -26,7 +26,7 @@ describe("AppShell", () => {
   it("links the wordmark to the main website", () => {
     renderShell("student");
     expect(
-      screen.getByRole("link", { name: /English & Portuguese with Trevor/ }),
+      screen.getByRole("link", { name: /English & Portuguese With Trevor/ }),
     ).toHaveAttribute("href", LANDING_URL);
   });
 

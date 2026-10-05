@@ -5,7 +5,7 @@ import { getSiteLanguage } from "@/i18n/server";
 import { translator } from "@/i18n/translate";
 
 export const metadata: Metadata = {
-  title: "Class policy — English & Portuguese with Trevor",
+  title: "Class policy — English & Portuguese With Trevor",
 };
 
 const CONTACT_EMAIL = "englishportuguesewithtrevor@gmail.com";
@@ -75,7 +75,7 @@ export default async function PolicyPage() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-12">
       <a href="https://englishandportuguesewithtrevor.com" className="title text-xl">
-        English <em className="text-brand-accent">&amp;</em> Portuguese with Trevor
+        English <em className="text-brand-accent">&amp;</em> Portuguese With Trevor
       </a>
       <h1 className="title mt-8 text-3xl">{t("Class policy")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("Last updated {date}", { date: updated })}</p>

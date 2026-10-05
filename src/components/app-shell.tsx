@@ -254,12 +254,12 @@ export function AppShell({
               className="title text-lg leading-tight sm:text-xl"
               aria-label={translate(
                 siteLanguage,
-                tr("English & Portuguese with Trevor, main website"),
+                tr("English & Portuguese With Trevor, main website"),
               )}
             >
               English <em className="text-brand-accent">&amp;</em> Portuguese
               <br />
-              with Trevor
+              With Trevor
             </a>
             <div className="flex shrink-0 items-center gap-2">
               {isAdmin && (
