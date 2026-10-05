@@ -82,7 +82,9 @@ in summer, 6 AM in winter). It:
   `supabase/migrations/20261004020000_pill_events.sql`) shows the week's
   "Try something new" pills: shown, tapped and closed, "Support my teaching"
   shown and tapped, and how many students saw any; it's left out if that
-  call fails;
+  call fails. "Share this week's articles" lists the articles the lessons
+  site released that day with their share links (`lessons/a/<id>/`, which
+  preview in WhatsApp);
 - on Sundays, emails each private student (a class package) with a class in
   the coming week their weekly class update (`src/lib/class-updates.ts`);
 - on Mondays, when the lessons site releases an article that day, emails the

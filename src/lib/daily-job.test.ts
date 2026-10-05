@@ -9,12 +9,13 @@ const mocks = vi.hoisted(() => ({
   sendWelcomes: vi.fn(async () => 0),
   sendMonthlySummaries: vi.fn(async () => 3),
   sendArticleEmails: vi.fn(async () => 2),
+  articlesReleasedOn: vi.fn(async (_day: string) => [] as { id: string; title: string }[]),
   sendClassUpdates: vi.fn(async () => 4),
 }));
 vi.mock("@/lib/admin-push", () => ({ sendAlerts: mocks.sendAlerts }));
 vi.mock("@/lib/welcome", () => ({ sendWelcomes: mocks.sendWelcomes }));
 vi.mock("@/lib/monthly-summary", () => ({ sendMonthlySummaries: mocks.sendMonthlySummaries }));
-vi.mock("@/lib/article-emails", () => ({ sendArticleEmails: mocks.sendArticleEmails }));
+vi.mock("@/lib/article-emails", () => ({ sendArticleEmails: mocks.sendArticleEmails, articlesReleasedOn: mocks.articlesReleasedOn }));
 vi.mock("@/lib/class-updates", () => ({ sendClassUpdates: mocks.sendClassUpdates }));
 vi.mock("@/lib/google", () => ({ checkGoogleConnection: mocks.checkGoogleConnection, LESSON_TIMEZONE: "America/Denver" }));
 vi.mock("@/lib/integration-status", () => ({
@@ -162,9 +163,15 @@ describe("runDailyJob", () => {
   it("on Mondays sends the article emails for that day in Denver", async () => {
     // 1 AM UTC Tuesday is still Monday evening in Denver.
     vi.setSystemTime(new Date("2026-10-06T01:00:00Z"));
+    const released = [{ id: "sales-tax", title: "Sales Tax", learning: "English", article: true, releaseOn: "2026-10-05" }];
+    mocks.articlesReleasedOn.mockResolvedValueOnce(released);
     const result = await runDailyJob("s3cret");
-    expect(mocks.sendArticleEmails).toHaveBeenCalledWith("s3cret", "2026-10-05");
+    expect(mocks.articlesReleasedOn).toHaveBeenCalledWith("2026-10-05");
+    expect(mocks.sendArticleEmails).toHaveBeenCalledWith("s3cret", "2026-10-05", released);
     expect(result.articles).toBe(2);
+    // The weekly summary lists them with their share links.
+    const weekly = mocks.sendNotification.mock.calls.map(([email]) => email as Email | null).find((e) => e?.subject.startsWith("Your week"));
+    expect(weekly?.text).toContain("Share this week's articles\nSales Tax: https://englishandportuguesewithtrevor.com/lessons/a/sales-tax/");
   });
 
   it("sends no DeepL reminder on the 20th while DeepL is on hold", async () => {

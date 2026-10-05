@@ -4,21 +4,24 @@ import { emails, sendNotification, type ArticleReader, type LessonCatalog } from
 
 const LESSONS_URL = "https://englishandportuguesewithtrevor.com/lessons/lessons.json";
 
+/** The articles lessons.json says came out on `day` (Denver); none if it can't be read. */
+export async function articlesReleasedOn(day: string): Promise<LessonCatalog> {
+  const catalog: LessonCatalog = await fetch(LESSONS_URL)
+    .then((r) => (r.ok ? r.json() : []))
+    .catch(() => []);
+  return catalog.filter((l) => l.article && l.releaseOn === day);
+}
+
 /**
- * On Mondays (the daily job), when lessons.json has articles released today
- * (`day`, Denver), emails each student who chose article emails the ones in
+ * On Mondays (the daily job), for the articles released today (`released`,
+ * from articlesReleasedOn), emails each student who chose article emails the ones in
  * the language they're learning. claim_article_emails marks them first, so a
  * second run never sends twice; anyone with no article in their language
  * today, or whose email failed, is handed back. While Gmail isn't set up
  * nothing is claimed.
  */
-export async function sendArticleEmails(secret: string, day: string) {
-  if (!isGoogleConfigured()) return 0;
-  const catalog: LessonCatalog = await fetch(LESSONS_URL)
-    .then((r) => (r.ok ? r.json() : []))
-    .catch(() => []);
-  const released = catalog.filter((l) => l.article && l.releaseOn === day);
-  if (!released.length) return 0;
+export async function sendArticleEmails(secret: string, day: string, released: LessonCatalog) {
+  if (!isGoogleConfigured() || !released.length) return 0;
 
   const supabase = createServerJobClient();
   const { data, error } = await supabase.rpc("claim_article_emails", { p_secret: secret, p_day: day });

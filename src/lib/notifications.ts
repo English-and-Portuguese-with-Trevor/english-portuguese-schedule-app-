@@ -380,7 +380,7 @@ export const emails = {
   },
 
   /** Monday mornings (daily job): the week in numbers, the classes ahead, and students gone quiet. */
-  weeklySummary(summary: WeeklySummary, adminZone: string, pills: PillStats | null = null): Email | null {
+  weeklySummary(summary: WeeklySummary, adminZone: string, pills: PillStats | null = null, articles: LessonCatalog = []): Email | null {
     const to = adminEmail();
     if (!to) return null;
     const names = buildDisplayNames(summary.people);
@@ -434,6 +434,14 @@ export const emails = {
                   ["Students", count(pills.students)],
                 ]
               : [],
+          },
+          {
+            // The articles released today, each with its share page (the lessons site's a/<id>/, which previews in WhatsApp).
+            title: "Share this week's articles",
+            rows: articles.map((a) => {
+              const link = `https://englishandportuguesewithtrevor.com/lessons/a/${a.id}/`;
+              return [a.title, link, link] as [string, string, string];
+            }),
           },
         ],
         button: { label: "Open the admin dashboard", url: "https://englishandportuguesewithtrevor.com/admin/" },

@@ -1,7 +1,7 @@
 import { sendAlerts } from "@/lib/admin-push";
 import { sendWelcomes } from "@/lib/welcome";
 import { sendMonthlySummaries } from "@/lib/monthly-summary";
-import { sendArticleEmails } from "@/lib/article-emails";
+import { articlesReleasedOn, sendArticleEmails } from "@/lib/article-emails";
 import { sendClassUpdates } from "@/lib/class-updates";
 import { checkGoogleConnection, LESSON_TIMEZONE } from "@/lib/google";
 import { createServerJobClient, recordGoogleStatus } from "@/lib/integration-status";
@@ -82,6 +82,9 @@ export async function runDailyJob(secret: string) {
 
   // Mondays (ISO day 1) in the admin's zone: 7 AM Mountain in summer, 6 AM in winter.
   const weekly = formatInTimeZone(new Date(), zone, "i") === "1";
+  // Articles are released on Mondays (Denver): the summary lists their share links, and students who chose article emails get them.
+  const articleDay = formatInTimeZone(new Date(), LESSON_TIMEZONE, "yyyy-MM-dd");
+  const released = weekly ? await articlesReleasedOn(articleDay) : [];
   if (weekly) {
     const { data: summary, error: summaryError } = await supabase.rpc("weekly_summary", { p_secret: secret });
     if (summaryError) throw new Error(`weekly_summary: ${summaryError.message}`);
@@ -89,13 +92,12 @@ export async function runDailyJob(secret: string) {
     const { data: pills, error: pillsError } = await supabase.rpc("pill_stats", { p_secret: secret });
     if (pillsError) console.error("[daily-job] pill_stats failed:", pillsError.message);
     await sendNotification(
-      emails.weeklySummary(summary as unknown as WeeklySummary, zone, pillsError ? null : (pills as unknown as PillStats | null)),
+      emails.weeklySummary(summary as unknown as WeeklySummary, zone, pillsError ? null : (pills as unknown as PillStats | null), released),
     );
   }
 
-  // Articles are released on Mondays (Denver): tell the students who chose article emails.
   const articles = weekly
-    ? await sendArticleEmails(secret, formatInTimeZone(new Date(), LESSON_TIMEZONE, "yyyy-MM-dd")).catch((error) => {
+    ? await sendArticleEmails(secret, articleDay, released).catch((error) => {
         console.error("[daily-job] article emails failed:", error);
         return 0;
       })

@@ -16,7 +16,7 @@ vi.mock("@/lib/integration-status", () => ({
 }));
 
 import { emails, type ArticleReader } from "@/lib/notifications";
-import { sendArticleEmails } from "@/lib/article-emails";
+import { articlesReleasedOn, sendArticleEmails } from "@/lib/article-emails";
 import { TAGLINE_EN, TAGLINE_ES, TAGLINE_FR, TAGLINE_PT } from "@/lib/email-template";
 
 const catalog = [
@@ -90,7 +90,7 @@ describe("sendArticleEmails", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     mocks.rpc.mockResolvedValueOnce({ data: [ana, john, bo], error: null });
     mocks.sendEmail.mockRejectedValueOnce(new Error("Gmail is down")).mockResolvedValue(undefined);
-    expect(await sendArticleEmails("s3cret", "2026-10-05")).toBe(1);
+    expect(await sendArticleEmails("s3cret", "2026-10-05", await articlesReleasedOn("2026-10-05"))).toBe(1);
     expect(mocks.rpc).toHaveBeenCalledWith("claim_article_emails", { p_secret: "s3cret", p_day: "2026-10-05" });
     // Ana's email failed; John learns Portuguese and there's no Portuguese article today.
     expect(mocks.rpc).toHaveBeenCalledWith("unclaim_article_emails", { p_secret: "s3cret", p_ids: ["u1", "u2"] });
@@ -99,13 +99,14 @@ describe("sendArticleEmails", () => {
   });
 
   it("claims nobody when no article comes out today", async () => {
-    expect(await sendArticleEmails("s3cret", "2026-10-06")).toBe(0);
+    expect(await articlesReleasedOn("2026-10-06")).toEqual([]);
+    expect(await sendArticleEmails("s3cret", "2026-10-06", [])).toBe(0);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("claims nothing while Gmail isn't set up", async () => {
     mocks.isGoogleConfigured.mockReturnValueOnce(false);
-    expect(await sendArticleEmails("s3cret", "2026-10-05")).toBe(0);
+    expect(await sendArticleEmails("s3cret", "2026-10-05", tinyHomes)).toBe(0);
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 });
