@@ -97,8 +97,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Activities:</strong> the activities you finish and your scores, the questions you missed
-              with the answers you gave (typed, said, sorted or written), and the date each one comes back for
-              review.
+              with the answers you gave (typed, said, sorted or written; those answers are blanked after a
+              year, the scores stay), and the date each one comes back for review.
             </li>
             <li>
               <strong>Daily puzzles:</strong> when you&apos;re logged in, which puzzles you finished each day, whether you solved them, and
