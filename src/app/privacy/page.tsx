@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         English <em className="text-brand-accent">&amp;</em> Portuguese With Trevor
       </a>
       <h1 className="title mt-8 text-3xl">Privacy Policy</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Last updated October 3, 2026</p>
+      <p className="mt-1 text-sm text-muted-foreground">Last updated October 5, 2026</p>
 
       <div className="mt-8 flex flex-col gap-6 leading-relaxed [&_h2]:font-display [&_h2]:text-xl [&_h2]:text-brand [&_ul]:list-disc [&_ul]:pl-5">
         <p>
@@ -91,16 +91,22 @@ export default function PrivacyPage() {
               review again, and a dated log of those taps.
             </li>
             <li>
-              <strong>Lessons:</strong> the lessons you mark as finished, and the knowledge-check questions you
-              missed on the first try (the question and how many tries it took).
+              <strong>Lessons:</strong> the lessons you mark as finished, the knowledge-check questions you
+              missed on the first try (the question, the answers you picked and how many tries it took), and the
+              practice-drill items you got wrong (the prompt, what you typed and how often).
             </li>
             <li>
-              <strong>Activities:</strong> the activities you finish and your scores, and the questions you
-              missed, with the date each one comes back for review.
+              <strong>Activities:</strong> the activities you finish and your scores, the questions you missed
+              with the answers you gave (typed, said, sorted or written), and the date each one comes back for
+              review.
             </li>
             <li>
               <strong>Daily puzzles:</strong> when you&apos;re logged in, which puzzles you finished each day, whether you solved them, and
               your Word of the day guesses, for your stats and streaks.
+            </li>
+            <li>
+              <strong>Placement test:</strong> when you&apos;re logged in, your level, score and skills, and the
+              questions you missed with the answers you picked.
             </li>
             <li>
               <strong>From Trevor:</strong> the lessons and activities he assigns you.
@@ -110,7 +116,10 @@ export default function PrivacyPage() {
               the reason you picked.
             </li>
           </ul>
-          <p>Trevor can see your progress and practice results so he can help you.</p>
+          <p>
+            Trevor can see your progress, your practice results and the answers you got wrong, so he can see
+            what to help you with.
+          </p>
         </section>
 
         <section className="flex flex-col gap-2">
