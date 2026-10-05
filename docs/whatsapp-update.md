@@ -15,13 +15,16 @@ Angeles time)"; never Denver's unless they're in Denver (Trevor, 2026-10-05). `*
 ```
 *English & Portuguese with Trevor*
 https://englishandportuguesewithtrevor.com
+
 https://schedule.englishandportuguesewithtrevor.com
 
 Hi {name}! Thanks for today's class 😊
 
 ✅ Classes completed: {done} of {package}
 📦 Classes left in your package: {left}
+
 📅 Next class: {weekday}, {month} {day}, at {time} ({time zone})
+
 🎥 Class link: {meet link}
 
 See you then!
@@ -32,13 +35,16 @@ See you then!
 ```
 *English & Portuguese with Trevor*
 https://englishandportuguesewithtrevor.com
+
 https://schedule.englishandportuguesewithtrevor.com
 
 Oi, {name}! Obrigado pela aula de hoje 😊
 
 ✅ Aulas feitas: {done} de {package}
 📦 Aulas restantes no seu pacote: {left}
+
 📅 Próxima aula: {weekday}, {day} de {month}, às {time} ({time zone})
+
 🎥 Link da aula: {meet link}
 
 Até lá!
