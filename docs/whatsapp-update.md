@@ -3,8 +3,9 @@
 Trevor's text to paste into WhatsApp after a private student's class (see
 CLAUDE.md, "Planilha dos alunos"). Fill it from the sheet and the student's
 bookings; write it only in the language the student is learning, no
-translation under it. Keep the schedule app's address right under the brand
-line, before any other link, so WhatsApp previews Trevor's logo. Leave out the
+translation under it. Right under the brand line go the main site's address,
+then the schedule app's, before any other link: WhatsApp previews the first
+link, and both show Trevor's logo (Trevor, 2026-10-05). Leave out the
 Meet link line when the student has none. Give the next class's time in the
 student's own time zone only (the sheet's last column), e.g. "7:00 AM (Los
 Angeles time)"; never Denver's unless they're in Denver (Trevor, 2026-10-05). `*text*` is bold in WhatsApp.
@@ -13,6 +14,7 @@ Angeles time)"; never Denver's unless they're in Denver (Trevor, 2026-10-05). `*
 
 ```
 *English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
 https://schedule.englishandportuguesewithtrevor.com
 
 Hi {name}! Thanks for today's class 😊
@@ -29,6 +31,7 @@ See you then!
 
 ```
 *English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
 https://schedule.englishandportuguesewithtrevor.com
 
 Oi, {name}! Obrigado pela aula de hoje 😊
