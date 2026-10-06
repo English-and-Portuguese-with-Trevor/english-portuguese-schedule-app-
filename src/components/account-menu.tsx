@@ -72,7 +72,16 @@ function firstName(name: string | null, email: string | null) {
   return (name?.trim() || email?.split("@")[0] || "").split(/\s+/)[0];
 }
 
-export default function AccountMenu({ fullName, email }: { fullName: string | null; email: string | null }) {
+export default function AccountMenu({
+  fullName,
+  email,
+  privateStudent,
+}: {
+  fullName: string | null;
+  email: string | null;
+  /** My notes is for Trevor's private students (a class package) and admins. */
+  privateStudent: boolean;
+}) {
   const first = firstName(fullName, email);
   const t = useT();
   // The cookie is only readable in the browser; read it after hydration.
@@ -100,12 +109,14 @@ export default function AccountMenu({ fullName, email }: { fullName: string | nu
             {t("My progress")}
           </a>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={`${LANDING_URL}/notebook/`}>
-            <NotebookPen />
-            {t("My notes")}
-          </a>
-        </DropdownMenuItem>
+        {privateStudent && (
+          <DropdownMenuItem asChild>
+            <a href={`${LANDING_URL}/notebook/`}>
+              <NotebookPen />
+              {t("My notes")}
+            </a>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           asChild
           className="font-semibold text-gold-text focus:text-gold-text"

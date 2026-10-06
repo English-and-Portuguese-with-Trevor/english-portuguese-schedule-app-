@@ -11,9 +11,9 @@ vi.mock("@/lib/actions/auth", () => ({ logout: () => logout() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/admin/bookings" }));
 vi.mock("@/components/notices", () => ({ Notices: () => null }));
 
-function renderShell(role: Role) {
+function renderShell(role: Role, classPackage: number | null = null) {
   render(
-    <AppShell role={role} fullName="Trevor List" email="trevor@example.com">
+    <AppShell role={role} fullName="Trevor List" email="trevor@example.com" classPackage={classPackage}>
       <p>Page content</p>
     </AppShell>,
   );
@@ -59,8 +59,14 @@ describe("AppShell", () => {
     }
   });
 
-  it("has the same account menu as the other sites", async () => {
+  it("shows My notes only to private students", async () => {
     const user = renderShell("student");
+    await user.click(await screen.findByRole("button", { name: "Hi, Trevor" }));
+    expect(within(screen.getByRole("menu")).queryByRole("menuitem", { name: "My notes" })).not.toBeInTheDocument();
+  });
+
+  it("has the same account menu as the other sites", async () => {
+    const user = renderShell("student", 8);
     expect(screen.queryByText("Log out")).not.toBeInTheDocument();
 
     await user.click(await screen.findByRole("button", { name: "Hi, Trevor" }));
@@ -73,6 +79,9 @@ describe("AppShell", () => {
     expect(
       within(menu).getByRole("menuitem", { name: "Home" }),
     ).toHaveAttribute("href", LANDING_URL);
+    expect(
+      within(menu).getByRole("menuitem", { name: "My notes" }),
+    ).toHaveAttribute("href", "https://englishandportuguesewithtrevor.com/notebook/");
     expect(
       within(menu).getByRole("menuitem", { name: "My progress" }),
     ).toHaveAttribute("href", "https://englishandportuguesewithtrevor.com/notebook/#/progress");

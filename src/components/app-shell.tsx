@@ -50,6 +50,7 @@ export function AppShell({
   siteLanguage = "en",
   profileSiteLanguage = null,
   startPage = null,
+  classPackage = null,
   unreadAlerts = 0,
   children,
 }: {
@@ -60,6 +61,8 @@ export function AppShell({
   theme?: string | null;
   learningLanguage?: string | null;
   startPage?: string | null;
+  /** The class package (4 or 8) of Trevor's private students; My notes is for them (and admins). */
+  classPackage?: number | null;
   /** The language to show the site in (see i18n/server.ts). */
   siteLanguage?: SiteLanguage;
   profileSiteLanguage?: string | null;
@@ -117,7 +120,7 @@ export function AppShell({
                 </Link>
               )}
               <Suspense>
-                <AccountMenu fullName={fullName} email={email} />
+                <AccountMenu fullName={fullName} email={email} privateStudent={role === "admin" || classPackage != null} />
               </Suspense>
             </div>
           </div>
