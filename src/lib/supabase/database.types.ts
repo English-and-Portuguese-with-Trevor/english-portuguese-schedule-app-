@@ -367,6 +367,7 @@ export type Database = {
       profiles: {
         Row: {
           class_package: number | null
+          notes_access: boolean
           created_at: string
           earlier_classes: number
           email: string | null
@@ -392,6 +393,7 @@ export type Database = {
         }
         Insert: {
           class_package?: number | null
+          notes_access?: boolean
           created_at?: string
           earlier_classes?: number
           email?: string | null
@@ -417,6 +419,7 @@ export type Database = {
         }
         Update: {
           class_package?: number | null
+          notes_access?: boolean
           created_at?: string
           earlier_classes?: number
           email?: string | null

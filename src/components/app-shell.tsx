@@ -51,6 +51,7 @@ export function AppShell({
   profileSiteLanguage = null,
   startPage = null,
   classPackage = null,
+  notesAccess = false,
   unreadAlerts = 0,
   children,
 }: {
@@ -63,6 +64,8 @@ export function AppShell({
   startPage?: string | null;
   /** The class package (4 or 8) of Trevor's private students; My notes is for them (and admins). */
   classPackage?: number | null;
+  /** Accounts Trevor gave My notes without a package (testers, future students). */
+  notesAccess?: boolean;
   /** The language to show the site in (see i18n/server.ts). */
   siteLanguage?: SiteLanguage;
   profileSiteLanguage?: string | null;
@@ -120,7 +123,7 @@ export function AppShell({
                 </Link>
               )}
               <Suspense>
-                <AccountMenu fullName={fullName} email={email} privateStudent={role === "admin" || classPackage != null} />
+                <AccountMenu fullName={fullName} email={email} privateStudent={role === "admin" || classPackage != null || notesAccess} />
               </Suspense>
             </div>
           </div>
