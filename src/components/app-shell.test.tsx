@@ -11,9 +11,9 @@ vi.mock("@/lib/actions/auth", () => ({ logout: () => logout() }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/admin/bookings" }));
 vi.mock("@/components/notices", () => ({ Notices: () => null }));
 
-function renderShell(role: Role, classPackage: number | null = null) {
+function renderShell(role: Role, classPackage: number | null = null, learningLanguage: string | null = null) {
   render(
-    <AppShell role={role} fullName="Trevor List" email="trevor@example.com" classPackage={classPackage}>
+    <AppShell role={role} fullName="Trevor List" email="trevor@example.com" classPackage={classPackage} learningLanguage={learningLanguage}>
       <p>Page content</p>
     </AppShell>,
   );
@@ -65,6 +65,21 @@ describe("AppShell", () => {
     expect(within(screen.getByRole("menu")).queryByRole("menuitem", { name: "My notes" })).not.toBeInTheDocument();
   });
 
+  it("shows Tools to Portuguese learners only", async () => {
+    const user = renderShell("student", null, "Portuguese");
+    await user.click(await screen.findByRole("button", { name: "Hi, Trevor" }));
+    expect(within(screen.getByRole("menu")).getByRole("menuitem", { name: "Tools" })).toHaveAttribute(
+      "href",
+      "https://englishandportuguesewithtrevor.com/lessons/#/tools",
+    );
+  });
+
+  it("hides Tools from English learners", async () => {
+    const user = renderShell("student", null, "English");
+    await user.click(await screen.findByRole("button", { name: "Hi, Trevor" }));
+    expect(within(screen.getByRole("menu")).queryByRole("menuitem", { name: "Tools" })).not.toBeInTheDocument();
+  });
+
   it("has the same account menu as the other sites", async () => {
     const user = renderShell("student", 8);
     expect(screen.queryByText("Log out")).not.toBeInTheDocument();
@@ -75,7 +90,7 @@ describe("AppShell", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((item) => item.textContent),
-    ).toEqual(["Home", "My progress", "My notes", "Daily puzzles", "Articles", "Learn", "Schedule a class", "App start", "Settings", "Log out"]);
+    ).toEqual(["Daily puzzles", "Articles", "Home", "My progress", "My notes", "Learn", "Tools", "Schedule a class", "App start", "Settings", "Log out"]);
     expect(
       within(menu).getByRole("menuitem", { name: "Home" }),
     ).toHaveAttribute("href", LANDING_URL);

@@ -123,7 +123,7 @@ export function AppShell({
                 </Link>
               )}
               <Suspense>
-                <AccountMenu fullName={fullName} email={email} privateStudent={role === "admin" || classPackage != null || notesAccess} />
+                <AccountMenu fullName={fullName} email={email} privateStudent={role === "admin" || classPackage != null || notesAccess} learningLanguage={learningLanguage} />
               </Suspense>
             </div>
           </div>
