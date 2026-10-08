@@ -161,7 +161,7 @@ pages (`src/components/admin/booking-parts.tsx` holds what the two booking
 pages share), so every change sends the usual emails. Hours can't be changed
 for a single date yet; windows are weekly.
 
-## Alerts: new sign-ups, new subscribers, flagged classes
+## Alerts: new sign-ups, new subscribers, flagged classes, class requests
 
 The bell in the admin header counts alerts not seen yet; `/admin/alerts` lists
 them (newest first) and marks them read. The database makes them
@@ -194,7 +194,14 @@ and listed at once, but emailed only in the morning: `/api/cron/flags` runs at
 emails every flag not emailed yet (`claim_flag_digest`), so the email arrives
 at 6:30 AM Mountain, summer or winter. No flags, no email.
 
-Each alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
+Class requests: a student's booking or reschedule that has to wait for
+Trevor's approval (less than 72 hours ahead, or any reschedule) makes a
+`request` alert (a trigger on `bookings`,
+`20261008200000_class_request_alerts.sql`), pushed at once. It's marked
+emailed when it's made, since "Approval needed" and "Reschedule requested"
+already email him.
+
+Each other alert is also emailed to `ADMIN_NOTIFY_EMAIL` (several at once come as
 one email), through the same Gmail connection as the booking emails. The push and the email are
 marked separately (`pushed_at`, `emailed_at`), so an email that failed is sent
 again (for up to 14 days) without pushing again

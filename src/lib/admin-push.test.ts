@@ -75,6 +75,18 @@ describe("pushMessage", () => {
     });
   });
 
+  it("says what time a class request wants", () => {
+    const request: AlertRow = { ...signup, id: 7, kind: "request", reason: null, class_start: "2026-10-09T21:00:00Z" };
+    expect(pushMessage([request])).toMatchObject({
+      title: "Class request",
+      body: "Ana Pereira (ana@example.com) wants a class on Fri, Oct 9, 3:00 PM MDT, waiting for you to approve.",
+    });
+    expect(pushMessage([{ ...request, reason: "reschedule" }]).body).toBe(
+      "Ana Pereira (ana@example.com) wants to move a class to Fri, Oct 9, 3:00 PM MDT, waiting for you to approve.",
+    );
+    expect(pushMessage([request, signup]).body).toBe("1 class request to approve, 1 new sign-up");
+  });
+
   it("sums up several alerts in one notification", () => {
     expect(pushMessage([signup, { ...signup, id: 3 }, subscriber])).toMatchObject({
       title: "3 new alerts",

@@ -1,4 +1,4 @@
-/** Alerts for the admin (new sign-ups, new subscribers, flagged classes, reported issues): shared by the Alerts page and the push sender. */
+/** Alerts for the admin (new sign-ups, new subscribers, flagged classes, reported issues, class requests): shared by the Alerts page and the push sender. */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatInTimeZone } from "date-fns-tz";
@@ -8,11 +8,11 @@ import { FLAG_REASONS, type FlagReason } from "@/lib/types";
 
 export type AlertRow = {
   id: number;
-  kind: "signup" | "subscriber" | "flag" | "report";
+  kind: "signup" | "subscriber" | "flag" | "report" | "request";
   name: string | null;
   email: string | null;
   created_at: string;
-  /** Flags and reports: the reason the student picked, and the class time or the lesson/activity. */
+  /** Flags and reports: the reason the student picked, and the class time or the lesson/activity. Requests: the class time, and "reschedule" for a move. */
   reason?: string | null;
   class_start?: string | null;
   item?: string | null;
@@ -29,14 +29,20 @@ const REPORT_REASONS: Record<string, string> = {
 export function alertTitle(kind: AlertRow["kind"]) {
   if (kind === "flag") return "Class flagged";
   if (kind === "report") return "Issue reported";
+  if (kind === "request") return "Class request";
   return kind === "subscriber" ? "New subscriber" : "New sign-up";
 }
 
 /**
  * "Connection or Meet problem · class Mon, Sep 28, 2:30 PM MDT" (in the
- * admin's Mountain time), or for a report "Mistake in the text · Lessons: …".
+ * admin's Mountain time), for a report "Mistake in the text · Lessons: …", or
+ * for a request "wants a class on Fri, Oct 9, 3:00 PM MDT, waiting for you to approve".
  */
 export function flagDetails(alert: Pick<AlertRow, "kind" | "reason" | "class_start" | "item">) {
+  if (alert.kind === "request") {
+    const when = alert.class_start && formatInTimeZone(new Date(alert.class_start), "America/Denver", "EEE, MMM d, h:mm a zzz");
+    return `${alert.reason === "reschedule" ? "wants to move a class to" : "wants a class on"} ${when}, waiting for you to approve`;
+  }
   if (alert.kind === "report") {
     return [REPORT_REASONS[alert.reason ?? ""] ?? alert.reason, alert.item].filter(Boolean).join(" · ");
   }
@@ -61,7 +67,9 @@ export function pushMessage(alerts: AlertRow[]) {
     return {
       title: alertTitle(alert.kind),
       body:
-        alert.kind === "flag" || alert.kind === "report"
+        alert.kind === "request"
+          ? `${who(alert)} ${flagDetails(alert)}.`
+          : alert.kind === "flag" || alert.kind === "report"
           ? `${who(alert)}: ${flagDetails(alert)}`
           : alert.kind === "subscriber"
             ? `${who(alert)} subscribed to the lessons.`
@@ -71,8 +79,9 @@ export function pushMessage(alerts: AlertRow[]) {
     };
   }
   const count = (kind: AlertRow["kind"]) => alerts.filter((a) => a.kind === kind).length;
-  const [signups, subscribers, flags, reports] = [count("signup"), count("subscriber"), count("flag"), count("report")];
+  const [signups, subscribers, flags, reports, requests] = [count("signup"), count("subscriber"), count("flag"), count("report"), count("request")];
   const parts = [
+    requests && `${requests} class request${requests === 1 ? "" : "s"} to approve`,
     flags && `${flags} flagged class${flags === 1 ? "" : "es"}`,
     reports && `${reports} reported issue${reports === 1 ? "" : "s"}`,
     signups && `${signups} new sign-up${signups === 1 ? "" : "s"}`,
