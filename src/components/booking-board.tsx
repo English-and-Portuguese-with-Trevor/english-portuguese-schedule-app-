@@ -1,6 +1,6 @@
 "use client";
 
-import { Flag } from "lucide-react";
+import { Flag, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
@@ -218,18 +218,24 @@ export function BookingBoard({
                     )}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between pt-0">
+                <CardContent className="flex flex-wrap items-center justify-between gap-y-3 pt-0">
+                  {b.meet_link && b.status === "CONFIRMED" && (
+                    <div className="w-full">
+                      <Button className="w-full" asChild>
+                        <a href={b.meet_link} target="_blank" rel="noopener noreferrer">
+                          <Video className="size-5" aria-hidden />
+                          {t("Join class on Google Meet")}
+                        </a>
+                      </Button>
+                      <p className="mt-1.5 text-center text-sm text-muted-foreground">
+                        {t("At class time, tap this button to join Trevor's video call.")}
+                      </p>
+                    </div>
+                  )}
                   <Badge variant={b.status === "CONFIRMED" ? "success" : "secondary"}>
                     {b.status === "CONFIRMED" ? t("Confirmed") : t("Waiting for approval")}
                   </Badge>
                   <div className="flex gap-2">
-                    {b.meet_link && (
-                      <Button size="sm" asChild>
-                        <a href={b.meet_link} target="_blank" rel="noopener noreferrer">
-                          {t("Join Meet")}
-                        </a>
-                      </Button>
-                    )}
                     {b.status === "CONFIRMED" && !hasPendingReschedule.has(b.id) && (
                       <Button variant="outline" size="sm" onClick={() => startRescheduling(b)}>
                         {t("Reschedule")}
