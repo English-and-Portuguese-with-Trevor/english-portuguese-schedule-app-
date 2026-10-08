@@ -46,6 +46,17 @@
   --logout-foreground: #1b5e8a;
   --logout-border: #b9d3e6;
   --logout-hover: #d6e7f3;
+  /* Home, My progress and My notes in the account menu: soft green, teal and
+     lavender buttons, the same on every site */
+  --pill-home: #e8f3ec;
+  --pill-home-foreground: #1f5c3a;
+  --pill-home-border: #bfdcc9;
+  --pill-progress: #e3f2f3;
+  --pill-progress-foreground: #1d5f66;
+  --pill-progress-border: #b5dadd;
+  --pill-notes: #efeaf7;
+  --pill-notes-foreground: #4e3c7a;
+  --pill-notes-border: #d3c8ea;
 }
 
 @theme inline {
@@ -84,6 +95,15 @@
   --color-logout-foreground: var(--logout-foreground);
   --color-logout-border: var(--logout-border);
   --color-logout-hover: var(--logout-hover);
+  --color-pill-home: var(--pill-home);
+  --color-pill-home-foreground: var(--pill-home-foreground);
+  --color-pill-home-border: var(--pill-home-border);
+  --color-pill-progress: var(--pill-progress);
+  --color-pill-progress-foreground: var(--pill-progress-foreground);
+  --color-pill-progress-border: var(--pill-progress-border);
+  --color-pill-notes: var(--pill-notes);
+  --color-pill-notes-foreground: var(--pill-notes-foreground);
+  --color-pill-notes-border: var(--pill-notes-border);
 }
 
 /* Dark palette: the same forest greens as the other sites' dark mode. */
@@ -122,6 +142,15 @@
   --logout-foreground: #9cc8e8;
   --logout-border: #2f4a5c;
   --logout-hover: #243b4a;
+  --pill-home: #1e3326;
+  --pill-home-foreground: #a8ddb8;
+  --pill-home-border: #2f5a3e;
+  --pill-progress: #183235;
+  --pill-progress-foreground: #9ed8dd;
+  --pill-progress-border: #2b5257;
+  --pill-notes: #2c2640;
+  --pill-notes-foreground: #cdbef0;
+  --pill-notes-border: #4a3f6b;
 }
 
 /* Readability first (Trevor, 2026-10-05): a notch bigger than the browser's

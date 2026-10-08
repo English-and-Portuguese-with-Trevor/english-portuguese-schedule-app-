@@ -43,6 +43,9 @@ import { logout } from "@/lib/actions/auth";
  * Settings and Log out side by side.
  */
 const TOOLS_URL = "https://englishandportuguesewithtrevor.com/lessons/#/tools";
+/** Home, My progress and My notes: rounded buttons sharing one row; each adds its own soft color. */
+const PILL =
+  "min-h-10 flex-auto justify-center whitespace-nowrap rounded-full border px-[0.7rem] py-[0.35rem] text-center font-semibold no-underline focus-visible:ring-2 focus-visible:ring-ring";
 
 export const LEARN_LINKS = [
   {
@@ -120,16 +123,16 @@ export default function AccountMenu({
             <a href="https://englishandportuguesewithtrevor.com/lessons/#/articles">{t("Articles")}</a>
           </DropdownMenuItem>
         </div>
-        {/* Home, My progress and My notes on one row. */}
-        <div className="mb-1 flex flex-wrap border-b border-line pb-1 [&_[role=menuitem]]:px-1.5">
-          <DropdownMenuItem asChild>
+        {/* Home, My progress and My notes on one row, each a soft-colored button (Trevor, 2026-10-08). */}
+        <div className="mb-1 flex flex-wrap gap-1.5 border-b border-line pt-1 pb-2.5">
+          <DropdownMenuItem asChild className={`${PILL} border-pill-home-border bg-pill-home text-pill-home-foreground focus:bg-pill-home focus:text-pill-home-foreground`}>
             <a href={LANDING_URL}>{t("Home")}</a>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
+          <DropdownMenuItem asChild className={`${PILL} border-pill-progress-border bg-pill-progress text-pill-progress-foreground focus:bg-pill-progress focus:text-pill-progress-foreground`}>
             <a href={`${LANDING_URL}/notebook/#/progress`}>{t("My progress")}</a>
           </DropdownMenuItem>
           {privateStudent && (
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className={`${PILL} border-pill-notes-border bg-pill-notes text-pill-notes-foreground focus:bg-pill-notes focus:text-pill-notes-foreground`}>
               <a href={`${LANDING_URL}/notebook/`}>
                 <NotebookPen />
                 {t("My notes")}
