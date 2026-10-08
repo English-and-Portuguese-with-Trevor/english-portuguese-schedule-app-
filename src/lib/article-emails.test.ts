@@ -50,7 +50,7 @@ describe("emails.newArticles", () => {
     expect(email.text).toContain("There's a new article for you today.");
     expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/lessons/#/tiny-homes"');
     expect(email.text).toContain("Read it: https://englishandportuguesewithtrevor.com/lessons/#/tiny-homes");
-    expect(email.text).toContain("You can change this in Settings > Preferences.");
+    expect(email.text).toContain("You can change this in Settings > Notifications.");
   });
 
   it("is written in the student's site language, keeping the title as it is", () => {
@@ -60,7 +60,7 @@ describe("emails.newArticles", () => {
     expect(email.text).toContain("Hoje tem um artigo novo para você.");
     expect(email.text).toContain("Artigo: Tiny Homes");
     expect(email.text).toContain("Ler: https://englishandportuguesewithtrevor.com/lessons/#/tiny-homes");
-    expect(email.text).toContain("Configurações > Preferências");
+    expect(email.text).toContain("Configurações > Notificações");
     expect(email.text).not.toContain("Read it");
   });
 

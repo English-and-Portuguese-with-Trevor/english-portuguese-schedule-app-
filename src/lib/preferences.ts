@@ -91,7 +91,7 @@ export function setStartPage(page: StartPage) {
   save("set_start_page", { page });
 }
 
-/** The sections the student uses the app for (Settings > Preferences; profile only). */
+/** The sections the student uses the app for (Settings > What I use the app for; profile only). */
 export function setAppUses(uses: StartPage[]) {
   return save("set_app_uses", { p_uses: uses });
 }

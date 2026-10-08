@@ -115,7 +115,7 @@ email and the notes warning are written in the student's site language (`profile
 English when unset), its tagline at the end too (Spanish or French for
 those; Portuguese alone for Portuguese; English and Portuguese otherwise),
 while what they're about follows the language they're learning; the weekly class update is in the language they're learning first,
-then their own. Settings > Preferences > Emails sets the choices
+then their own. Settings > Notifications > Emails sets the choices
 (`set_email_choices`: `article_delivery` email / app / off, default app;
 `summary_delivery` email / off, default email; `class_update_delivery`
 email / off, default email, the row is on this app's Settings and the email's

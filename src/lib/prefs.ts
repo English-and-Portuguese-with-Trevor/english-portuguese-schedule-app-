@@ -23,8 +23,8 @@ const SITE_CODES: readonly string[] = SITE_LANGUAGES.map((l) => l.code);
 
 export type Theme = "light" | "dark";
 export type LearningLanguage = "Portuguese" | "English";
-// The sections the installed app can open on (Settings > Preferences > "Open
-// the app on"); each is a folder of englishandportuguesewithtrevor.com.
+// The sections the installed app can open on (Settings > What I use the app for,
+// "Opens here"); each is a folder of englishandportuguesewithtrevor.com.
 export const START_PAGES = ["lessons", "flashcards", "activities", "dailies", "conversations"] as const;
 export type StartPage = (typeof START_PAGES)[number];
 export interface Prefs {

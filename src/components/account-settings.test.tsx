@@ -69,7 +69,7 @@ describe("AccountSettings", () => {
     expect(screen.getAllByRole("button").map((b) => b.textContent).slice(0, 3)).toEqual([
       "Preferences›",
       "Get the app",
-      "Account›",
+      "Notifications›",
     ]);
     fireEvent.click(row);
     expect(offer.prompt).toHaveBeenCalled();
@@ -88,6 +88,8 @@ describe("AccountSettings", () => {
     );
     expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
       "Preferences›",
+      "Notifications›",
+      "What I use the app for›",
       "Account›",
       "Manage subscription",
       "Delete account",
@@ -97,6 +99,9 @@ describe("AccountSettings", () => {
     openPage("Preferences");
     expect(screen.getByRole("heading", { name: "Preferences" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Delete account" })).not.toBeInTheDocument();
+    // Only the look and languages: the emails and app uses have their own pages.
+    expect(screen.queryByLabelText("New articles")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Settings/ }));
     expect(screen.getByRole("button", { name: "Delete account" })).toBeInTheDocument();
   });
@@ -282,7 +287,7 @@ describe("Preferences", () => {
         classUpdateDelivery="email"
       />,
     );
-    openPage("Preferences");
+    openPage("Notifications");
     expect(screen.getByLabelText("New articles")).toHaveValue("app");
     fireEvent.change(screen.getByLabelText("New articles"), { target: { value: "email" } });
     await waitFor(() =>
@@ -310,7 +315,8 @@ describe("Preferences", () => {
         startPage="lessons"
       />,
     );
-    openPage("Preferences");
+    openPage("What I use the app for");
+    expect(screen.getAllByRole("heading", { name: "What I use the app for" })).toHaveLength(1);
     // The start page shows checked, and can't be unchecked.
     expect(screen.getByRole("checkbox", { name: "Lessons" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Lessons" })).toBeDisabled();
@@ -330,6 +336,25 @@ describe("Preferences", () => {
     expect(screen.getByText("The app will open on Daily puzzles.")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Lessons" })).toBeEnabled();
     expect(screen.getByRole("checkbox", { name: "Daily puzzles" })).toBeDisabled();
+  });
+
+  it("links the daily practice reminder to the activities site, only with lesson access", () => {
+    const { unmount } = render(
+      <AccountSettings name="Ana" email={null} role="student" lessonAccess="none" billing={null} />,
+    );
+    openPage("Notifications");
+    expect(screen.queryByText("Daily practice reminder")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Emails" })).toBeInTheDocument();
+    unmount();
+    render(
+      <AccountSettings name="Ana" email={null} role="student" lessonAccess="lifetime" billing={null} />,
+    );
+    openPage("Notifications");
+    expect(screen.getByRole("heading", { name: "Daily practice reminder" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Set it up on Activities" })).toHaveAttribute(
+      "href",
+      "https://englishandportuguesewithtrevor.com/activities/#/settings/notifications",
+    );
   });
 
   it("shows the settings in the site language", () => {

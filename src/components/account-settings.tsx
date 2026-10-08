@@ -58,6 +58,15 @@ import {
 import { loadClient } from "@/lib/supabase/load-client";
 import type { LessonAccess, Role } from "@/lib/types";
 
+type Page = "preferences" | "notifications" | "uses" | "account";
+
+const PAGE_TITLES: Record<Page, string> = {
+  preferences: "Preferences",
+  notifications: "Notifications",
+  uses: "What I use the app for",
+  account: "Account",
+};
+
 /** Reads the JSON error an edge function returned with a non-2xx status. */
 async function functionError(error: { message: string; context?: unknown }) {
   const context = error.context as
@@ -68,9 +77,10 @@ async function functionError(error: { message: string; context?: unknown }) {
 }
 
 /**
- * Settings, the same short menu on every site: Preferences ›, Get the app,
- * Account › (name, email, lesson access), Manage subscription (Stripe
- * customer portal), Delete account and Log out.
+ * Settings, the same short menu on every site: Preferences › (look and
+ * languages), Get the app, Notifications › (Daily practice reminder, Emails),
+ * What I use the app for ›, Account › (name, email, lesson access), Manage
+ * subscription (Stripe customer portal), Delete account and Log out.
  */
 export function AccountSettings({
   name,
@@ -100,7 +110,7 @@ export function AccountSettings({
   const [billingError, setBillingError] = useState<string | null>(null);
   const [opening, startOpening] = useTransition();
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [page, setPage] = useState<"preferences" | "account" | null>(null);
+  const [page, setPage] = useState<Page | null>(null);
   const router = useRouter();
   const t = useT();
   const lang = useSiteLanguage();
@@ -140,7 +150,7 @@ export function AccountSettings({
     });
   }
 
-  // Settings is a short menu; Preferences and Account each open their own page.
+  // Settings is a short menu; each page opens on its own.
   if (page) {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -148,16 +158,23 @@ export function AccountSettings({
           ‹ {t("Settings")}
         </Button>
         <h1 className="title -mt-4 text-3xl">
-          {page === "preferences" ? t("Preferences") : t("Account")}
+          {t(PAGE_TITLES[page])}
         </h1>
         {page === "preferences" ? (
-          <PreferencesCard
+          <PreferencesCard />
+        ) : page === "notifications" ? (
+          <NotificationsCard
+            hasAccess={role === "admin" || ["granted", "subscriber", "lifetime"].includes(lessonAccess)}
             articleDelivery={articleDelivery}
             summaryDelivery={summaryDelivery}
             classUpdateDelivery={classUpdateDelivery}
-            appUses={appUses}
-            startPage={startPage}
           />
+        ) : page === "uses" ? (
+          <Card>
+            <CardContent className="flex flex-col divide-y">
+              <AppUses appUses={appUses} startPage={startPage} />
+            </CardContent>
+          </Card>
         ) : (
           <Card>
             <CardHeader>
@@ -203,14 +220,17 @@ export function AccountSettings({
           <span aria-hidden>›</span>
         </Button>
         <InstallRow />
-        <Button
-          variant="outline"
-          className="h-12 w-full justify-between"
-          onClick={() => setPage("account")}
-        >
-          {t("Account")}
-          <span aria-hidden>›</span>
-        </Button>
+        {(["notifications", "uses", "account"] as const).map((p) => (
+          <Button
+            key={p}
+            variant="outline"
+            className="h-12 w-full justify-between"
+            onClick={() => setPage(p)}
+          >
+            {t(PAGE_TITLES[p])}
+            <span aria-hidden>›</span>
+          </Button>
+        ))}
         <Button
           variant="outline"
           className="h-12 w-full justify-start"
@@ -301,20 +321,10 @@ function InstallRow() {
 }
 
 /**
- * Dark mode, the language being learned and the site language, then the
- * Emails group (new articles, monthly summary, weekly class update) and
- * What I use the app for; the same settings on every site.
+ * Dark mode, the language being learned and the site language; the same
+ * settings on every site.
  */
-function PreferencesCard(props: {
-  articleDelivery: ArticleDelivery;
-  summaryDelivery: SummaryDelivery;
-  classUpdateDelivery: ClassUpdateDelivery;
-  appUses: StartPage[];
-  startPage: StartPage | null;
-}) {
-  const [articles, setArticles] = useState(props.articleDelivery);
-  const [summary, setSummary] = useState(props.summaryDelivery);
-  const [classUpdate, setClassUpdate] = useState(props.classUpdateDelivery);
+function PreferencesCard() {
   // The cookie is only readable in the browser; the server renders the defaults.
   const [prefs, setPrefs] = useState<Prefs>({});
   const t = useT();
@@ -407,7 +417,44 @@ function PreferencesCard(props: {
             }}
           />
         </div>
-        <p className="pt-5 pb-1 text-sm font-semibold">{t("Emails")}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Everything that reaches the student: the daily practice reminder (set up
+ * per device on the activities site; students with lesson access), then the
+ * Emails group (new articles, monthly summary, weekly class update).
+ */
+function NotificationsCard(props: {
+  hasAccess: boolean;
+  articleDelivery: ArticleDelivery;
+  summaryDelivery: SummaryDelivery;
+  classUpdateDelivery: ClassUpdateDelivery;
+}) {
+  const [articles, setArticles] = useState(props.articleDelivery);
+  const [summary, setSummary] = useState(props.summaryDelivery);
+  const [classUpdate, setClassUpdate] = useState(props.classUpdateDelivery);
+  const t = useT();
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col divide-y">
+        {props.hasAccess && (
+          <div className="flex flex-col gap-2 pt-5 pb-4">
+            <h2 className="text-sm font-semibold">{t("Daily practice reminder")}</h2>
+            <p className="text-sm text-muted-foreground">
+              {t("One notification a day when your practice set is ready. Not sent on days you’ve done it.")}
+            </p>
+            <Button variant="outline" className="self-start" asChild>
+              <a href={`${LANDING_URL}/activities/#/settings/notifications`}>
+                {t("Set it up on Activities")}
+              </a>
+            </Button>
+          </div>
+        )}
+        <h2 className="pt-5 pb-1 text-sm font-semibold">{t("Emails")}</h2>
         <div className="flex items-center justify-between gap-4 py-3">
           <label htmlFor="article-delivery" className="text-sm font-medium">
             {t("New articles")}
@@ -463,7 +510,6 @@ function PreferencesCard(props: {
             <option value="off">{t("Off")}</option>
           </select>
         </div>
-        <AppUses appUses={props.appUses} startPage={props.startPage} />
       </CardContent>
     </Card>
   );
@@ -501,7 +547,6 @@ function AppUses(props: { appUses: StartPage[]; startPage: StartPage | null }) {
   return (
     <>
       <div className="pt-5 pb-2">
-        <p className="pb-1 text-sm font-semibold">{t("What I use the app for")}</p>
         <p className="text-sm text-muted-foreground">
           {t("Check every section you use, and pick the one the app opens on.")}
         </p>

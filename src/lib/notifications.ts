@@ -764,7 +764,7 @@ export const emails = {
         details: [],
         sections,
         button: { label: t("See all your progress"), url: `${site}/notebook/#/progress` },
-        footerNote: `${classes.length ? t("Keep it up! See you in class. Trevor") : t("Keep it up! Trevor")} ${t("You can turn this email off in Settings > Preferences.")}`,
+        footerNote: `${classes.length ? t("Keep it up! See you in class. Trevor") : t("Keep it up! Trevor")} ${t("You can turn this email off in Settings > Notifications.")}`,
         language: lang,
       }),
     };
@@ -805,7 +805,7 @@ export const emails = {
     };
     const a = part(first);
     const b = part(second);
-    const optOut = (t: Translate) => t("Don't want this weekly email? Turn it off at {url} (Settings > Preferences > Emails).", { url: settings });
+    const optOut = (t: Translate) => t("Don't want this weekly email? Turn it off at {url} (Settings > Notifications > Emails).", { url: settings });
     return {
       to: person.email,
       subject: a.t("Your classes this week"),
@@ -840,7 +840,7 @@ export const emails = {
         details: [],
         sections: [{ title: t("Out today"), rows: articles.map((a): [string, string, string] => [t("Article"), a.title, link(a.id)]) }],
         button: { label: t("Read it"), url: link(articles[0].id) },
-        footerNote: t("You get this email because you asked for it. You can change this in Settings > Preferences."),
+        footerNote: t("You get this email because you asked for it. You can change this in Settings > Notifications."),
         language: lang,
       }),
     };
