@@ -110,8 +110,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>My notes:</strong> the notes you write (titles, text and tags) and when you last opened
-              or changed them. Trevor can read and edit them with you, except the ones you mark Private, which only
-              you can read. Notes nobody opens or changes for a year are deleted; you
+              or changed them. Only you can read them, unless you share one with Trevor; then he can read it and write in it
+              with you. Notes nobody opens or changes for a year are deleted; you
               get an email a month before.
             </li>
             <li>
@@ -124,7 +124,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             Trevor can see your progress, your practice results and the answers you got wrong, so he can see
-            what to help you with. He can see your notes, except the ones you mark Private.
+            what to help you with. He can't see your notes unless you share them with him.
           </p>
         </section>
 

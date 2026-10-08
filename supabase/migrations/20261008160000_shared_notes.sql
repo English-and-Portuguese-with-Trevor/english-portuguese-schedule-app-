@@ -1,12 +1,13 @@
 -- My notes shared with Trevor (Trevor, 2026-10-08): a student's notes are
 -- shared with Trevor (admins), who reads and edits them live from the
--- notebook site, unless the student marks a note Private: then only the
--- student sees it, Trevor included. Notes written before today were promised
--- to be private, so they start Private; new notes start shared.
+-- notebook site, only when the student shares it ("Share with Trevor").
+-- Every note is private until then, the ones written before today included
+-- (Trevor, 2026-10-08: "everybody's notes should be private unless they
+-- share them").
 -- Both can type in a note at once, like a Google Doc: the text is a Yjs
 -- document (its state saved in ydoc, base64, beside the plain body), kept in
 -- step over the note's private Realtime channel `note:<id>`.
-alter table public.student_notes add column if not exists private boolean not null default false;
+alter table public.student_notes add column if not exists private boolean not null default true;
 alter table public.student_notes add column if not exists ydoc text check (char_length(ydoc) <= 2000000);
 update public.student_notes set private = true;
 
