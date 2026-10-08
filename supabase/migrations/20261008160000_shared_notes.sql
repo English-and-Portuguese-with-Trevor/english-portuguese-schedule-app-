@@ -3,7 +3,11 @@
 -- notebook site, unless the student marks a note Private: then only the
 -- student sees it, Trevor included. Notes written before today were promised
 -- to be private, so they start Private; new notes start shared.
+-- Both can type in a note at once, like a Google Doc: the text is a Yjs
+-- document (its state saved in ydoc, base64, beside the plain body), kept in
+-- step over the note's private Realtime channel `note:<id>`.
 alter table public.student_notes add column if not exists private boolean not null default false;
+alter table public.student_notes add column if not exists ydoc text check (char_length(ydoc) <= 2000000);
 update public.student_notes set private = true;
 
 -- Trevor reads and changes the notes that aren't private. He never adds or
@@ -33,6 +37,20 @@ begin
   return new;
 end;
 $$;
+
+-- A note's live channel: only those who can read the note (row-level
+-- security on student_notes: the student, and Trevor while it isn't private)
+-- may listen or send on it.
+create policy "Note readers use its live channel" on realtime.messages
+  for select to authenticated using (
+    realtime.messages.extension = 'broadcast'
+    and exists (select 1 from public.student_notes n where 'note:' || n.id::text = (select realtime.topic()))
+  );
+create policy "Note readers send on its live channel" on realtime.messages
+  for insert to authenticated with check (
+    realtime.messages.extension = 'broadcast'
+    and exists (select 1 from public.student_notes n where 'note:' || n.id::text = (select realtime.topic()))
+  );
 
 -- Live: changes reach the other person's open notebook (row-level security
 -- still decides who gets each change).
