@@ -304,6 +304,8 @@ export const STRINGS = {
     "Lesson subscriptions": "Suscripciones a las lecciones",
     "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Puedes cancelar la suscripción a las lecciones cuando quieras en Configuración. Sigue activa hasta el final del periodo que pagaste, y ese periodo no se reembolsa.",
     "Subscriptions aren't refunded.": "Las suscripciones no se reembolsan.",
+    "Today's practice": "Práctica de hoy",
+    "Your {n} activities for today are ready.": "Tus {n} actividades de hoy están listas.",
   },
   pt: {
     "English & Portuguese With Trevor, main website":
@@ -606,6 +608,8 @@ export const STRINGS = {
     "Lesson subscriptions": "Assinaturas das lições",
     "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Você pode cancelar a assinatura das lições quando quiser em Configurações. Ela continua ativa até o fim do período que você pagou, e esse período não é reembolsado.",
     "Subscriptions aren't refunded.": "As assinaturas não são reembolsadas.",
+    "Today's practice": "Prática de hoje",
+    "Your {n} activities for today are ready.": "Suas {n} atividades de hoje estão prontas.",
   },
   fr: {
     "English & Portuguese With Trevor, main website":
@@ -908,5 +912,7 @@ export const STRINGS = {
     "Lesson subscriptions": "Abonnements aux leçons",
     "You can cancel a lesson subscription anytime in Settings. It stays active until the end of the period you paid for, and that period isn't refunded.": "Vous pouvez annuler un abonnement aux leçons à tout moment dans Paramètres. Il reste actif jusqu'à la fin de la période payée, et cette période n'est pas remboursée.",
     "Subscriptions aren't refunded.": "Les abonnements ne sont pas remboursés.",
+    "Today's practice": "Pratique du jour",
+    "Your {n} activities for today are ready.": "Vos {n} activités du jour sont prêtes.",
   },
 } as const;

@@ -492,6 +492,10 @@ export type Database = {
         Args: { p_secret: string }
         Returns: Json
       }
+      claim_practice_pushes: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
       claim_flag_digest: {
         Args: { p_secret: string }
         Returns: Json
@@ -534,6 +538,10 @@ export type Database = {
       }
       delete_push_subscription: {
         Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      drop_practice_push: {
+        Args: { p_endpoint: string; p_secret: string }
         Returns: undefined
       }
       drop_push_subscription: {
