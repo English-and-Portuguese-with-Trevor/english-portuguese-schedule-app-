@@ -100,6 +100,13 @@ Supabase. To rotate it, generate a new value and update both:
 update private.app_settings set value = '<new secret>' where key = 'cron_secret';
 ```
 
+The job's database calls (`createServerJobClient` in
+`src/lib/integration-status.ts`: the daily job, the alert and practice
+pushes, the status records) go through `SUPABASE_SERVICE_ROLE_KEY` when it
+is set in Vercel (server only; never a `NEXT_PUBLIC_` variable, since it
+bypasses row-level security), so the secret-guarded functions can be revoked
+from the `anon` role. Without it they use the anon key, as before.
+
 ## Every email the system sends
 
 Kept short on purpose (Trevor: no email overload). Before adding one, see

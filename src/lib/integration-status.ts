@@ -5,10 +5,13 @@ import type { Database } from "@/lib/supabase/database.types";
 /**
  * A client with no user session, for server work that isn't tied to a
  * signed-in person (the daily job, status records). Its database functions
- * are guarded by CRON_SECRET instead.
+ * are guarded by CRON_SECRET instead. It uses the service role key when
+ * SUPABASE_SERVICE_ROLE_KEY is set (server only, so those functions can be
+ * revoked from anon), and the anon key until then.
  */
 export function createServerJobClient() {
-  return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
