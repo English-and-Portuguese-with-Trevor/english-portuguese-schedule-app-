@@ -100,4 +100,26 @@ describe("POST /api/admin", () => {
     expect((await post({ action: "book", studentId: "s1", start: "nope", end: "nope" })).status).toBe(400);
     expect((await post({ action: "explode" })).status).toBe(400);
   });
+
+  it("rejects a body that isn't an object, or is missing a field, with 400", async () => {
+    for (const body of [null, "confirm", 7, [], { action: "confirm" }, { action: "cancel", bookingId: 5 }]) {
+      const res = await post(body);
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: "Bad request." });
+    }
+    const res = await POST(new Request("https://schedule.test/api/admin", { method: "POST", headers: { origin: ORIGIN }, body: "{not json" }));
+    expect(res.status).toBe(400);
+    expect(mocks.confirmBooking).not.toHaveBeenCalled();
+    expect(mocks.cancelBooking).not.toHaveBeenCalled();
+  });
+
+  it("keeps an action's error details out of the answer", async () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.confirmBooking.mockRejectedValueOnce(new Error("relation private.secret_table does not exist"));
+    const res = await post({ action: "confirm", bookingId: "b1" });
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(await res.json())).not.toContain("secret_table");
+    expect(quiet).toHaveBeenCalled();
+    quiet.mockRestore();
+  });
 });

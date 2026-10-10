@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { sendTestPush } from "@/lib/admin-push";
 import { adminBookSeries, adminBookStudent, cancelBooking, confirmBooking } from "@/lib/actions/bookings";
 import { checkAdmin } from "@/lib/auth/require-admin";
@@ -22,12 +24,14 @@ const CORS = {
 /** The most classes one series can book (adminBookSeries checks it too). */
 const MAX_SERIES = 26;
 
-type Body =
-  | { action: "confirm"; bookingId: string }
-  | { action: "cancel"; bookingId: string; reason?: string }
-  | { action: "book"; studentId: string; start: string; end: string }
-  | { action: "book-series"; studentId: string; slots: { start: string; end: string }[] }
-  | { action: "test-push"; endpoint: string; title?: string; body: string };
+const Slot = z.object({ start: z.string(), end: z.string() });
+const Body = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("confirm"), bookingId: z.string() }),
+  z.object({ action: z.literal("cancel"), bookingId: z.string(), reason: z.string().nullish() }),
+  z.object({ action: z.literal("book"), studentId: z.string(), start: z.string(), end: z.string() }),
+  z.object({ action: z.literal("book-series"), studentId: z.string(), slots: z.array(Slot) }),
+  z.object({ action: z.literal("test-push"), endpoint: z.string(), title: z.string().nullish(), body: z.string() }),
+]);
 
 function json(body: unknown, status = 200) {
   return Response.json(body, { status, headers: CORS });
@@ -43,52 +47,49 @@ export async function POST(request: Request) {
   const admin = await checkAdmin(await createClient());
   if (!admin.ok) return json({ error: admin.error }, admin.status);
 
-  let body: Body;
-  try {
-    body = (await request.json()) as Body;
-  } catch {
-    return json({ error: "Bad request." }, 400);
-  }
+  // An unknown action, a missing field or a body that isn't an object all end here.
+  const parsed = Body.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return json({ error: "Bad request." }, 400);
+  const body = parsed.data;
 
   try {
     switch (body.action) {
       case "confirm":
-        return json(await confirmBooking(String(body.bookingId)));
+        return json(await confirmBooking(body.bookingId));
       case "cancel":
-        return json(await cancelBooking(String(body.bookingId), body.reason ? String(body.reason) : undefined));
+        return json(await cancelBooking(body.bookingId, body.reason || undefined));
       case "book": {
         const start = new Date(body.start);
         const end = new Date(body.end);
         if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
           return json({ error: "Bad time." }, 400);
         }
-        return json(await adminBookStudent(String(body.studentId), start.toISOString(), end.toISOString()));
+        return json(await adminBookStudent(body.studentId, start.toISOString(), end.toISOString()));
       }
       case "book-series": {
-        const slots = Array.isArray(body.slots) ? body.slots : [];
+        const { slots } = body;
         if (slots.length < 1 || slots.length > MAX_SERIES) return json({ error: `Book between 1 and ${MAX_SERIES} classes at a time.` }, 400);
         const clean = [];
         for (const slot of slots) {
-          const start = new Date(slot?.start);
-          const end = new Date(slot?.end);
+          const start = new Date(slot.start);
+          const end = new Date(slot.end);
           if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return json({ error: "Bad time." }, 400);
           clean.push({ start: start.toISOString(), end: end.toISOString() });
         }
-        return json(await adminBookSeries(String(body.studentId), clean));
+        return json(await adminBookSeries(body.studentId, clean));
       }
       case "test-push": {
         const secret = process.env.CRON_SECRET;
         if (!secret) return json({ error: "Push isn't set up on the server (CRON_SECRET is missing)." }, 500);
-        const title = String(body.title ?? "").trim().slice(0, 80) || "Test notification";
-        const text = String(body.body ?? "").trim().slice(0, 300);
+        const title = (body.title ?? "").trim().slice(0, 80) || "Test notification";
+        const text = body.body.trim().slice(0, 300);
         if (!text) return json({ error: "Type a message first." }, 400);
-        return json(await sendTestPush(secret, String(body.endpoint), title, text));
+        return json(await sendTestPush(secret, body.endpoint, title, text));
       }
-      default:
-        return json({ error: "Unknown action." }, 400);
     }
   } catch (error) {
+    // The details go to the function logs; the caller gets a plain line.
     console.error("[api/admin] failed:", error);
-    return json({ error: error instanceof Error ? error.message : String(error) }, 500);
+    return json({ error: "Something went wrong. Try again in a minute." }, 500);
   }
 }
