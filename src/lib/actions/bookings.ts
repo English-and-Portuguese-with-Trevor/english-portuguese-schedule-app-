@@ -317,7 +317,7 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
           .update({
             status: "CANCELLED",
             cancelled_at: new Date().toISOString(),
-            cancellation_reason: reason ?? null,
+            cancellation_reason: reason?.trim().slice(0, 300) || null,
           })
           .eq("id", bookingId)
       : await supabase.rpc("cancel_my_booking", { p_booking_id: bookingId });
