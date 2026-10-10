@@ -104,6 +104,10 @@ Every site's header shows the brand on two lines, "English & Portuguese" over
 linking to the home page, with the "Hi, name" menu at the right. Trevor chose
 this (2026-09-29); keep it on every page of every site. A three-line menu icon sits before the name on the button (Trevor, 2026-10-03: students didn't see it was a menu).
 
+## Working with Trevor
+- SQL that Trevor has to run himself (Supabase > SQL Editor) goes in the chat as one code block, never as a file, unless he says otherwise (Trevor, 2026-10-10).
+- Credits (Trevor, 2026-10-10): work in the one repo the task needs and don't open the others; read only the files the change touches; no subagents or whole-site audits unless he asks; keep replies short, with no restated plans and no summaries of what the diff already shows.
+
 ## Keep it simple
 - Make the smallest change that does the job. No new dependency, helper, abstraction, option or setting unless this task needs it now; use what the browser, Node and the existing code already provide first.
 - Don't build for cases nobody asked for (fallbacks, flags, "future-proofing"). If the simple version leaves a real gap, say so in the reply instead of coding around it.
