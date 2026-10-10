@@ -1,4 +1,5 @@
 import { sendAlerts } from "@/lib/admin-push";
+import { hasBearer } from "@/lib/bearer";
 import { sendWelcomes } from "@/lib/welcome";
 
 // The database calls this (pg_net) right after a new sign-up or subscriber
@@ -6,7 +7,7 @@ import { sendWelcomes } from "@/lib/welcome";
 // (and to send a new account its welcome email).
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!hasBearer(request, secret)) {
     return new Response("Unauthorized", { status: 401 });
   }
   try {
