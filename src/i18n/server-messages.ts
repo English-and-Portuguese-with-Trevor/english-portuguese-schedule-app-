@@ -20,6 +20,7 @@ export const SERVER_MESSAGES = [
   tr("You already flagged this class."),
   tr("Please pick a reason."),
   tr("You already have 10 upcoming classes. Cancel one to book another."),
+  tr("That's a lot of booking changes for one day. Please try again tomorrow or write to Trevor."),
   tr("Admin accounts can't be self-deleted from the app."),
   tr(
     "You have an upcoming class booked. Cancel it in the schedule app first, then delete your account.",

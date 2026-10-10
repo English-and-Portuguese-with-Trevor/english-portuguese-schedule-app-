@@ -177,6 +177,8 @@ export const STRINGS = {
       "Las clases se pueden reservar con hasta 60 días de anticipación.",
     "You already have 10 upcoming classes. Cancel one to book another.":
       "Ya tienes 10 clases próximas. Cancela una para reservar otra.",
+    "That's a lot of booking changes for one day. Please try again tomorrow or write to Trevor.":
+      "Son muchos cambios de reserva para un solo día. Inténtalo de nuevo mañana o escríbele a Trevor.",
     Close: "Cerrar",
     Welcome: "Bienvenido",
     "Log in with your Google account or your email and password.":
@@ -485,6 +487,8 @@ export const STRINGS = {
       "As aulas podem ser agendadas com até 60 dias de antecedência.",
     "You already have 10 upcoming classes. Cancel one to book another.":
       "Você já tem 10 aulas agendadas. Cancele uma para agendar outra.",
+    "That's a lot of booking changes for one day. Please try again tomorrow or write to Trevor.":
+      "São muitas mudanças de reserva para um dia só. Tente de novo amanhã ou escreva para o Trevor.",
     Close: "Fechar",
     Welcome: "Bem-vindo",
     "Log in with your Google account or your email and password.":
@@ -795,6 +799,8 @@ export const STRINGS = {
       "Les cours peuvent être réservés jusqu'à 60 jours à l'avance.",
     "You already have 10 upcoming classes. Cancel one to book another.":
       "Vous avez déjà 10 cours à venir. Annulez-en un pour en réserver un autre.",
+    "That's a lot of booking changes for one day. Please try again tomorrow or write to Trevor.":
+      "Cela fait beaucoup de changements de réservation pour une seule journée. Réessayez demain ou écrivez à Trevor.",
     Close: "Fermer",
     Welcome: "Bienvenue",
     "Log in with your Google account or your email and password.":
