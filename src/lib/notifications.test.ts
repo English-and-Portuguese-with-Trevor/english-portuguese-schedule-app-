@@ -9,10 +9,13 @@ const google = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/google", () => ({ ...google, LESSON_TIMEZONE: "America/Denver" }));
 const recordGoogleStatus = vi.hoisted(() => vi.fn(async () => {}));
-vi.mock("@/lib/integration-status", () => ({ recordGoogleStatus }));
+// The server records Meet links with the job secret, through its own client.
+const jobRpc = vi.hoisted(() => vi.fn(async (): Promise<{ error: null | { code?: string; message?: string } }> => ({ error: null })));
+vi.mock("@/lib/integration-status", () => ({ recordGoogleStatus, createServerJobClient: () => ({ rpc: jobRpc }) }));
 
 import {
   afterAdminBooking,
+  afterAdminSeries,
   afterApproval,
   afterCancellation,
   afterRescheduleApproval,
@@ -45,6 +48,7 @@ const subjects = () => sentEmails().map((email) => email.subject);
 
 beforeEach(() => {
   vi.stubEnv("ADMIN_NOTIFY_EMAIL", "trevor@example.com");
+  vi.stubEnv("CRON_SECRET", "s3cret");
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -111,14 +115,37 @@ describe("a student booking", () => {
     expect(google.createLessonEvent).toHaveBeenCalledWith(
       expect.objectContaining({ bookingId: "b1", studentEmail: "ana@example.com", start: lesson.start }),
     );
+    expect(jobRpc).toHaveBeenCalledWith("set_booking_meeting", {
+      p_booking_id: "b1",
+      p_event_id: "evt1",
+      p_meet_link: "https://meet.google.com/abc-defg-hij",
+      p_secret: "s3cret",
+    });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toContain("New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    expect(subjects()).toContain("Lesson confirmed: Mon, Sep 28, 2:30 PM");
+  });
+
+  it("falls back to the older Meet-link function until the migration is applied", async () => {
+    jobRpc.mockResolvedValueOnce({ error: { code: "PGRST202", message: "Could not find the function" } });
+    await afterStudentBooking(supabase, lesson, false);
+
     expect(rpc).toHaveBeenCalledWith("set_booking_meeting", {
       p_booking_id: "b1",
       p_event_id: "evt1",
       p_meet_link: "https://meet.google.com/abc-defg-hij",
     });
+    expect(recordGoogleStatus).not.toHaveBeenCalledWith(false, expect.anything());
+  });
+
+  it("reports, but doesn't block, a Meet link it couldn't record", async () => {
+    jobRpc.mockResolvedValueOnce({ error: { code: "P0001", message: "Not allowed" } });
+    await afterStudentBooking(supabase, lesson, false);
+
+    expect(rpc).not.toHaveBeenCalled();
+    expect(recordGoogleStatus).toHaveBeenCalledWith(false, expect.stringContaining("create calendar event failed"));
     expect(sentTo().sort()).toEqual(["ana@example.com", "trevor@example.com"]);
-    expect(subjects()).toContain("New lesson: Ana Pereira, Mon, Sep 28, 2:30 PM");
-    expect(subjects()).toContain("Lesson confirmed: Mon, Sep 28, 2:30 PM");
   });
 
   it("under 72 hours: no meeting yet; the student hears it's pending and the admin is asked to approve", async () => {
@@ -134,22 +161,45 @@ describe("a student booking", () => {
 });
 
 describe("approval", () => {
-  it("creates the Meet event and emails the student the link", async () => {
+  it("creates the Meet event, emails the student the link, and copies the admin", async () => {
     await afterApproval(supabase, lesson);
 
     expect(google.createLessonEvent).toHaveBeenCalledOnce();
-    expect(sentTo()).toEqual(["ana@example.com"]);
-    const [email] = sentEmails();
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
+    const [email, admin] = sentEmails();
     expect(email.subject).toBe("Lesson confirmed: Mon, Sep 28, 2:30 PM");
     expect(email.text).toContain("https://meet.google.com/abc-defg-hij");
+    expect(admin.subject).toBe("You approved: Ana Pereira, Mon, Sep 28, 2:30 PM");
+    expect(admin.text).toContain("https://meet.google.com/abc-defg-hij");
   });
 });
 
 describe("admin booking a student in", () => {
-  it("creates the event; the calendar invitation is the only notice", async () => {
+  it("creates the event (the student's notice) and copies the admin", async () => {
     await afterAdminBooking(supabase, lesson);
     expect(google.createLessonEvent).toHaveBeenCalledOnce();
-    expect(google.sendEmail).not.toHaveBeenCalled();
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toEqual(["Lesson confirmed: Mon, Sep 28, 2:30 PM", "You booked: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
+  });
+});
+
+describe("admin booking a weekly series", () => {
+  it("creates an event per class, sends the student one branded list and the admin one summary", async () => {
+    const second = { ...lesson, bookingId: "b2", start: "2026-10-05T20:30:00Z", end: "2026-10-05T21:30:00Z" };
+    await afterAdminSeries(supabase, [lesson, second], [{ start: "2026-10-12T20:30:00Z", reason: "That time was just taken. Please pick another." }]);
+    expect(google.createLessonEvent).toHaveBeenCalledTimes(2);
+    expect(subjects()).toEqual([
+      "2 lessons booked, starting: Mon, Sep 28, 2:30 PM",
+      "You booked 2 classes: Ana Pereira, Mon, Sep 28, 2:30 PM",
+    ]);
+    const [student, email] = sentEmails();
+    expect(student.to).toBe("ana@example.com");
+    expect(student.text).toContain("Mon, Oct 5, 2:30 PM");
+    expect(student.text).toContain("https://meet.google.com/abc-defg-hij");
+    expect(student.text).not.toContain("Oct 12");
+    expect(email.text).toContain("Mon, Oct 5, 2:30 PM");
+    expect(email.text).toContain("Not booked");
+    expect(email.text).toContain("Mon, Oct 12, 2:30 PM");
   });
 });
 
@@ -170,16 +220,22 @@ describe("cancellation", () => {
     expect(subjects()).toEqual(["Request withdrawn: Ana Pereira, Mon, Sep 28, 2:30 PM"]);
   });
 
-  it("by the admin declining a request: tells the student", async () => {
+  it("by the admin declining a request: tells the student and copies the admin", async () => {
     await afterCancellation(lesson, { by: "admin", wasPending: true, late: false, eventId: null });
-    expect(sentTo()).toEqual(["ana@example.com"]);
-    expect(subjects()).toEqual(["Lesson request not available: Mon, Sep 28, 2:30 PM"]);
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
+    expect(subjects()).toEqual([
+      "Lesson request not available: Mon, Sep 28, 2:30 PM",
+      "You declined: Ana Pereira, Mon, Sep 28, 2:30 PM",
+    ]);
   });
 
-  it("by the admin cancelling a confirmed lesson: removes the event and tells the student", async () => {
+  it("by the admin canceling a confirmed lesson: removes the event, tells the student, copies the admin", async () => {
     await afterCancellation(lesson, { by: "admin", wasPending: false, late: false, eventId: "evt1" });
     expect(google.deleteLessonEvent).toHaveBeenCalledWith("evt1");
-    expect(subjects()).toEqual(["Lesson cancelled: Mon, Sep 28, 2:30 PM"]);
+    expect(subjects()).toEqual([
+      "Lesson canceled: Mon, Sep 28, 2:30 PM",
+      "You canceled: Ana Pereira, Mon, Sep 28, 2:30 PM",
+    ]);
   });
 });
 
@@ -195,7 +251,7 @@ describe("failure handling", () => {
     google.createLessonEvent.mockRejectedValueOnce(new Error("Google is down"));
     await expect(afterApproval(supabase, lesson)).resolves.toBeUndefined();
     expect(rpc).not.toHaveBeenCalled();
-    expect(sentTo()).toEqual(["ana@example.com"]);
+    expect(sentTo()).toEqual(["ana@example.com", "trevor@example.com"]);
     expect(console.error).toHaveBeenCalled();
   });
 
@@ -219,7 +275,7 @@ describe("booking questions", () => {
 });
 
 describe("the admin's own time zone", () => {
-  it("shows the admin's time where they are, e.g. while travelling", async () => {
+  it("shows the admin's time where they are, e.g. while traveling", async () => {
     await afterStudentBooking(supabase, { ...lesson, adminTimezone: "Europe/Lisbon" }, true);
     const admin = sentEmails().find((e) => e.to === "trevor@example.com")!;
     expect(admin.subject).toBe("Approval needed: Ana Pereira, Mon, Sep 28, 9:30 PM");
@@ -261,9 +317,11 @@ describe("reschedules", () => {
     expect(google.createLessonEvent).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith({ google_event_id: "evt-old", meet_link: "https://meet.google.com/abc-defg-hij" });
     expect(updateEq).toHaveBeenCalledWith("id", "b2");
-    const [email] = sentEmails();
+    const [email, admin] = sentEmails();
     expect(email.subject).toBe("Lesson moved: Wed, Sep 30, 3:00 PM");
     expect(email.text).toContain("Previously: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
+    expect(admin.subject).toBe("You moved: Ana Pereira, Wed, Sep 30, 3:00 PM");
+    expect(admin.text).toContain("Previously: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
   });
 
   it("approval creates a new event if the original never had one", async () => {
@@ -273,15 +331,54 @@ describe("reschedules", () => {
 
   it("declining keeps the original lesson and says so", async () => {
     await afterCancellation(request, { by: "admin", wasPending: true, late: false, eventId: null });
-    const [email] = sentEmails();
+    const [email, admin] = sentEmails();
     expect(email.subject).toBe("Reschedule not available: Wed, Sep 30, 3:00 PM");
     expect(email.text).toContain("Your lesson stays as it was.");
+    expect(admin.subject).toBe("You declined a reschedule: Ana Pereira, Wed, Sep 30, 3:00 PM");
+    expect(admin.text).toContain("Their lesson: 2:30 PM – 3:30 PM, Monday, September 28, 2026");
     expect(google.deleteLessonEvent).not.toHaveBeenCalled();
   });
 
-  it("a withdrawn request tells the admin, not as a cancelled lesson", async () => {
+  it("a withdrawn request tells the admin, not as a canceled lesson", async () => {
     await afterCancellation(request, { by: "student", wasPending: true, late: false, eventId: null });
     expect(subjects()).toEqual(["Reschedule withdrawn: Ana Pereira, Wed, Sep 30, 3:00 PM"]);
+  });
+});
+
+describe("sign-up and subscriber alerts", () => {
+  const signup = { id: 1, kind: "signup" as const, name: "Ana Pereira", email: "ana@example.com", created_at: "2026-09-28T18:00:00Z" };
+  const subscriber = { id: 2, kind: "subscriber" as const, name: "Bo Silva", email: "bo@example.com", created_at: "2026-09-28T18:05:00Z" };
+
+  it("emails one alert on its own", () => {
+    const email = emails.adminAlerts([subscriber])!;
+    expect(email.to).toBe("trevor@example.com");
+    expect(email.subject).toBe("New subscriber: Bo Silva");
+    expect(email.text).toContain("bo@example.com");
+    expect(email.text).toContain("/admin/alerts");
+  });
+
+  it("emails the morning's flagged classes with their reasons and times", () => {
+    const flag = { ...signup, kind: "flag" as const, reason: "booking", class_start: "2026-09-28T20:30:00Z" };
+    const email = emails.flagDigest([flag, { ...flag, id: 3, name: "Bo Silva", reason: "connection" }])!;
+    expect(email.subject).toBe("2 new flags");
+    expect(email.text).toContain("Ana Pereira: Time or booking problem · class Mon, Sep 28, 2:30 PM MDT · ana@example.com");
+    expect(email.text).toContain("Bo Silva: Connection or Meet problem");
+    expect(emails.flagDigest([])).toBeNull();
+    const report = { ...signup, kind: "report" as const, reason: "mistake", item: "Lessons: Regular -AR verbs › 1.2" };
+    expect(emails.flagDigest([report])!.text).toContain("Reported issues\nAna Pereira: Mistake in the text · Lessons: Regular -AR verbs › 1.2");
+  });
+
+  it("lists several alerts in one email", () => {
+    const email = emails.adminAlerts([signup, subscriber])!;
+    expect(email.subject).toBe("2 new alerts");
+    expect(email.text).toContain("New subscribers");
+    expect(email.text).toContain("New sign-ups");
+    expect(email.text).toContain("Ana Pereira");
+  });
+
+  it("sends nothing without an admin address", () => {
+    vi.stubEnv("ADMIN_NOTIFY_EMAIL", "");
+    expect(emails.adminAlerts([signup])).toBeNull();
   });
 });
 

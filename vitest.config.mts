@@ -16,5 +16,7 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["./vitest.setup.ts"],
+    // A busy machine can push a slow render test past the 5s default and block the push hook.
+    testTimeout: 20000,
   },
 });

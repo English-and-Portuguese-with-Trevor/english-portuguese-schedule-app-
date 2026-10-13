@@ -69,6 +69,13 @@ describe("generateCandidateSlots", () => {
     }
   });
 
+  it("makes 30-minute classes for new students, with more starts in the same window", () => {
+    const tuesday = generateCandidateSlots(SCHEDULE, { fromDate: "2026-09-29", days: 1, now: LONG_AGO, minutes: 30 });
+    // Tuesday 2–3 PM: 2:00, 2:15 and 2:30 fit a half hour.
+    expect(tuesday.map((s) => formatInTimeZone(s.start, TZ, "h:mm a"))).toEqual(["2:00 PM", "2:15 PM", "2:30 PM"]);
+    for (const s of tuesday) expect(s.end.getTime() - s.start.getTime()).toBe(30 * 60 * 1000);
+  });
+
   it("gives a one-hour window exactly one start", () => {
     expect(startsOn("2026-09-29")).toEqual(["2:00 PM"]); // Tuesday 2–3 PM
   });
@@ -118,6 +125,43 @@ describe("generateCandidateSlots", () => {
   });
 });
 
+describe("days off", () => {
+  const days = (daysOff: { starts_on: string; ends_on: string }[]) =>
+    generateCandidateSlots(SCHEDULE, { fromDate: "2026-09-28", days: 7, now: LONG_AGO, daysOff }).map((s) =>
+      formatInTimeZone(s.start, TZ, "yyyy-MM-dd"),
+    );
+
+  it("shows no times on a day off", () => {
+    const left = days([{ starts_on: "2026-09-29", ends_on: "2026-09-29" }]);
+    expect(left).not.toContain("2026-09-29");
+    expect(left).toContain("2026-09-28");
+    expect(left).toContain("2026-09-30");
+  });
+
+  it("blocks every date of a range, both ends included", () => {
+    const left = new Set(days([{ starts_on: "2026-09-29", ends_on: "2026-10-01" }]));
+    expect([...left].sort()).toEqual(["2026-09-28", "2026-10-02", "2026-10-04"]);
+  });
+
+  it("reads the date in the window's time zone (Denver), like the database", () => {
+    // Wednesday 7:15–10 PM in Denver is already Thursday in UTC.
+    const lateWednesday = (daysOff: { starts_on: string; ends_on: string }[]) =>
+      generateCandidateSlots(SCHEDULE, { fromDate: "2026-09-30", days: 1, now: LONG_AGO, daysOff }).filter(
+        (s) => formatInTimeZone(s.start, TZ, "H") >= "19",
+      ).length;
+    expect(lateWednesday([])).toBeGreaterThan(0);
+    expect(lateWednesday([{ starts_on: "2026-10-01", ends_on: "2026-10-01" }])).toBeGreaterThan(0);
+    expect(lateWednesday([{ starts_on: "2026-09-30", ends_on: "2026-09-30" }])).toBe(0);
+  });
+
+  it("passes days off through generateUpcomingSlots", () => {
+    const now = new Date("2026-09-28T06:00:00Z");
+    const slots = generateUpcomingSlots(SCHEDULE, { now, days: 7, daysOff: [{ starts_on: "2026-09-28", ends_on: "2026-09-28" }] });
+    expect(slots.some((s) => formatInTimeZone(s.start, TZ, "yyyy-MM-dd") === "2026-09-28")).toBe(false);
+    expect(slots.length).toBeGreaterThan(0);
+  });
+});
+
 describe("generateUpcomingSlots", () => {
   it("keeps the rest of tonight's slots after UTC has rolled over to tomorrow", () => {
     // Wednesday 8 PM Mountain is already Thursday 02:00 in UTC (the server clock).
@@ -147,11 +191,11 @@ describe("markOpenSlots", () => {
     expect(labels(open)).toEqual(["3:00 PM", "5:00 PM"]); // back-to-back is fine
   });
 
-  it("ignores a slot whose only booking was cancelled", () => {
+  it("ignores a slot whose only booking was canceled", () => {
     expect(markOpenSlots(wednesday, [booked], {})).toHaveLength(wednesday.length);
   });
 
-  it("ignores a cancelled slot", () => {
+  it("ignores a canceled slot", () => {
     const cancelled = { ...booked, status: "CANCELLED" as const };
     expect(markOpenSlots(wednesday, [cancelled], { [booked.id]: 1 })).toHaveLength(wednesday.length);
   });

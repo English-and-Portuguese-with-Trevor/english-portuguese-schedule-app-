@@ -22,11 +22,16 @@ do $$
 declare
   v_student uuid := gen_random_uuid();
   v_other   uuid := gen_random_uuid();
+  v_busy    uuid := gen_random_uuid();
   v_admin   uuid := gen_random_uuid();
+  v_new     uuid := gen_random_uuid();
+  v_granted uuid := gen_random_uuid();
   v_sat     date;
   v_booking uuid;
   v_pending uuid;
   v_late    uuid;
+  v_started uuid;
+  v_slot    uuid;
   v_soon    timestamptz;
   v_count   int;
   v_text    text;
@@ -49,12 +54,22 @@ begin
   values
     (v_student, 'db-test-student@example.com', '{"full_name":"Test Student"}', 'authenticated', 'authenticated'),
     (v_other,   'db-test-other@example.com',   '{"full_name":"Other Student"}', 'authenticated', 'authenticated'),
-    (v_admin,   'db-test-admin@example.com',   '{"full_name":"Test Admin"}',   'authenticated', 'authenticated');
+    (v_busy,    'db-test-busy@example.com',    '{"full_name":"Busy Student"}',  'authenticated', 'authenticated'),
+    (v_admin,   'db-test-admin@example.com',   '{"full_name":"Test Admin"}',   'authenticated', 'authenticated'),
+    (v_new,     'db-test-new@example.com',     '{"full_name":"New Student"}',  'authenticated', 'authenticated'),
+    (v_granted, 'db-test-granted@example.com', '{"full_name":"Granted Student"}', 'authenticated', 'authenticated');
 
-  if (select count(*) from public.profiles where id in (v_student, v_other, v_admin) and role = 'student') <> 3 then
+  if (select count(*) from public.profiles where id in (v_student, v_other, v_busy, v_admin) and role = 'student') <> 4 then
     raise exception 'FAIL: new sign-ups get a student profile automatically';
   end if;
   update public.profiles set role = 'admin' where id = v_admin;
+  -- Trevor's students (a class package, or lesson access he gave) book the
+  -- window's length; everyone else books 30 minutes (private.class_minutes).
+  update public.profiles set class_package = 4 where id in (v_student, v_other, v_busy);
+  update public.profiles set lesson_access = 'granted' where id = v_granted;
+  -- The job secret the server uses to record Meet links (rolled back with the rest).
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+    on conflict (key) do update set value = excluded.value;
 
   update public.availability_rules set is_active = false;
   insert into public.availability_rules (day_of_week, start_time, end_time, slot_duration_minutes, timezone, created_by)
@@ -86,6 +101,22 @@ begin
   values ((select id from public.session_slots where start_time = now() + interval '2 hours'), v_student, 'CONFIRMED')
   returning id into v_late;
 
+  -- A confirmed class that started half an hour ago: too late to cancel.
+  insert into public.session_slots (start_time, end_time, status)
+  values (now() - interval '30 minutes', now() + interval '30 minutes', 'OPEN')
+  returning id into v_slot;
+  insert into public.bookings (session_slot_id, student_id, status)
+  values (v_slot, v_student, 'CONFIRMED')
+  returning id into v_started;
+
+  -- A student who already holds 10 upcoming classes (a month out, back to back).
+  for i in 1..10 loop
+    insert into public.session_slots (start_time, end_time, status)
+    values (now() + interval '30 days' + make_interval(hours => i), now() + interval '30 days' + make_interval(hours => i + 1), 'OPEN')
+    returning id into v_slot;
+    insert into public.bookings (session_slot_id, student_id, status) values (v_slot, v_busy, 'CONFIRMED');
+  end loop;
+
   ---------------------------------------------------------------------------
   -- As a student
   ---------------------------------------------------------------------------
@@ -106,9 +137,19 @@ begin
     raise exception 'FAIL: a booking 72+ hours out is confirmed, not an override, and theirs (got %)', v_text;
   end if;
 
-  -- The server records the lesson's Meet link once; it can't be overwritten.
-  perform public.set_booking_meeting(v_booking, 'evt-1', 'https://meet.google.com/aaa');
-  perform public.set_booking_meeting(v_booking, 'evt-2', 'https://evil.example');
+  -- Only the server, with the job secret, records the lesson's Meet link; a
+  -- student's session can't, and it's recorded once and never overwritten.
+  v_failed := false;
+  begin
+    perform public.set_booking_meeting(v_booking, 'evt-0', 'https://meet.google.com/aaa', 'wrong-secret');
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'FAIL: recording a Meet link needs the job secret'; end if;
+  if (select google_event_id from public.bookings where id = v_booking) is not null then
+    raise exception 'FAIL: a call without the job secret must not record a Meet link';
+  end if;
+  perform public.set_booking_meeting(v_booking, 'evt-1', 'https://meet.google.com/aaa', 'test-secret');
+  perform public.set_booking_meeting(v_booking, 'evt-2', 'https://meet.google.com/bbb', 'test-secret');
   select google_event_id || ' ' || meet_link into v_text from public.bookings where id = v_booking;
   if v_text is distinct from 'evt-1 https://meet.google.com/aaa' then
     raise exception 'FAIL: a booking''s meeting is recorded once and never overwritten (got %)', v_text;
@@ -175,14 +216,15 @@ begin
     raise exception 'FAIL: a start off the 15-minute grid is refused (%)', v_msg;
   end if;
 
-  -- A session of the wrong length is refused.
+  -- A session of the wrong length is refused: Trevor's student books the
+  -- window's hour, not 30 minutes.
   v_failed := false;
   begin
     perform public.request_individual_booking(v_10 + interval '7 days', v_10 + interval '7 days 30 minutes');
   exception when others then v_failed := true; v_msg := sqlerrm;
   end;
   if not v_failed or v_msg not like '%no longer available%' then
-    raise exception 'FAIL: a session of the wrong length is refused (%)', v_msg;
+    raise exception 'FAIL: a class student''s 30-minute session is refused (%)', v_msg;
   end if;
 
   -- A time that has already started is refused.
@@ -193,6 +235,29 @@ begin
   end;
   if not v_failed or v_msg not like '%already passed%' then
     raise exception 'FAIL: past times are refused (%)', v_msg;
+  end if;
+
+  -- More than 60 days ahead is refused.
+  v_failed := false;
+  begin
+    perform public.request_individual_booking(v_10 + interval '70 days', v_11 + interval '70 days');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%60 days%' then
+    raise exception 'FAIL: classes more than 60 days ahead are refused (%)', v_msg;
+  end if;
+
+  -- A class that has already started can't be canceled.
+  v_failed := false;
+  begin
+    perform public.cancel_my_booking(v_started);
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%already started%' then
+    raise exception 'FAIL: a class that has started can''t be canceled (%)', v_msg;
+  end if;
+  if (select status from public.bookings where id = v_started) <> 'CONFIRMED' then
+    raise exception 'FAIL: a class that has started stays booked';
   end if;
 
   -- Students cannot write slots, bookings, or availability directly.
@@ -247,30 +312,73 @@ begin
   end;
   if not v_failed then raise exception 'FAIL: students cannot cancel someone else''s booking'; end if;
 
-  perform public.set_booking_meeting(v_pending, 'evt-x', 'https://evil.example');
+  v_failed := false;
+  begin
+    perform public.set_booking_meeting(v_pending, 'evt-x', 'https://evil.example', 'test-secret');
+  exception when others then v_failed := true;
+  end;
+  if not v_failed then raise exception 'FAIL: only Google Meet links can be recorded'; end if;
   reset role;
   if (select meet_link from public.bookings where id = v_pending) is not null then
-    raise exception 'FAIL: students cannot set a meeting link on someone else''s booking';
+    raise exception 'FAIL: a link that isn''t Google Meet is never recorded';
   end if;
   set local role authenticated;
 
   ---------------------------------------------------------------------------
-  -- Back as the first student: cancelling frees the time
+  -- Back as the first student: canceling frees the time
   ---------------------------------------------------------------------------
   perform set_config('request.jwt.claims', json_build_object('sub', v_student, 'role', 'authenticated')::text, true);
   perform public.cancel_my_booking(v_booking);
   if (select late_cancellation from public.bookings where id = v_booking) then
-    raise exception 'FAIL: cancelling with 24+ hours notice is not a late cancellation';
+    raise exception 'FAIL: canceling with 24+ hours notice is not a late cancellation';
   end if;
 
-  -- Cancelling a confirmed session under 24 hours out is flagged as late.
+  -- Canceling a confirmed session under 24 hours out is flagged as late.
   perform public.cancel_my_booking(v_late);
   if not (select late_cancellation from public.bookings where id = v_late) then
-    raise exception 'FAIL: cancelling under 24 hours before a confirmed session is a late cancellation';
+    raise exception 'FAIL: canceling under 24 hours before a confirmed session is a late cancellation';
   end if;
 
   perform set_config('request.jwt.claims', json_build_object('sub', v_other, 'role', 'authenticated')::text, true);
   perform public.request_individual_booking(v_10, v_11);
+
+  ---------------------------------------------------------------------------
+  -- As a student with 10 upcoming classes: no more until one is canceled
+  ---------------------------------------------------------------------------
+  perform set_config('request.jwt.claims', json_build_object('sub', v_busy, 'role', 'authenticated')::text, true);
+  v_failed := false;
+  begin
+    perform public.request_individual_booking(v_10 + interval '14 days', v_11 + interval '14 days');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%10 upcoming classes%' then
+    raise exception 'FAIL: a student with 10 upcoming classes can''t book another (%)', v_msg;
+  end if;
+
+  ---------------------------------------------------------------------------
+  -- New students book 30 minutes; Trevor's students book the window's length
+  ---------------------------------------------------------------------------
+  perform set_config('request.jwt.claims', json_build_object('sub', v_new, 'role', 'authenticated')::text, true);
+  v_booking := public.request_individual_booking((v_sat + 21 + time '10:00') at time zone 'America/Denver', (v_sat + 21 + time '10:30') at time zone 'America/Denver');
+  if (select s.end_time - s.start_time from public.bookings b join public.session_slots s on s.id = b.session_slot_id
+      where b.id = v_booking) is distinct from interval '30 minutes' then
+    raise exception 'FAIL: a new student can book a 30-minute class';
+  end if;
+  v_failed := false;
+  begin
+    perform public.request_individual_booking((v_sat + 21 + time '11:00') at time zone 'America/Denver', (v_sat + 21 + time '12:00') at time zone 'America/Denver');
+  exception when others then v_failed := true; v_msg := sqlerrm;
+  end;
+  if not v_failed or v_msg not like '%no longer available%' then
+    raise exception 'FAIL: a new student can''t book a 1-hour class (%)', v_msg;
+  end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_granted, 'role', 'authenticated')::text, true);
+  v_booking := public.request_individual_booking((v_sat + 21 + time '11:00') at time zone 'America/Denver', (v_sat + 21 + time '12:00') at time zone 'America/Denver');
+  if (select s.end_time - s.start_time from public.bookings b join public.session_slots s on s.id = b.session_slot_id
+      where b.id = v_booking) is distinct from interval '1 hour' then
+    raise exception 'FAIL: a student with lesson access from Trevor books the window''s length';
+  end if;
 
   ---------------------------------------------------------------------------
   -- As an admin
@@ -293,14 +401,14 @@ begin
     raise exception 'FAIL: a session can only hold one active booking (sqlstate %)', v_msg;
   end if;
 
-  -- An admin cancelling never marks it as the student's late cancellation.
+  -- An admin canceling never marks it as the student's late cancellation.
   update public.bookings set status = 'CANCELLED', cancelled_at = now() where id = v_pending;
   if (select late_cancellation from public.bookings where id = v_pending) then
     raise exception 'FAIL: admin cancellations are not late cancellations';
   end if;
 
   select count(*) into v_count from public.bookings where student_id in (v_student, v_other);
-  if v_count < 3 then raise exception 'FAIL: admins can see every student''s bookings (saw %)', v_count; end if;
+  if v_count < 4 then raise exception 'FAIL: admins can see every student''s bookings (saw %)', v_count; end if;
 
   ---------------------------------------------------------------------------
   -- Signed out
@@ -333,6 +441,7 @@ begin
     (v_o, 'db-test-other2@example.com', '{"full_name":"T O"}', 'authenticated', 'authenticated'),
     (v_a, 'db-test-admin2@example.com', '{"full_name":"T A"}', 'authenticated', 'authenticated');
   update public.profiles set role = 'admin' where id = v_a;
+  update public.profiles set class_package = 4 where id = v_s; -- books the window's hour
   insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
     on conflict (key) do update set value = excluded.value;
   update public.availability_rules set is_active = false;
@@ -388,10 +497,260 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
   perform public.cancel_my_booking(v_b);
   reset role;
-  -- Pending requests are only resolved by the admin, even if the lesson is cancelled.
-  if (select status from public.bookings where id = v_r) <> 'PENDING' then raise exception 'FAIL: cancelling the lesson leaves its reschedule request for the admin'; end if;
+  -- Pending requests are only resolved by the admin, even if the lesson is canceled.
+  if (select status from public.bookings where id = v_r) <> 'PENDING' then raise exception 'FAIL: canceling the lesson leaves its reschedule request for the admin'; end if;
   if (select s.status from public.session_slots s join public.bookings b on b.session_slot_id = s.id where b.id = v_r) <> 'OPEN' then raise exception 'FAIL: the pending request keeps its time'; end if;
   if (select timezone from public.profiles where id = v_s) <> 'Europe/Lisbon' then raise exception 'FAIL: set_my_timezone'; end if;
+end $$;
+
+-- Admin alerts: new sign-ups and new subscribers
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_a uuid := gen_random_uuid();
+  v_ok boolean;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-alert-student@example.com', '{"full_name":"Alert Student"}', 'authenticated', 'authenticated'),
+    (v_a, 'db-test-alert-admin@example.com', '{"full_name":"Alert Admin"}', 'authenticated', 'authenticated');
+  update public.profiles set role = 'admin' where id = v_a;
+
+  if not exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'signup'
+                 and name = 'Alert Student' and email = 'db-test-alert-student@example.com') then
+    raise exception 'FAIL: a new account makes a sign-up alert';
+  end if;
+
+  insert into public.billing (user_id, stripe_customer_id, status) values (v_s, 'cus_db_test_alert', 'incomplete');
+  update public.billing set status = 'active' where user_id = v_s;
+  update public.billing set status = 'past_due' where user_id = v_s;
+  update public.billing set status = 'active' where user_id = v_s;
+  if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'subscriber') <> 1 then
+    raise exception 'FAIL: one subscriber alert when a subscription starts, none for a payment retry';
+  end if;
+  update public.billing set status = 'canceled' where user_id = v_s;
+  update public.billing set status = 'active' where user_id = v_s;
+  if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'subscriber') <> 2 then
+    raise exception 'FAIL: subscribing again after canceling makes a new alert';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  if exists (select 1 from public.admin_alerts) then raise exception 'FAIL: students cannot read alerts'; end if;
+  v_ok := false; begin perform public.save_push_subscription('https://push.example/x', 'k', 'a'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot sign up for alert pushes'; end if;
+  v_ok := false; begin perform public.vapid_public_key(); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: only admins get the push key'; end if;
+  v_ok := false; begin perform public.claim_alert_pushes('wrong'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: claiming pushes needs the job secret'; end if;
+  v_ok := false; begin perform public.set_vapid_keys('wrong', 'p', 'q'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: saving push keys needs the job secret'; end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated')::text, true);
+  if not exists (select 1 from public.admin_alerts where user_id = v_s) then raise exception 'FAIL: admins read alerts'; end if;
+  update public.admin_alerts set read_at = now() where user_id = v_s;
+  v_ok := false; begin update public.admin_alerts set kind = 'signup' where user_id = v_s; exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: admins can only mark alerts read'; end if;
+  perform public.save_push_subscription('https://push.example/db-test', 'k', 'a');
+  reset role;
+  if (select count(*) from public.admin_alerts where user_id = v_s and read_at is null) <> 0 then raise exception 'FAIL: admins mark alerts read'; end if;
+  if not exists (select 1 from public.push_subscriptions where endpoint = 'https://push.example/db-test' and user_id = v_a) then
+    raise exception 'FAIL: admins save push devices';
+  end if;
+
+  delete from auth.users where id = v_s;
+  if exists (select 1 from public.admin_alerts where user_id = v_s) then raise exception 'FAIL: deleting an account deletes its alerts'; end if;
+end $$;
+
+-- Class flags: only students with lesson access, one per class, emailed once
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_o uuid := gen_random_uuid();
+  v_past uuid;
+  v_old uuid;
+  v_ok boolean;
+  -- 3 AM Mountain, when no real class is booked.
+  v_2days timestamptz := (date_trunc('day', now() at time zone 'America/Denver') - interval '2 days' + interval '3 hours') at time zone 'America/Denver';
+  v_20days timestamptz := v_2days - interval '18 days';
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-flag-student@example.com', '{"full_name":"Flag Student"}', 'authenticated', 'authenticated'),
+    (v_o, 'db-test-flag-other@example.com', '{"full_name":"Flag Other"}', 'authenticated', 'authenticated');
+  update public.profiles set lesson_access = 'none' where id = v_s;
+  update public.profiles set lesson_access = 'lifetime' where id = v_o;
+
+  insert into public.session_slots (start_time, end_time, status)
+  values (v_2days, v_2days + interval '1 hour', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+  values ((select id from public.session_slots where start_time = v_2days), v_s, 'CONFIRMED')
+  returning id into v_past;
+  insert into public.session_slots (start_time, end_time, status)
+  values (v_20days, v_20days + interval '1 hour', 'OPEN');
+  insert into public.bookings (session_slot_id, student_id, status)
+  values ((select id from public.session_slots where start_time = v_20days), v_s, 'CONFIRMED')
+  returning id into v_old;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.flag_my_class(v_past, 'connection'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students without lesson access cannot flag'; end if;
+  v_ok := false; begin update public.bookings set flag_reason = 'other' where id = v_past; if not found then v_ok := true; end if; exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot set a flag directly'; end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_o, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.flag_my_class(v_past, 'connection'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot flag someone else''s class'; end if;
+
+  reset role;
+  update public.profiles set lesson_access = 'subscriber' where id = v_s;
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.flag_my_class(v_past, 'bad'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a flag needs one of the set reasons'; end if;
+  v_ok := false; begin perform public.flag_my_class(v_old, 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a class over a week ago cannot be flagged'; end if;
+  perform public.flag_my_class(v_past, 'connection');
+  v_ok := false; begin perform public.flag_my_class(v_past, 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a class is flagged only once'; end if;
+  reset role;
+
+  if (select flag_reason from public.bookings where id = v_past) is distinct from 'connection' then
+    raise exception 'FAIL: flagging saves the reason on the booking';
+  end if;
+  if (select count(*) from public.admin_alerts where user_id = v_s and kind = 'flag' and reason = 'connection'
+      and class_start = v_2days and name = 'Flag Student') <> 1 then
+    raise exception 'FAIL: flagging a class makes one admin alert';
+  end if;
+
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+  on conflict (key) do update set value = excluded.value;
+  set local role authenticated;
+  v_ok := false; begin perform public.claim_flag_digest('wrong'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: the morning flag email needs the job secret'; end if;
+  reset role;
+  if not exists (select 1 from jsonb_array_elements(public.claim_flag_digest('test-secret')) f
+                 where f ->> 'name' = 'Flag Student' and f ->> 'reason' = 'connection') then
+    raise exception 'FAIL: the morning email gets the new flags';
+  end if;
+  if jsonb_array_length(public.claim_flag_digest('test-secret')) <> 0 then
+    raise exception 'FAIL: a flag is emailed only once';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_o, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.unflag_my_class(v_past); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot take back someone else''s flag'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  perform public.unflag_my_class(v_past);
+  reset role;
+  if (select flag_reason from public.bookings where id = v_past) is not null
+     or exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'flag') then
+    raise exception 'FAIL: taking back a flag clears it and its alert';
+  end if;
+  set local role authenticated;
+  perform public.flag_my_class(v_past, 'other');
+  reset role;
+  if (select flag_reason from public.bookings where id = v_past) is distinct from 'other' then
+    raise exception 'FAIL: a class can be flagged again after taking the flag back';
+  end if;
+end $$;
+
+-- A flag waits a minute before it's pushed
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_claimed text;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values (v_s, 'db-test-wait@example.com', '{"full_name":"Wait Student"}', 'authenticated', 'authenticated');
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+  on conflict (key) do update set value = excluded.value;
+  insert into public.admin_alerts (kind, user_id, name, reason) values ('flag', v_s, 'Fresh flag', 'other');
+  insert into public.admin_alerts (kind, user_id, name, reason, created_at)
+  values ('flag', v_s, 'Old flag', 'other', now() - interval '2 minutes');
+  v_claimed := (public.claim_alert_pushes('test-secret') -> 'alerts')::text;
+  if v_claimed like '%Fresh flag%' then raise exception 'FAIL: a flag waits a minute before it is pushed'; end if;
+  if v_claimed not like '%Old flag%' then raise exception 'FAIL: a flag that waited a minute is pushed'; end if;
+  if v_claimed not like '%db-test-wait@example.com%' then raise exception 'FAIL: sign-ups are still pushed at once'; end if;
+end $$;
+
+-- A failed alert email hands the alerts back
+do $$
+declare
+  v_signup bigint;
+  v_flag bigint;
+  v_ok boolean;
+begin
+  insert into private.app_settings (key, value) values ('cron_secret', 'test-secret')
+  on conflict (key) do update set value = excluded.value;
+  insert into public.admin_alerts (kind, name, pushed_at) values ('signup', 'Unclaim signup', now()) returning id into v_signup;
+  insert into public.admin_alerts (kind, name, reason, pushed_at, emailed_at)
+  values ('flag', 'Unclaim flag', 'other', now(), now()) returning id into v_flag;
+
+  set local role authenticated;
+  v_ok := false; begin perform public.unclaim_alert_emails('wrong', array[v_signup]); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: unclaiming alert emails needs the job secret'; end if;
+  v_ok := false; begin perform public.unclaim_flag_digest('wrong', array[v_flag]); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: unclaiming the flag email needs the job secret'; end if;
+  reset role;
+
+  perform public.unclaim_alert_emails('test-secret', array[v_signup, v_flag]);
+  if (select pushed_at from public.admin_alerts where id = v_signup) is not null then
+    raise exception 'FAIL: a sign-up whose email failed is sent again';
+  end if;
+  if (select pushed_at from public.admin_alerts where id = v_flag) is null then
+    raise exception 'FAIL: a flag is not pushed again when the sign-up email fails';
+  end if;
+  perform public.unclaim_flag_digest('test-secret', array[v_signup, v_flag]);
+  if (select emailed_at from public.admin_alerts where id = v_flag) is not null then
+    raise exception 'FAIL: a flag whose morning email failed goes in the next one';
+  end if;
+end $$;
+
+-- Reported issues (lessons and activities sites)
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_n uuid := gen_random_uuid();
+  v_ok boolean;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-report@example.com', '{"full_name":"Report Student"}', 'authenticated', 'authenticated'),
+    (v_n, 'db-test-report-none@example.com', '{"full_name":"No Access"}', 'authenticated', 'authenticated');
+  update public.profiles set lesson_access = 'subscriber' where id = v_s;
+  update public.profiles set lesson_access = 'none' where id = v_n;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_n, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.report_issue('lessons', 'Regular -AR verbs › 1.2', 'mistake'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students without lesson access cannot report'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.report_issue('lessons', 'x', 'bad'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a report needs a set reason'; end if;
+  v_ok := false; begin perform public.report_issue('elsewhere', 'x', 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: only the lessons and activities sites'; end if;
+  perform public.report_issue('lessons', 'Regular -AR verbs › 1.2', 'mistake');
+  v_ok := false; begin perform public.report_issue('lessons', 'Regular -AR verbs › 1.2', 'other'); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: one report per item'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_n, 'role', 'authenticated')::text, true);
+  if exists (select 1 from public.content_reports) then raise exception 'FAIL: students cannot read others'' reports'; end if;
+  reset role;
+  if not exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'report' and reason = 'mistake'
+                 and item = 'Lessons: Regular -AR verbs › 1.2') then
+    raise exception 'FAIL: a report makes an admin alert';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  perform public.unreport_issue('lessons', 'Regular -AR verbs › 1.2');
+  reset role;
+  if exists (select 1 from public.content_reports where user_id = v_s)
+     or exists (select 1 from public.admin_alerts where user_id = v_s and kind = 'report') then
+    raise exception 'FAIL: taking back a report clears it and its alert';
+  end if;
 end $$;
 
 select 'ALL DATABASE TESTS PASSED' as result;

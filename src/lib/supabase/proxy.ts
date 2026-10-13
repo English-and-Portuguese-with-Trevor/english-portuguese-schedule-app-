@@ -45,7 +45,9 @@ export async function updateSession(request: NextRequest) {
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", pathname);
+    url.search = "";
+    // Path and query (e.g. /admin/calendar?view=week); the login page only follows same-origin paths (safeNextPath).
+    url.searchParams.set("redirect", pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

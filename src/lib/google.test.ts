@@ -25,7 +25,7 @@ describe("buildRawEmail", () => {
 
   it("sends from the business account", () => {
     const { headers } = decode(buildRawEmail({ to: "ana@example.com", subject: "Hi", text: "Hello" }));
-    expect(headers).toContain("From: English & Portuguese with Trevor <englishportuguesewithtrevor@gmail.com>");
+    expect(headers).toContain("From: English & Portuguese With Trevor <englishportuguesewithtrevor@gmail.com>");
     expect(headers).toContain("To: ana@example.com");
     expect(headers).toContain("Subject: Hi");
   });

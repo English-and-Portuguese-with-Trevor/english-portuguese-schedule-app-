@@ -12,6 +12,49 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_alerts: {
+        Row: {
+          created_at: string
+          email: string | null
+          emailed_at: string | null
+          id: number
+          class_start: string | null
+          item: string | null
+          kind: "signup" | "subscriber" | "flag" | "report"
+          name: string | null
+          pushed_at: string | null
+          read_at: string | null
+          reason: string | null
+          user_id: string | null
+        }
+        Insert: never
+        Update: { read_at?: string | null }
+        Relationships: []
+      }
+      availability_blocks: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_on: string
+          id: string
+          starts_on: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_on: string
+          id?: string
+          starts_on: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string
+          id?: string
+          starts_on?: string
+        }
+        Relationships: []
+      }
       availability_rules: {
         Row: {
           created_at: string
@@ -56,11 +99,45 @@ export type Database = {
           },
         ]
       }
+      billing: {
+        Row: {
+          cancel_at_period_end: boolean
+          current_period_end: string | null
+          price_id: string | null
+          status: string | null
+          stripe_customer_id: string
+          subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          price_id?: string | null
+          status?: string | null
+          stripe_customer_id: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          current_period_end?: string | null
+          price_id?: string | null
+          status?: string | null
+          stripe_customer_id?: string
+          subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           cancellation_reason: string | null
           cancelled_at: string | null
           created_at: string
+          flag_reason: string | null
           google_event_id: string | null
           id: string
           is_admin_override: boolean
@@ -80,6 +157,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          flag_reason?: string | null
           google_event_id?: string | null
           id?: string
           is_admin_override?: boolean
@@ -99,6 +177,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          flag_reason?: string | null
           google_event_id?: string | null
           id?: string
           is_admin_override?: boolean
@@ -166,6 +245,35 @@ export type Database = {
             columns: ["deck_id"]
             isOneToOne: false
             referencedRelation: "decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_notes: {
+        Row: {
+          booking_id: string
+          notes: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          booking_id: string
+          notes: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          booking_id?: string
+          notes?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_notes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -258,34 +366,82 @@ export type Database = {
       }
       profiles: {
         Row: {
+          class_package: number | null
+          notes_access: boolean
           created_at: string
+          earlier_classes: number
           email: string | null
           full_name: string | null
           id: string
+          learning_language: string | null
+          start_page: string | null
+          app_uses: string[] | null
+          site_language: string | null
           lesson_access: string
           phone: string | null
           role: string
+          theme: string | null
           timezone: string
+          translation_language: string | null
+          welcomed_at: string | null
+          summary_month: string | null
+          article_delivery: string
+          summary_delivery: string
+          articles_emailed_on: string | null
+          class_update_delivery: string
+          class_update_week: string | null
         }
         Insert: {
+          class_package?: number | null
+          notes_access?: boolean
           created_at?: string
+          earlier_classes?: number
           email?: string | null
           full_name?: string | null
           id: string
+          learning_language?: string | null
+          start_page?: string | null
+          app_uses?: string[] | null
+          site_language?: string | null
           lesson_access?: string
           phone?: string | null
           role?: string
+          theme?: string | null
           timezone?: string
+          translation_language?: string | null
+          welcomed_at?: string | null
+          summary_month?: string | null
+          article_delivery?: string
+          summary_delivery?: string
+          articles_emailed_on?: string | null
+          class_update_delivery?: string
+          class_update_week?: string | null
         }
         Update: {
+          class_package?: number | null
+          notes_access?: boolean
           created_at?: string
+          earlier_classes?: number
           email?: string | null
           full_name?: string | null
           id?: string
+          learning_language?: string | null
+          start_page?: string | null
+          app_uses?: string[] | null
+          site_language?: string | null
           lesson_access?: string
           phone?: string | null
           role?: string
+          theme?: string | null
           timezone?: string
+          translation_language?: string | null
+          welcomed_at?: string | null
+          summary_month?: string | null
+          article_delivery?: string
+          summary_delivery?: string
+          articles_emailed_on?: string | null
+          class_update_delivery?: string
+          class_update_week?: string | null
         }
         Relationships: []
       }
@@ -332,6 +488,100 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_alert_pushes: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      claim_practice_pushes: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      claim_flag_digest: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      weekly_summary: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      pill_stats: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      claim_welcome_emails: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      unclaim_welcome_emails: {
+        Args: { p_ids: string[]; p_secret: string }
+        Returns: undefined
+      }
+      claim_monthly_summaries: {
+        Args: { p_secret: string }
+        Returns: Json
+      }
+      unclaim_monthly_summaries: {
+        Args: { p_ids: string[]; p_secret: string }
+        Returns: undefined
+      }
+      claim_article_emails: {
+        Args: { p_day: string; p_secret: string }
+        Returns: Json
+      }
+      unclaim_article_emails: {
+        Args: { p_ids: string[]; p_secret: string }
+        Returns: undefined
+      }
+      approve_booking: {
+        Args: { p_booking_id: string }
+        Returns: string
+      }
+      delete_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
+      drop_practice_push: {
+        Args: { p_endpoint: string; p_secret: string }
+        Returns: undefined
+      }
+      drop_push_subscription: {
+        Args: { p_endpoint: string; p_secret: string }
+        Returns: undefined
+      }
+      save_push_subscription: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string; p_user_agent?: string }
+        Returns: undefined
+      }
+      set_vapid_keys: {
+        Args: { p_private: string; p_public: string; p_secret: string }
+        Returns: undefined
+      }
+      vapid_public_key: {
+        Args: never
+        Returns: string | null
+      }
+      test_push_target: {
+        Args: { p_endpoint: string; p_secret: string }
+        Returns: Json
+      }
+      unclaim_alert_emails: {
+        Args: { p_ids: number[]; p_secret: string }
+        Returns: undefined
+      }
+      unclaim_flag_digest: {
+        Args: { p_ids: number[]; p_secret: string }
+        Returns: undefined
+      }
+      admin_class_progress: {
+        Args: never
+        Returns: {
+          class_package: number
+          completed: number
+          eligible: boolean
+          needed: number
+          user_id: string
+        }[]
+      }
       admin_agenda: {
         Args: { p_secret: string }
         Returns: {
@@ -350,6 +600,8 @@ export type Database = {
       }
       admin_timezone: { Args: never; Returns: string }
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      flag_my_class: { Args: { p_booking_id: string; p_reason: string }; Returns: undefined }
+      unflag_my_class: { Args: { p_booking_id: string }; Returns: undefined }
       claim_student_reminders: {
         Args: { p_secret: string }
         Returns: {
@@ -362,6 +614,20 @@ export type Database = {
           meet_link: string | null
         }[]
       }
+      my_class_progress: {
+        Args: never
+        Returns: {
+          class_package: number
+          completed: number
+          eligible: boolean
+          needed: number
+          user_id: string
+        }[]
+      }
+      my_announcements: {
+        Args: { p_learning?: string }
+        Returns: { id: number; message: string; created_at: string }[]
+      }
       record_integration_status: {
         Args: { p_message: string; p_ok: boolean; p_secret: string; p_service: string }
         Returns: undefined
@@ -370,14 +636,25 @@ export type Database = {
         Args: { p_booking_id: string; p_end: string; p_start: string; p_timezone?: string }
         Returns: string
       }
+      set_learning_language: { Args: { lang: string }; Returns: undefined }
+      set_start_page: { Args: { page: string }; Returns: undefined }
+      set_app_uses: { Args: { p_uses: string[] }; Returns: undefined }
+      set_site_language: { Args: { lang: string }; Returns: undefined }
+      set_email_choices: { Args: { p_articles: string; p_summary: string; p_class_update: string }; Returns: undefined }
+      claim_class_updates: { Args: { p_secret: string; p_week: string }; Returns: Json }
+      unclaim_class_updates: { Args: { p_secret: string; p_ids: string[] }; Returns: undefined }
+      claim_notes_warnings: { Args: { p_secret: string }; Returns: Json }
+      unclaim_notes_warnings: { Args: { p_secret: string; p_ids: string[] }; Returns: undefined }
+      delete_stale_notes: { Args: { p_secret: string }; Returns: number }
       set_my_timezone: { Args: { p_timezone: string }; Returns: undefined }
+      set_theme: { Args: { theme: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       request_individual_booking: {
         Args: { p_end: string; p_language?: string; p_start: string; p_timezone?: string; p_whatsapp?: string }
         Returns: string
       }
       set_booking_meeting: {
-        Args: { p_booking_id: string; p_event_id: string; p_meet_link: string }
+        Args: { p_booking_id: string; p_event_id: string; p_meet_link: string; p_secret: string }
         Returns: undefined
       }
     }

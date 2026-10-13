@@ -9,7 +9,7 @@ const CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/pr
 const GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
 
 export const LESSON_TIMEZONE = "America/Denver";
-const SENDER_NAME = "English & Portuguese with Trevor";
+const SENDER_NAME = "English & Portuguese With Trevor";
 // The account the refresh token belongs to; Gmail only sends as this address.
 export const SENDER_EMAIL = "englishportuguesewithtrevor@gmail.com";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { differenceInMinutes, format } from "date-fns";
+import { differenceInMinutes } from "date-fns";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { timeZoneLabel } from "@/components/slot-picker";
+import { useSiteLanguage, useT } from "@/i18n/client";
+import { formatDate } from "@/i18n/format";
 import { LATE_CANCEL_HOURS } from "@/lib/types";
 
 export interface CancellableBooking {
@@ -21,7 +24,7 @@ export interface CancellableBooking {
 }
 
 /**
- * Only a confirmed session counts when cancelled late; a request that was
+ * Only a confirmed session counts when canceled late; a request that was
  * never approved can always be withdrawn.
  */
 export function isLateCancellation(booking: CancellableBooking, now = new Date()) {
@@ -44,6 +47,9 @@ export function CancelBookingDialog({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const late = booking !== null && isLateCancellation(booking);
+  const t = useT();
+  const lang = useSiteLanguage();
+  const tzLabel = timeZoneLabel(lang) ?? t("your local time");
 
   function close() {
     setError(null);
@@ -64,35 +70,37 @@ export function CancelBookingDialog({
     <Dialog open={booking !== null} onOpenChange={(open) => !open && !isPending && close()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{booking?.status === "PENDING" ? "Withdraw this request?" : "Cancel this session?"}</DialogTitle>
+          <DialogTitle>{booking?.status === "PENDING" ? t("Withdraw this request?") : t("Cancel this class?")}</DialogTitle>
           <DialogDescription>
-            {booking && format(new Date(booking.startTime), "EEEE, MMMM d 'at' h:mm a")}
+            {booking && `${formatDate(booking.startTime, "longDayAtTime", lang)} (${tzLabel})`}
           </DialogDescription>
         </DialogHeader>
         {late ? (
-          <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            This session starts in less than {LATE_CANCEL_HOURS} hours, so it will still count as a class.
+          <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+            {t("This class starts in less than {hours} hours, so it still counts as a class.", {
+              hours: LATE_CANCEL_HOURS,
+            })}
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground">The time will open up for other students.</p>
+          <p className="text-sm text-muted-foreground">{t("The time will open up for other students.")}</p>
         )}
         {error && (
-          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {t(error)}
           </p>
         )}
         <DialogFooter className="gap-2">
           <Button variant="outline" disabled={isPending} onClick={close}>
-            Keep it
+            {t("Keep it")}
           </Button>
           <Button variant="destructive" disabled={isPending} onClick={confirm}>
             {isPending
-              ? "Cancelling…"
+              ? t("Canceling…")
               : booking?.status === "PENDING"
-                ? "Withdraw request"
+                ? t("Withdraw request")
                 : late
-                  ? "Cancel anyway"
-                  : "Cancel session"}
+                  ? t("Cancel anyway")
+                  : t("Cancel class")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SlotPicker, type BusySlotDTO } from "@/components/slot-picker";
+import { SiteLanguageProvider } from "@/i18n/client";
 import { generateUpcomingSlots } from "@/lib/slots";
 import type { AvailabilityRule, BookingAnswers, Role } from "@/lib/types";
 
@@ -122,7 +123,7 @@ describe("SlotPicker", () => {
 
     await user.click(soon);
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Request this session?")).toBeInTheDocument();
+    expect(within(dialog).getByText("Request this class?")).toBeInTheDocument();
     expect(within(dialog).getByText(/stays pending until Trevor approves it/)).toBeInTheDocument();
     await answerQuestions(user);
     await user.click(within(dialog).getByRole("button", { name: "Request" }));
@@ -132,14 +133,17 @@ describe("SlotPicker", () => {
     });
   });
 
-  it("doesn't mark times as needing approval for admins, whose bookings are always confirmed", async () => {
-    const { user } = renderPicker("admin");
+  it("gives admins a read-only calendar: no approval markers, no booking dialog", async () => {
+    const { user, onBook } = renderPicker("admin");
     const soon = screen.getByRole("button", { name: "3:30 PM" });
     expect(soon).not.toHaveClass("border-dashed");
     expect(screen.queryByText(/Dashed times/)).not.toBeInTheDocument();
+    expect(screen.getByText(/To book for a student, use Bookings/)).toBeInTheDocument();
 
+    expect(soon).toBeDisabled();
     await user.click(soon);
-    expect(within(screen.getByRole("dialog")).getByText("Book this session?")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onBook).not.toHaveBeenCalled();
   });
 
   it("asks for confirmation, then books the exact hour picked", async () => {
@@ -148,7 +152,7 @@ describe("SlotPicker", () => {
     await user.click(screen.getByRole("button", { name: "3:00 PM" })); // exactly 72 hours out
 
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Book this session?")).toBeInTheDocument();
+    expect(within(dialog).getByText("Book this class?")).toBeInTheDocument();
     expect(within(dialog).getByText(/Sunday, September 27 · 3:00 – 4:00 PM/)).toBeInTheDocument();
     expect(within(dialog).getByText("It's confirmed as soon as you book.")).toBeInTheDocument();
     expect(onBook).not.toHaveBeenCalled();
@@ -216,14 +220,6 @@ describe("SlotPicker", () => {
     });
   });
 
-  it("doesn't ask admins the booking questions", async () => {
-    const { user } = renderPicker("admin");
-    await user.click(screen.getByRole("button", { name: "3:30 PM" }));
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).queryByLabelText("WhatsApp number")).not.toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Book" })).toBeEnabled();
-  });
-
   it("in reschedule mode, asks no questions and makes clear the old lesson stays until approved", async () => {
     const { user, onBook } = renderPicker("student", undefined, undefined, "2026-09-28T20:30:00.000Z");
     await user.click(dayChip("Sunday, September 27"));
@@ -235,5 +231,26 @@ describe("SlotPicker", () => {
     expect(within(dialog).queryByLabelText(/WhatsApp number/)).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Request" }));
     expect(onBook).toHaveBeenCalledWith("2026-09-27T21:00:00.000Z", "2026-09-27T22:00:00.000Z", undefined);
+  });
+
+  it("shows days, times and questions in the site language", async () => {
+    const candidates = generateUpcomingSlots(SCHEDULE, { now: NOW, days: 14 }).map((c) => ({
+      start: c.start.toISOString(),
+      end: c.end.toISOString(),
+      needsApproval: c.needsApproval,
+    }));
+    render(
+      <SiteLanguageProvider lang="pt">
+        <SlotPicker role="student" candidates={candidates} busySlots={[MONDAY_BOOKING]} onBook={vi.fn(async () => null)} />
+      </SiteLanguageProvider>,
+    );
+    const user = userEvent.setup();
+    expect(screen.getByRole("heading", { name: "quinta-feira, 24 de setembro" })).toBeInTheDocument();
+    expect(dayChip("quinta-feira, 24 de setembro")).toHaveAccessibleName("quinta-feira, 24 de setembro, 5 livres");
+    await user.click(screen.getByRole("button", { name: "15:00, precisa de aprovação" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Pedir esta aula?")).toBeInTheDocument();
+    expect(within(dialog).getByRole("radio", { name: "Português" })).toBeInTheDocument();
+    expect(document.documentElement.lang).toBe("pt");
   });
 });

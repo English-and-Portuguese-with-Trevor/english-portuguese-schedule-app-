@@ -14,13 +14,25 @@ export interface EmailContent {
   button?: { label: string; url: string };
   /** The student's answers to the booking questions. */
   questions?: [question: string, answer: string][];
-  /** Titled lists below the details, e.g. the day's lessons in an agenda. */
-  sections?: { title: string; rows: [label: string, value: string][] }[];
+  /** Titled lists below the details, e.g. the day's lessons in an agenda; a row with a url links its value. */
+  sections?: { title: string; rows: [label: string, value: string, url?: string][] }[];
   footerNote?: string;
+  /** The email's language when it's written in the student's site language; the tagline follows it. Others keep English + Portuguese. */
+  language?: "en" | "es" | "pt" | "fr";
 }
 
 export const TAGLINE_EN = "You are one step closer to learning/improving another language! Let's go :)";
 export const TAGLINE_PT = "Você está a um passo de aprender/aprimorar outro idioma! Vamos lá :)";
+export const TAGLINE_ES = "¡Estás a un paso de aprender/mejorar otro idioma! ¡Vamos! :)";
+export const TAGLINE_FR = "Vous êtes à un pas d'apprendre/d'améliorer une autre langue ! On y va :)";
+
+/** The tagline lines at the end of an email: English + Portuguese, or the one line in the email's language. */
+function taglines(language: EmailContent["language"]) {
+  if (language === "pt") return [TAGLINE_PT];
+  if (language === "es") return [TAGLINE_ES];
+  if (language === "fr") return [TAGLINE_FR];
+  return [TAGLINE_EN, TAGLINE_PT];
+}
 
 const FOREST = "#1b4332";
 const GOLD = "#c9970a";
@@ -70,10 +82,10 @@ export function renderEmail(content: EmailContent): { html: string; text: string
       <h2 style="margin:24px 0 8px;font-size:15px;color:${INK}">${escape(section.title)}</h2>
       <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">${section.rows
         .map(
-          ([label, value]) => `
+          ([label, value, url]) => `
         <tr>
           <td style="padding:4px 16px 4px 0;color:${MUTED};font-size:14px;vertical-align:top;white-space:nowrap">${escape(label)}</td>
-          <td style="padding:4px 0;color:${INK};font-size:14px">${escape(value)}</td>
+          <td style="padding:4px 0;color:${INK};font-size:14px">${url ? `<a href="${escape(url)}" style="color:${FOREST};font-weight:600">${escape(value)}</a>` : escape(value)}</td>
         </tr>`,
         )
         .join("")}
@@ -90,7 +102,7 @@ export function renderEmail(content: EmailContent): { html: string; text: string
   <body style="margin:0;padding:24px 12px;background:${CREAM};font-family:Arial,Helvetica,sans-serif">
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:10px;padding:28px 24px">
       <p style="margin:0 0 20px;font-family:Georgia,serif;font-size:20px;color:${FOREST}">
-        English <em style="color:${GOLD}">&amp;</em> Portuguese with Trevor
+        English <em style="color:${GOLD}">&amp;</em> Portuguese With Trevor
       </p>
       <h1 style="margin:0 0 12px;font-size:20px;color:${INK}">${escape(content.heading)}</h1>
       ${content.intro ? `<p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:${INK}">${escape(content.intro)}</p>` : ""}
@@ -100,8 +112,9 @@ export function renderEmail(content: EmailContent): { html: string; text: string
       ${sections}
       ${button}
       <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e5e0d5;font-size:13px;line-height:1.5;color:${MUTED}">
-        <p style="margin:0">${escape(TAGLINE_EN)}</p>
-        <p style="margin:4px 0 0">${escape(TAGLINE_PT)}</p>
+        ${taglines(content.language)
+          .map((line, i) => `<p style="margin:${i ? "4px 0 0" : "0"}">${escape(line)}</p>`)
+          .join("\n        ")}
         ${content.footerNote ? `<p style="margin:12px 0 0">${escape(content.footerNote)}</p>` : ""}
       </div>
     </div>
@@ -117,14 +130,13 @@ export function renderEmail(content: EmailContent): { html: string; text: string
     ...(content.questions?.length ? ["", "Questions", ...content.questions.flatMap(([q, a]) => [q, a])] : []),
     ...(content.sections ?? [])
       .filter((section) => section.rows.length > 0)
-      .flatMap((section) => ["", section.title, ...section.rows.map(([label, value]) => `${label}: ${value}`)]),
+      .flatMap((section) => ["", section.title, ...section.rows.map(([label, value, url]) => `${label}: ${value}${url ? ` ${url}` : ""}`)]),
     ...(content.button ? ["", `${content.button.label}: ${content.button.url}`] : []),
     "",
-    TAGLINE_EN,
-    TAGLINE_PT,
+    ...taglines(content.language),
     ...(content.footerNote ? ["", content.footerNote] : []),
     "",
-    "English & Portuguese with Trevor",
+    "English & Portuguese With Trevor",
   ].join("\n");
 
   return { html, text };

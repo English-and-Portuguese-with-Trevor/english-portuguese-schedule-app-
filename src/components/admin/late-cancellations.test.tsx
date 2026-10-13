@@ -9,7 +9,7 @@ import { LateCancellations } from "@/components/admin/late-cancellations";
 const names = { s1: "Ana P.", s2: "Bruno S." };
 
 describe("LateCancellations", () => {
-  it("lists who cancelled, which class, and how much notice they gave", () => {
+  it("lists who canceled, which class, and how much notice they gave", () => {
     render(
       <LateCancellations
         displayNames={names}
@@ -33,8 +33,8 @@ describe("LateCancellations", () => {
     expect(screen.getByRole("heading", { name: "Late cancellations (2)" })).toBeInTheDocument();
     expect(screen.getByText(/clears after 7 days/)).toBeInTheDocument();
     expect(screen.getByText("Ana P.")).toBeInTheDocument();
-    expect(screen.getByText("Mon, Sep 28 at 2:00 PM · cancelled 5 hours before")).toBeInTheDocument();
-    expect(screen.getByText("Tue, Sep 29 at 3:00 PM · cancelled 20 min before")).toBeInTheDocument();
+    expect(screen.getByText("Mon, Sep 28 at 2:00 PM · canceled 5 hours before")).toBeInTheDocument();
+    expect(screen.getByText("Tue, Sep 29 at 3:00 PM · canceled 20 min before")).toBeInTheDocument();
   });
 
   it("says so when there are none", () => {
