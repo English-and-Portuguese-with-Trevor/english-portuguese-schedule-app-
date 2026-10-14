@@ -695,7 +695,7 @@ export const emails = {
           {
             title: "Free for you",
             rows: [
-              ["Lessons", "The first five lessons in Portuguese and in English", `${site}/lessons/`],
+              ["Lessons", "The first lessons in Portuguese and in English", `${site}/lessons/`],
               ["Daily puzzles", "Three free games every day", `${site}/dailies/`],
               ["Activities", "The first activities of every skill, and the games", `${site}/activities/`],
               ["Flashcards", "Study the decks and make your own", `${site}/flashcards/`],

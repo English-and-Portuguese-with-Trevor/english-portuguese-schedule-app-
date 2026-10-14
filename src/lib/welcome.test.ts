@@ -32,7 +32,7 @@ describe("emails.welcome", () => {
     const email = emails.welcome(ana)!;
     expect(email).toMatchObject({ to: "ana@example.com", subject: "Welcome to English & Portuguese With Trevor" });
     expect(email.text).toContain("Welcome, Ana!");
-    expect(email.text).toContain("The first five lessons in Portuguese and in English");
+    expect(email.text).toContain("The first lessons in Portuguese and in English");
     expect(email.text).toContain("Three free games every day");
     expect(email.html).not.toContain("/placement/");
     expect(email.html).toContain('href="https://englishandportuguesewithtrevor.com/?install=1"');
