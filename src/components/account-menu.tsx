@@ -5,6 +5,7 @@ import {
   Check,
   BookOpen,
   CalendarPlus,
+  ChevronDown,
   Dumbbell,
   MessagesSquare,
   GraduationCap,
@@ -23,9 +24,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useT } from "@/i18n/client";
@@ -99,6 +97,13 @@ export default function AccountMenu({
     setStart(prefs.start ?? null);
     setCookieLearning(prefs.learning ?? null);
   }, []);
+  // Learn and App start fold open downward inside the menu, like the other sites',
+  // so nothing opens off the side of a phone screen.
+  const [open, setOpen] = useState<"learn" | "start" | null>(null);
+  const toggle = (fold: "learn" | "start") => (e: Event) => {
+    e.preventDefault();
+    setOpen((o) => (o === fold ? null : fold));
+  };
   const showTools = (learningLanguage ?? cookieLearning ?? "Portuguese") === "Portuguese";
   return (
     <DropdownMenu>
@@ -106,7 +111,7 @@ export default function AccountMenu({
         <Menu className="size-4.5 shrink-0" aria-hidden />
         <span className="truncate">{first ? t("Hi, {name}", { name: first }) : t("Account")}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 [&_[role=menuitem]]:py-1.5">
+      <DropdownMenuContent align="end" className="w-72 max-w-[calc(100vw-1rem)] [&_[role=menuitem]]:py-1.5">
         {/* Daily puzzles and Articles side by side at the top, so they stand out (Trevor, 2026-10-08). */}
         <div className="mb-1 grid grid-cols-2 gap-2">
           <DropdownMenuItem
@@ -140,22 +145,20 @@ export default function AccountMenu({
             </DropdownMenuItem>
           )}
         </div>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <GraduationCap />
-            {t("Learn")}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {LEARN_LINKS.map(({ href, label, icon: Icon }) => (
-              <DropdownMenuItem key={label} asChild>
-                <a href={href}>
-                  <Icon />
-                  {t(label)}
-                </a>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <DropdownMenuItem onSelect={toggle("learn")} aria-expanded={open === "learn"}>
+          <GraduationCap />
+          {t("Learn")}
+          <ChevronDown aria-hidden className={`ml-auto transition-transform ${open === "learn" ? "rotate-180" : ""}`} />
+        </DropdownMenuItem>
+        {open === "learn" &&
+          LEARN_LINKS.map(({ href, label, icon: Icon }) => (
+            <DropdownMenuItem key={label} asChild className="pl-8">
+              <a href={href}>
+                <Icon />
+                {t(label)}
+              </a>
+            </DropdownMenuItem>
+          ))}
         {showTools && (
           <DropdownMenuItem asChild>
             <a href={TOOLS_URL}>
@@ -170,27 +173,26 @@ export default function AccountMenu({
             {t("Schedule a class")}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Smartphone />
-            <span className="whitespace-nowrap">{t("App start")}</span>
-            {start && <span className="ml-auto truncate text-muted-foreground">{t(START_LABELS[start])}</span>}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            {START_PAGES.map((page) => (
-              <DropdownMenuItem
-                key={page}
-                onSelect={() => {
-                  setStartPage(page);
-                  setStart(page);
-                }}
-              >
-                {page === start ? <Check /> : <span className="size-4" />}
-                {t(START_LABELS[page])}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+        <DropdownMenuItem onSelect={toggle("start")} aria-expanded={open === "start"}>
+          <Smartphone />
+          <span className="whitespace-nowrap">{t("App start")}</span>
+          {start && <span className="ml-auto truncate text-muted-foreground">{t(START_LABELS[start])}</span>}
+          <ChevronDown aria-hidden className={`${start ? "" : "ml-auto "}transition-transform ${open === "start" ? "rotate-180" : ""}`} />
+        </DropdownMenuItem>
+        {open === "start" &&
+          START_PAGES.map((page) => (
+            <DropdownMenuItem
+              key={page}
+              className="pl-8"
+              onSelect={() => {
+                setStartPage(page);
+                setStart(page);
+              }}
+            >
+              {page === start ? <Check /> : <span className="size-4" />}
+              {t(START_LABELS[page])}
+            </DropdownMenuItem>
+          ))}
         {/* Settings and Log out side by side at the bottom. */}
         <div className="mt-1 flex items-center gap-2 border-t border-line pt-1.5">
           <DropdownMenuItem asChild className="flex-1">
