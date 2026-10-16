@@ -1,17 +1,34 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 
-import { askClaude, backToScene, END_PROMPT, LEVELS, LIMITS, MODEL, SCENES, START_PROMPT, systemPrompt, turnCost, type Language } from "@/lib/ai";
+import {
+  askClaude,
+  backToScene,
+  END_PROMPT,
+  FREE_LESSONS_URL,
+  helperPrompt,
+  LEVELS,
+  LIMITS,
+  MODEL,
+  SCENES,
+  siteLanguageOf,
+  START_PROMPT,
+  STAY_WITH_LESSON,
+  systemPrompt,
+  turnCost,
+  type Language,
+} from "@/lib/ai";
 import { createServerJobClient } from "@/lib/integration-status";
 import { createClient } from "@/lib/supabase/server";
 
-// The AI conversation partner (CLAUDE.md, "AI features"): the sites on
-// englishandportuguesewithtrevor.com call this with the shared login cookie.
-// The key lives only here (ANTHROPIC_API_KEY). Before every call: the
-// student is logged in and not blocked, the kill switch is on, this month's
-// spend is under the cap, and the student's turns are under the minute and
-// daily caps; a conversation ends by itself after 40 turns or 3 declined
-// requests. Every call, failed ones too, is a row in ai_turns.
+// The AI features (CLAUDE.md, "AI features"): the conversation partner and
+// the lesson helper. The sites on englishandportuguesewithtrevor.com call
+// this with the shared login cookie. The key lives only here
+// (ANTHROPIC_API_KEY). Before every call: the student is logged in and not
+// blocked, the kill switch is on, this month's spend is under the cap, and
+// the student's turns are under the minute and daily caps; a conversation
+// ends by itself after 40 turns or 3 declined requests. Every call, failed
+// ones too, is a row in ai_turns.
 const SITE_ORIGIN = "https://englishandportuguesewithtrevor.com";
 
 const CORS = {
@@ -22,16 +39,40 @@ const CORS = {
   Vary: "Origin",
 };
 
-const Body = z.object({
-  feature: z.literal("partner"),
-  conversation: z.uuid(),
-  scene: z.string().max(40),
-  level: z.enum(LEVELS),
-  action: z.enum(["start", "say", "end"]),
-  text: z.string().max(LIMITS.textChars).optional(),
-});
+const Body = z.discriminatedUnion("feature", [
+  z.object({
+    feature: z.literal("partner"),
+    conversation: z.uuid(),
+    scene: z.string().max(40),
+    level: z.enum(LEVELS),
+    action: z.enum(["start", "say", "end"]),
+    text: z.string().max(LIMITS.textChars).optional(),
+  }),
+  z.object({
+    feature: z.literal("helper"),
+    conversation: z.uuid(),
+    lesson: z.string().min(1).max(80),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.textChars),
+  }),
+]);
 
 type Limits = { month_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
+type FreeLesson = { title: string; learning: string; text: string };
+
+/** The lessons site's free lessons, kept ten minutes (a deploy there shows up by the next conversation). */
+let freeLessonsCache: { at: number; lessons: Record<string, FreeLesson> } | null = null;
+async function freeLessons() {
+  if (freeLessonsCache && Date.now() - freeLessonsCache.at < 10 * 60_000) return freeLessonsCache.lessons;
+  const lessons: Record<string, FreeLesson> = await fetch(FREE_LESSONS_URL)
+    .then((r) => (r.ok ? r.json() : {}))
+    .catch(() => ({}));
+  if (Object.keys(lessons).length) freeLessonsCache = { at: Date.now(), lessons };
+  return lessons;
+}
+
+const hasLessonAccess = (profile: { role: string; lesson_access: string }) =>
+  profile.role === "admin" || ["granted", "subscriber", "lifetime"].includes(profile.lesson_access);
 
 /** The client shows these in the site language; the words aren't ours to pick here. */
 function refuse(code: string, status: number) {
@@ -58,7 +99,7 @@ export async function POST(request: Request) {
 
   const db = createServerJobClient();
   const [{ data: profile }, { data: settings }, { data: limitsData }] = await Promise.all([
-    db.from("profiles").select("ai_blocked, learning_language").eq("id", user.id).single(),
+    db.from("profiles").select("ai_blocked, learning_language, role, lesson_access, site_language").eq("id", user.id).single(),
     db.from("ai_settings").select("enabled, monthly_cap, daily_turns").eq("id", true).single(),
     db.rpc("ai_limits", { p_user: user.id, p_conversation: body.conversation }),
   ]);
@@ -71,8 +112,34 @@ export async function POST(request: Request) {
   if (limits.day_turns >= settings.daily_turns) return refuse("daily", 429);
   if (limits.conversation_turns >= LIMITS.conversationTurns || limits.off_topic_turns >= LIMITS.offTopicTurns) return refuse("ended", 409);
 
-  const language: Language = profile.learning_language === "en" ? "en" : "pt";
-  if (!SCENES[language][body.scene]) return refuse("bad", 400);
+  // What this feature tells the model, and what it says when the safety check stops a reply.
+  let system: string | Anthropic.TextBlockParam[];
+  let fallback: string;
+  let maxTokens = LIMITS.maxTokens;
+  let scene: string;
+  if (body.feature === "partner") {
+    const language: Language = profile.learning_language === "en" ? "en" : "pt";
+    if (!SCENES[language][body.scene]) return refuse("bad", 400);
+    system = systemPrompt(language, body.level, body.scene);
+    fallback = backToScene(language);
+    scene = body.scene;
+  } else {
+    const free = (await freeLessons())[body.lesson];
+    let lesson: { title: string | null; text: string };
+    if (free) lesson = { title: free.title, text: free.text };
+    else {
+      if (!hasLessonAccess(profile)) return refuse("access", 403);
+      const { data: row } = await db.from("lesson_content").select("text").eq("id", body.lesson).maybeSingle();
+      if (!row?.text) return refuse("bad", 400);
+      lesson = { title: null, text: row.text };
+    }
+    const site = siteLanguageOf(profile.site_language);
+    // The lesson is the long, repeated part: cached between a conversation's turns.
+    system = [{ type: "text", text: helperPrompt(lesson.title, lesson.text, site), cache_control: { type: "ephemeral" } }];
+    fallback = STAY_WITH_LESSON[site];
+    maxTokens = LIMITS.helperMaxTokens;
+    scene = body.lesson;
+  }
 
   // The history comes from our own rows, never from the client.
   const { data: earlier } = await db
@@ -94,15 +161,15 @@ export async function POST(request: Request) {
     user_id: user.id,
     feature: body.feature,
     conversation_id: body.conversation,
-    scene: body.scene,
+    scene,
     student: body.action === "say" ? text : `(${body.action})`,
     model: MODEL,
   };
   try {
     const client = new Anthropic({ maxRetries: 1, timeout: 30_000 });
-    const answer = await askClaude(client, systemPrompt(language, body.level, body.scene), messages);
+    const answer = await askClaude(client, system, messages, maxTokens);
     const refused = answer.stopReason === "refusal";
-    const reply = refused || !answer.reply ? backToScene(language) : answer.reply;
+    const reply = refused || !answer.reply ? fallback : answer.reply;
     const offTopic = refused || answer.offTopic;
     const { error } = await db.from("ai_turns").insert({
       ...row,

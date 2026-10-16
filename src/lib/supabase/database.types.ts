@@ -418,6 +418,12 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_content: {
+        Row: { id: string; blocks: Json; drill: Json | null; text: string | null; updated_at: string }
+        Insert: { id: string; blocks: Json; drill?: Json | null; text?: string | null; updated_at?: string }
+        Update: { id?: string; blocks?: Json; drill?: Json | null; text?: string | null; updated_at?: string }
+        Relationships: []
+      }
       integration_status: {
         Row: { checked_at: string; message: string | null; ok: boolean; service: string }
         Insert: { checked_at?: string; message?: string | null; ok: boolean; service: string }

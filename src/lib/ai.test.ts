@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LEVELS, OFF_TAG, parseReply, SCENES, systemPrompt, turnCost } from "@/lib/ai";
+import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, SCENES, systemPrompt, turnCost } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -38,5 +38,17 @@ describe("ai", () => {
     expect(Object.keys(SCENES.pt).length).toBeGreaterThanOrEqual(6);
     expect(Object.keys(SCENES.en).length).toBeGreaterThanOrEqual(6);
     expect(LEVELS).toEqual(["A1", "A2", "B1", "B2"]);
+  });
+
+  it("writes the lesson and the site language into the helper's instructions, cutting a huge lesson", () => {
+    const prompt = helperPrompt("-AR Verbs", "Falar: eu falo.", "fr");
+    expect(prompt).toContain("Answer in French");
+    expect(prompt).toContain("The lesson: -AR Verbs");
+    expect(prompt).toContain("Falar: eu falo.");
+    expect(prompt).toContain(OFF_TAG);
+    expect(helperPrompt(null, "x", "xx")).toContain("Answer in English");
+    const long = helperPrompt(null, "a".repeat(LIMITS.lessonChars + 100), "en");
+    expect(long).toContain("(The lesson continues.)");
+    expect(long.length).toBeLessThan(LIMITS.lessonChars + 3000);
   });
 });

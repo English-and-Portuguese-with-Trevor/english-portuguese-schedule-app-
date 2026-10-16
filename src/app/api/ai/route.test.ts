@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   userId: "u1" as string | null,
-  profile: { ai_blocked: false, learning_language: "pt" } as { ai_blocked: boolean; learning_language: string | null } | null,
+  profile: { ai_blocked: false, learning_language: "pt", role: "student", lesson_access: "none", site_language: "en" } as Record<string, unknown> | null,
+  lessonText: "## Ser vs. Estar\n\nSer is for what something is." as string | null,
   settings: { enabled: true, monthly_cap: 45, daily_turns: 30 },
   limits: { month_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 },
   earlier: [] as { student: string; reply: string }[],
@@ -34,6 +35,7 @@ vi.mock("@/lib/integration-status", () => ({
           },
         };
       }
+      if (table === "lesson_content") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: mocks.lessonText === null ? null : { text: mocks.lessonText } }) }) }) };
       const data = table === "profiles" ? mocks.profile : mocks.settings;
       return { select: () => ({ eq: () => ({ single: async () => ({ data }) }) }) };
     },
@@ -54,9 +56,20 @@ const say = (text: string, extra: Record<string, unknown> = {}, origin = ORIGIN)
     }),
   );
 
+const FREE = { ar: { title: "-AR Verbs", learning: "Portuguese", text: "## -AR verbs\n\nFalar: eu falo, você fala." } };
+const helper = (text: string, lesson = "ar", extra: Record<string, unknown> = {}) =>
+  POST(
+    new Request("https://schedule.test/api/ai", {
+      method: "POST",
+      headers: { origin: ORIGIN, "content-type": "application/json" },
+      body: JSON.stringify({ feature: "helper", conversation: CONVERSATION, lesson, action: "say", text, ...extra }),
+    }),
+  );
+
 afterEach(() => {
   mocks.userId = "u1";
-  mocks.profile = { ai_blocked: false, learning_language: "pt" };
+  mocks.profile = { ai_blocked: false, learning_language: "pt", role: "student", lesson_access: "none", site_language: "en" };
+  mocks.lessonText = "## Ser vs. Estar\n\nSer is for what something is.";
   mocks.settings = { enabled: true, monthly_cap: 45, daily_turns: 30 };
   mocks.limits = { month_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 };
   mocks.earlier = [];
@@ -117,9 +130,9 @@ describe("POST /api/ai", () => {
     mocks.settings = { ...mocks.settings, enabled: false };
     expect(await code(await say("Oi"))).toBe("off");
     mocks.settings = { ...mocks.settings, enabled: true };
-    mocks.profile = { ai_blocked: true, learning_language: "pt" };
+    mocks.profile = { ...mocks.profile, ai_blocked: true };
     expect(await code(await say("Oi"))).toBe("blocked");
-    mocks.profile = { ai_blocked: false, learning_language: "pt" };
+    mocks.profile = { ...mocks.profile, ai_blocked: false };
     mocks.limits = { ...mocks.limits, month_cost: 45 };
     expect(await code(await say("Oi"))).toBe("budget");
     mocks.limits = { ...mocks.limits, month_cost: 44.999, minute_turns: 6 };
@@ -157,7 +170,7 @@ describe("POST /api/ai", () => {
 
   it("opens and ends a conversation with fixed prompts, in the student's language", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "k");
-    mocks.profile = { ai_blocked: false, learning_language: "en" };
+    mocks.profile = { ...mocks.profile, learning_language: "en" };
     await say("", { action: "start", scene: "coffee" });
     let request = mocks.create.mock.calls[0][0] as unknown as { system: string; messages: { content: string }[] };
     expect(request.system).toContain("American English");
@@ -167,5 +180,52 @@ describe("POST /api/ai", () => {
     expect((await res.json()).ended).toBe(true);
     request = mocks.create.mock.calls[1][0] as unknown as { system: string; messages: { content: string }[] };
     expect(request.messages.at(-1)?.content).toContain("ending the conversation");
+  });
+
+  describe("the lesson helper", () => {
+    const stubFree = (lessons: unknown = FREE) => vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => lessons })));
+
+    it("answers about a free lesson from the lessons site's text, in the site language, caching the lesson", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      stubFree();
+      mocks.profile = { ...mocks.profile, site_language: "es" };
+      mocks.create.mockResolvedValueOnce({
+        content: [{ type: "text", text: "Falar significa hablar." }],
+        stop_reason: "end_turn",
+        usage: { input_tokens: 200, output_tokens: 10, cache_creation_input_tokens: 900, cache_read_input_tokens: 0 },
+      });
+      const res = await helper("What does falar mean?");
+      expect(await res.json()).toEqual({ reply: "Falar significa hablar.", ended: false });
+      const request = mocks.create.mock.calls[0][0] as unknown as { system: { text: string; cache_control: unknown }[]; max_tokens: number; messages: { content: string }[] };
+      expect(request.max_tokens).toBe(500);
+      expect(request.system[0].cache_control).toEqual({ type: "ephemeral" });
+      expect(request.system[0].text).toContain("Answer in Latin American Spanish");
+      expect(request.system[0].text).toContain("-AR Verbs");
+      expect(request.system[0].text).toContain("Falar: eu falo, você fala.");
+      expect(request.messages.at(-1)?.content).toBe("What does falar mean?");
+      expect(mocks.inserts[0]).toMatchObject({ feature: "helper", scene: "ar", student: "What does falar mean?" });
+      expect(mocks.inserts[0].cost).toBeCloseTo((200 * 0.1 + 900 * 0.125 + 10 * 0.5) / 1_000_000, 9);
+    });
+
+    it("reads a paid lesson only for an account with lesson access, and refuses an unknown one", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      stubFree();
+      expect(await (await helper("Why estar?", "ser-estar")).json()).toEqual({ error: "access" });
+      mocks.profile = { ...mocks.profile, lesson_access: "granted" };
+      expect((await helper("Why estar?", "ser-estar")).status).toBe(200);
+      const request = mocks.create.mock.calls[0][0] as unknown as { system: { text: string }[] };
+      expect(request.system[0].text).toContain("Ser is for what something is.");
+      mocks.lessonText = null;
+      expect((await helper("Hi", "no-such-lesson")).status).toBe(400);
+      expect((await helper("", "ar")).status).toBe(400);
+    });
+
+    it("turns a safety refusal into a line in the site language", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      stubFree();
+      mocks.profile = { ...mocks.profile, site_language: "pt" };
+      mocks.create.mockResolvedValueOnce({ content: [], stop_reason: "refusal", usage: { input_tokens: 10, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      expect(await (await helper("...")).json()).toEqual({ reply: "Vamos continuar com a lição.", ended: false });
+    });
   });
 });
