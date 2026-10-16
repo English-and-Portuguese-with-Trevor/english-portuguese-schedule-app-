@@ -10,6 +10,8 @@ import {
   LEVELS,
   LIMITS,
   MODEL,
+  questionMessage,
+  questionsPrompt,
   SCENES,
   siteLanguageOf,
   START_PROMPT,
@@ -21,8 +23,8 @@ import {
 import { createServerJobClient } from "@/lib/integration-status";
 import { createClient } from "@/lib/supabase/server";
 
-// The AI features (CLAUDE.md, "AI features"): the conversation partner and
-// the lesson helper. The sites on englishandportuguesewithtrevor.com call
+// The AI features (CLAUDE.md, "AI features"): the conversation partner, the
+// lesson helper and the question coach. The sites on englishandportuguesewithtrevor.com call
 // this with the shared login cookie. The key lives only here
 // (ANTHROPIC_API_KEY). Before every call: the student is logged in and not
 // blocked, the kill switch is on, this month's spend is under the cap, and
@@ -52,6 +54,15 @@ const Body = z.discriminatedUnion("feature", [
     feature: z.literal("helper"),
     conversation: z.uuid(),
     lesson: z.string().min(1).max(80),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.textChars),
+  }),
+  z.object({
+    feature: z.literal("questions"),
+    conversation: z.uuid(),
+    // The lesson id, or the Question words tool's id: shown to Trevor with the turn.
+    scene: z.string().min(1).max(80),
+    task: z.string().min(1).max(LIMITS.taskChars),
     action: z.literal("say"),
     text: z.string().max(LIMITS.textChars),
   }),
@@ -126,6 +137,7 @@ export async function POST(request: Request) {
   let fallback: string;
   let maxTokens = LIMITS.maxTokens;
   let scene: string;
+  let said = text;
   if (body.feature === "partner") {
     // profiles.learning_language holds "English" or "Portuguese" (the sites' "I'm learning"), Portuguese when unset.
     const language: Language = profile.learning_language === "English" ? "en" : "pt";
@@ -133,7 +145,7 @@ export async function POST(request: Request) {
     system = systemPrompt(language, body.level, body.scene);
     fallback = backToScene(language);
     scene = body.scene;
-  } else {
+  } else if (body.feature === "helper") {
     const free = (await freeLessons())[body.lesson];
     let lesson: { title: string | null; text: string };
     if (free) lesson = { title: free.title, text: free.text };
@@ -149,6 +161,13 @@ export async function POST(request: Request) {
     fallback = STAY_WITH_LESSON[site];
     maxTokens = LIMITS.helperMaxTokens;
     scene = body.lesson;
+  } else {
+    const site = siteLanguageOf(profile.site_language);
+    system = questionsPrompt(site);
+    fallback = STAY_WITH_LESSON[site];
+    scene = body.scene;
+    // Saved with its task, so the history and Trevor's AI tab read it whole.
+    said = questionMessage(body.task.trim(), text);
   }
 
   // The history comes from our own rows, never from the client.
@@ -159,7 +178,7 @@ export async function POST(request: Request) {
     .eq("conversation_id", body.conversation)
     .order("created_at", { ascending: false })
     .limit(LIMITS.historyTurns);
-  const prompt = body.action === "start" ? START_PROMPT : body.action === "end" ? END_PROMPT : text;
+  const prompt = body.action === "start" ? START_PROMPT : body.action === "end" ? END_PROMPT : said;
   const messages: Anthropic.MessageParam[] = [];
   for (const turn of (earlier ?? []).reverse()) {
     messages.push({ role: "user", content: turn.student === "(start)" ? START_PROMPT : turn.student === "(end)" ? END_PROMPT : turn.student });
@@ -172,7 +191,7 @@ export async function POST(request: Request) {
     feature: body.feature,
     conversation_id: body.conversation,
     scene,
-    student: body.action === "say" ? text : `(${body.action})`,
+    student: body.action === "say" ? said : `(${body.action})`,
     model: MODEL,
   };
   try {

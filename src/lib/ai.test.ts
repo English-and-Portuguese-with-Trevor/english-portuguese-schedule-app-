@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, SCENES, systemPrompt, turnCost } from "@/lib/ai";
+import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, questionMessage, questionsPrompt, SCENES, systemPrompt, turnCost } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -50,5 +50,11 @@ describe("ai", () => {
     const long = helperPrompt(null, "a".repeat(LIMITS.lessonChars + 100), "en");
     expect(long).toContain("(The lesson continues.)");
     expect(long.length).toBeLessThan(LIMITS.lessonChars + 3000);
+  });
+
+  it("gives the question coach the site language and the task with the question", () => {
+    expect(questionsPrompt("es")).toContain("Answer in Latin American Spanish");
+    expect(questionsPrompt("es")).toContain(OFF_TAG);
+    expect(questionMessage("Ask with Quem.", "Quem é você?")).toBe("Task: Ask with Quem.\nMy question: Quem é você?");
   });
 });
