@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   userId: "u1" as string | null,
-  profile: { ai_blocked: false, learning_language: "pt", role: "student", lesson_access: "none", site_language: "en" } as Record<string, unknown> | null,
+  profile: { ai_blocked: false, learning_language: "Portuguese", role: "student", lesson_access: "none", site_language: "en" } as Record<string, unknown> | null,
   lessonText: "## Ser vs. Estar\n\nSer is for what something is." as string | null,
   settings: { enabled: true, monthly_cap: 45, daily_turns: 30 },
   limits: { month_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 },
@@ -68,7 +68,7 @@ const helper = (text: string, lesson = "ar", extra: Record<string, unknown> = {}
 
 afterEach(() => {
   mocks.userId = "u1";
-  mocks.profile = { ai_blocked: false, learning_language: "pt", role: "student", lesson_access: "none", site_language: "en" };
+  mocks.profile = { ai_blocked: false, learning_language: "Portuguese", role: "student", lesson_access: "none", site_language: "en" };
   mocks.lessonText = "## Ser vs. Estar\n\nSer is for what something is.";
   mocks.settings = { enabled: true, monthly_cap: 45, daily_turns: 30 };
   mocks.limits = { month_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 };
@@ -170,7 +170,7 @@ describe("POST /api/ai", () => {
 
   it("opens and ends a conversation with fixed prompts, in the student's language", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "k");
-    mocks.profile = { ...mocks.profile, learning_language: "en" };
+    mocks.profile = { ...mocks.profile, learning_language: "English" };
     await say("", { action: "start", scene: "coffee" });
     let request = mocks.create.mock.calls[0][0] as unknown as { system: string; messages: { content: string }[] };
     expect(request.system).toContain("American English");

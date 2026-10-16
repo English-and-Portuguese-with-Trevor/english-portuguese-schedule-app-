@@ -127,7 +127,8 @@ export async function POST(request: Request) {
   let maxTokens = LIMITS.maxTokens;
   let scene: string;
   if (body.feature === "partner") {
-    const language: Language = profile.learning_language === "en" ? "en" : "pt";
+    // profiles.learning_language holds "English" or "Portuguese" (the sites' "I'm learning"), Portuguese when unset.
+    const language: Language = profile.learning_language === "English" ? "en" : "pt";
     if (!SCENES[language][body.scene]) return refuse("bad", 400);
     system = systemPrompt(language, body.level, body.scene);
     fallback = backToScene(language);
