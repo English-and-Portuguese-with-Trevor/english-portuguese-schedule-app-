@@ -358,6 +358,66 @@ export type Database = {
           },
         ]
       }
+      ai_settings: {
+        Row: { id: boolean; enabled: boolean; monthly_cap: number; daily_turns: number; updated_at: string }
+        Insert: { id?: boolean; enabled?: boolean; monthly_cap?: number; daily_turns?: number; updated_at?: string }
+        Update: { id?: boolean; enabled?: boolean; monthly_cap?: number; daily_turns?: number; updated_at?: string }
+        Relationships: []
+      }
+      ai_turns: {
+        Row: {
+          id: number
+          user_id: string
+          feature: string
+          conversation_id: string
+          scene: string | null
+          student: string
+          reply: string
+          off_topic: boolean
+          model: string
+          input_tokens: number
+          cached_tokens: number
+          output_tokens: number
+          cost: number
+          stop_reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: string
+          feature: string
+          conversation_id: string
+          scene?: string | null
+          student: string
+          reply: string
+          off_topic?: boolean
+          model: string
+          input_tokens?: number
+          cached_tokens?: number
+          output_tokens?: number
+          cost?: number
+          stop_reason?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: string
+          feature?: string
+          conversation_id?: string
+          scene?: string | null
+          student?: string
+          reply?: string
+          off_topic?: boolean
+          model?: string
+          input_tokens?: number
+          cached_tokens?: number
+          output_tokens?: number
+          cost?: number
+          stop_reason?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       integration_status: {
         Row: { checked_at: string; message: string | null; ok: boolean; service: string }
         Insert: { checked_at?: string; message?: string | null; ok: boolean; service: string }
@@ -366,6 +426,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_blocked: boolean
           class_package: number | null
           notes_access: boolean
           created_at: string
@@ -392,6 +453,7 @@ export type Database = {
           class_update_week: string | null
         }
         Insert: {
+          ai_blocked?: boolean
           class_package?: number | null
           notes_access?: boolean
           created_at?: string
@@ -418,6 +480,7 @@ export type Database = {
           class_update_week?: string | null
         }
         Update: {
+          ai_blocked?: boolean
           class_package?: number | null
           notes_access?: boolean
           created_at?: string
@@ -628,6 +691,7 @@ export type Database = {
         Args: { p_learning?: string }
         Returns: { id: number; message: string; created_at: string }[]
       }
+      ai_limits: { Args: { p_user: string; p_conversation: string }; Returns: Json }
       record_integration_status: {
         Args: { p_message: string; p_ok: boolean; p_secret: string; p_service: string }
         Returns: undefined

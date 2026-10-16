@@ -236,6 +236,15 @@ The push key pair (VAPID) is saved in `private.app_settings` (`vapid_public_key`
 `vapid_private_key`); nothing needs setting in Vercel beyond `CRON_SECRET`.
 Don't replace the keys: every device would have to turn push on again.
 
+## AI conversation partner
+
+Students talk to Claude through `/api/ai` (see CLAUDE.md, "AI features").
+The key is `ANTHROPIC_API_KEY` in Vercel (Production), made in the Anthropic
+Console in a workspace of its own, "EPT students", with a monthly spend
+limit of $50: the hard wall, enforced by Anthropic. The app stops earlier,
+at `ai_settings.monthly_cap` ($45), and the admin dashboard's AI tab has the
+kill switch. The month's spend and every turn are in `ai_turns`.
+
 ## Maintenance mode
 
 While you're changing something big, set `MAINTENANCE_MODE` to `on` in Vercel (Settings -> Environment Variables) and redeploy. Every page then shows "We're updating the site" (`/maintenance`) with a 503, instead of an error. The cron jobs, `/api/alerts/push` and `/api/practice/push` keep running, so reminders, alerts and the daily practice pushes still go out. Delete the variable (or set it to anything else) and redeploy to turn it off. Missing pages show "Page not found" and crashes show "Something went wrong", both with a button to recover.
