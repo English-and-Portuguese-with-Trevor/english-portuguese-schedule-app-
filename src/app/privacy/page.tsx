@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         English <em className="text-brand-accent">&amp;</em> Portuguese With Trevor
       </a>
       <h1 className="title mt-8 text-3xl">Privacy Policy</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Last updated October 5, 2026</p>
+      <p className="mt-1 text-sm text-muted-foreground">Last updated October 16, 2026</p>
 
       <div className="mt-8 flex flex-col gap-6 leading-relaxed [&_h2]:font-display [&_h2]:text-xl [&_h2]:text-brand [&_ul]:list-disc [&_ul]:pl-5">
         <p>
@@ -115,6 +115,11 @@ export default function PrivacyPage() {
               get an email a month before.
             </li>
             <li>
+              <strong>AI practice:</strong> when you&apos;re logged in, everything you write to the conversation
+              partner (Conversations site) and the lesson helper (Lessons site), the replies, and what each
+              exchange cost. Trevor reads these to see how the practice is going.
+            </li>
+            <li>
               <strong>From Trevor:</strong> the lessons and activities he assigns you.
             </li>
             <li>
@@ -166,6 +171,20 @@ export default function PrivacyPage() {
             listen to you, using your browser&apos;s built-in speech features. In some browsers (Chrome, for
             example), your voice is sent to the browser&apos;s maker to turn it into text. The sites
             themselves never record, receive or store your voice, and no outside AI voice service is used.
+            The conversation partner&apos;s Speak button and voice work the same way.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2>AI conversation partner and lesson helper</h2>
+          <p>
+            The conversation partner and the lesson helper are answered by Claude, an AI model from
+            Anthropic. Each message you send, with the conversation so far, the scene or the lesson text and
+            your level, goes to Anthropic to write the reply. Nothing else about you is sent: not your name,
+            email, progress or results. Anthropic doesn&apos;t use what it receives to train its models.
+            The partner&apos;s voice and the Speak button use your browser&apos;s own speech features, as described
+            above, and the voice is off until you turn it on. These chats are kept with your account and
+            deleted with it. There is a limit on how much each student can use them in a day.
           </p>
         </section>
 
