@@ -104,7 +104,16 @@ export async function POST(request: Request) {
     db.rpc("ai_limits", { p_user: user.id, p_conversation: body.conversation }),
   ]);
   if (!profile || profile.ai_blocked) return refuse("blocked", 403);
-  if (!settings?.enabled || !process.env.ANTHROPIC_API_KEY) return refuse("off", 403);
+  // Both read as "off" to the student; the reason goes to the function logs (Vercel > Logs).
+  if (!settings) {
+    console.error("[api/ai] ai_settings is unreadable: is SUPABASE_SERVICE_ROLE_KEY set and the ai_turns migration run?");
+    return refuse("off", 403);
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error("[api/ai] ANTHROPIC_API_KEY is not set for this deployment");
+    return refuse("off", 403);
+  }
+  if (!settings.enabled) return refuse("off", 403);
   const limits = limitsData as Limits | null;
   if (!limits) return refuse("failed", 500);
   if (Number(limits.month_cost) >= Number(settings.monthly_cap)) return refuse("budget", 403);
