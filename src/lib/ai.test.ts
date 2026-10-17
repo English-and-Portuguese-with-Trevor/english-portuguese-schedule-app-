@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, questionMessage, questionsPrompt, SCENES, systemPrompt, turnCost } from "@/lib/ai";
+import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, parseVocab, questionMessage, questionsPrompt, SCENES, systemPrompt, turnCost, vocabPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -56,5 +56,15 @@ describe("ai", () => {
     expect(questionsPrompt("es")).toContain("Answer in Latin American Spanish");
     expect(questionsPrompt("es")).toContain(OFF_TAG);
     expect(questionMessage("Ask with Quem.", "Quem é você?")).toBe("Task: Ask with Quem.\nMy question: Quem é você?");
+  });
+
+  it("translates vocab the right way round and reads the lines back as terms", () => {
+    expect(vocabPrompt("pt")).toContain("The terms are in Brazilian Portuguese");
+    expect(vocabPrompt("en")).toContain("translate each into Brazilian Portuguese");
+    expect(parseVocab("casa | a house / home | Home, Noun, x, y\n\nir embora | to leave | travel\nsem barra\nfeira | street market")).toEqual([
+      { term: "casa", meaning: "a house / home", tags: ["home", "noun", "x"] },
+      { term: "ir embora", meaning: "to leave", tags: ["travel"] },
+      { term: "feira", meaning: "street market", tags: [] },
+    ]);
   });
 });

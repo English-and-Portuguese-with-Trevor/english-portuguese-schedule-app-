@@ -30,6 +30,9 @@ export const LIMITS = {
   helperMaxTokens: 500,
   /** The task the question coach is given (the lessons site's are one short sentence). */
   taskChars: 200,
+  /** Trevor's vocab list (a few dozen terms) and the room its translations need. */
+  vocabChars: 1000,
+  vocabMaxTokens: 1500,
   /** A lesson longer than this is cut before it reaches the model (the longest lessons are well under it). */
   lessonChars: 24_000,
 };
@@ -166,6 +169,39 @@ Reply with only your feedback: no labels, no XML or system tags. When you declin
 /** The task and the question, as the student's message to the coach. */
 export function questionMessage(task: string, question: string) {
   return `Task: ${task}\nMy question: ${question}`;
+}
+
+// The vocab translator (feature 'vocab', admin only for now, Trevor 2026-10-17):
+// the lessons site's Notes panel sends a comma-separated list in English or
+// Portuguese; each term comes back with its meaning in the other language and
+// a few topic tags, shown to Trevor to fix before the note is saved.
+export function vocabPrompt(from: Language) {
+  const [source, target] = from === "pt" ? ["Brazilian Portuguese", "American English"] : ["American English", "Brazilian Portuguese"];
+  return `You translate a teacher's vocabulary list. The terms are in ${source}, separated by commas; translate each into ${target}.
+
+- One line per term, in the order given: the term as written | its translation | one to three tags
+- The translation: the most common everyday meaning, short (two or three meanings at most, separated by " / "). Brazilian Portuguese only: você, never tu; Brazilian words over European ones.
+- Portuguese nouns, on either side, carry their article: a casa, o cachorro.
+- Tags: lowercase English, one or two words each. The first is the term's topic (food, travel, family, home, work, health, clothes, time, places, feelings, school…), then its kind if useful (verb, adjective, phrase, slang).
+- If a piece isn't a word or phrase to translate, give it as: the piece | ? | 
+- Reply with only the lines: no heading, no numbering, no notes.`;
+}
+
+/** The translator's lines, as terms with their meaning and tags. */
+export function parseVocab(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.split("|").map((part) => part.trim()))
+    .filter(([term, meaning]) => term && meaning)
+    .map(([term, meaning, tags = ""]) => ({
+      term,
+      meaning,
+      tags: tags
+        .split(",")
+        .map((tag) => tag.trim().toLowerCase())
+        .filter(Boolean)
+        .slice(0, 3),
+    }));
 }
 
 /** What the model is told on the two turns the student doesn't type. */

@@ -10,6 +10,7 @@ import {
   LEVELS,
   LIMITS,
   MODEL,
+  parseVocab,
   questionMessage,
   questionsPrompt,
   SCENES,
@@ -18,13 +19,15 @@ import {
   STAY_WITH_LESSON,
   systemPrompt,
   turnCost,
+  vocabPrompt,
   type Language,
 } from "@/lib/ai";
+import { checkAdmin } from "@/lib/auth/require-admin";
 import { createServerJobClient } from "@/lib/integration-status";
 import { createClient } from "@/lib/supabase/server";
 
 // The AI features (CLAUDE.md, "AI features"): the conversation partner, the
-// lesson helper and the question coach. The sites on englishandportuguesewithtrevor.com call
+// lesson helper, the question coach and Trevor's vocab translator. The sites on englishandportuguesewithtrevor.com call
 // this with the shared login cookie. The key lives only here
 // (ANTHROPIC_API_KEY). Before every call: the student is logged in and not
 // blocked, the kill switch is on, this month's spend is under the cap, and
@@ -66,6 +69,15 @@ const Body = z.discriminatedUnion("feature", [
     action: z.literal("say"),
     text: z.string().max(LIMITS.textChars),
   }),
+  z.object({
+    feature: z.literal("vocab"),
+    conversation: z.uuid(),
+    // The lesson's title: shown to Trevor with the turn.
+    scene: z.string().min(1).max(80),
+    from: z.enum(["en", "pt"]),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.vocabChars),
+  }),
 ]);
 
 type Limits = { month_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
@@ -97,14 +109,17 @@ export async function OPTIONS() {
 export async function POST(request: Request) {
   if (request.headers.get("origin") !== SITE_ORIGIN) return refuse("origin", 403);
 
+  const supabase = await createClient();
   const {
     data: { user },
-  } = await (await createClient()).auth.getUser();
+  } = await supabase.auth.getUser();
   if (!user) return refuse("signed-out", 401);
 
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return refuse("bad", 400);
   const body = parsed.data;
+  // Only Trevor until he approves it for students.
+  if (body.feature === "vocab" && !(await checkAdmin(supabase)).ok) return refuse("blocked", 403);
   const text = body.text?.trim() ?? "";
   if (body.action === "say" && !text) return refuse("bad", 400);
 
@@ -161,6 +176,11 @@ export async function POST(request: Request) {
     fallback = STAY_WITH_LESSON[site];
     maxTokens = LIMITS.helperMaxTokens;
     scene = body.lesson;
+  } else if (body.feature === "vocab") {
+    system = vocabPrompt(body.from);
+    fallback = "";
+    maxTokens = LIMITS.vocabMaxTokens;
+    scene = body.scene;
   } else {
     const site = siteLanguageOf(profile.site_language);
     system = questionsPrompt(site);
@@ -216,6 +236,7 @@ export async function POST(request: Request) {
       body.action === "end" ||
       limits.conversation_turns + 1 >= LIMITS.conversationTurns ||
       limits.off_topic_turns + (offTopic ? 1 : 0) >= LIMITS.offTopicTurns;
+    if (body.feature === "vocab") return Response.json({ items: parseVocab(reply) }, { headers: CORS });
     return Response.json({ reply, ended }, { headers: CORS });
   } catch (error) {
     console.error("[api/ai] failed:", error);
