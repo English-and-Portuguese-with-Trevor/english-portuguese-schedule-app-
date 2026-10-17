@@ -173,18 +173,27 @@ export function questionMessage(task: string, question: string) {
 
 // The vocab translator (feature 'vocab', admin only for now, Trevor 2026-10-17):
 // the lessons site's Notes panel sends a comma-separated list in English or
-// Portuguese; each term comes back with its meaning in the other language and
+// Portuguese (\, for a comma inside a phrase), sent on one line each; each term comes back with its meaning in the other language and
 // a few topic tags, shown to Trevor to fix before the note is saved.
 export function vocabPrompt(from: Language) {
   const [source, target] = from === "pt" ? ["Brazilian Portuguese", "American English"] : ["American English", "Brazilian Portuguese"];
-  return `You translate a teacher's vocabulary list. The terms are in ${source}, separated by commas; translate each into ${target}.
+  return `You translate a teacher's vocabulary list. The terms are in ${source}, one per line; translate each into ${target}.
 
-- One line per term, in the order given: the term as written | its translation | one to three tags
+- One line per term, in the order given: the term | its translation | one to three tags
+- The term as written, except that a Portuguese noun gets its article for its gender: casa → a casa, problema → o problema, estudante → o/a estudante. A Portuguese translation of an English noun carries its article the same way: house → a casa.
 - The translation: the most common everyday meaning, short (two or three meanings at most, separated by " / "). Brazilian Portuguese only: você, never tu; Brazilian words over European ones.
-- Portuguese nouns, on either side, carry their article: a casa, o cachorro.
 - Tags: lowercase English, one or two words each. The first is the term's topic (food, travel, family, home, work, health, clothes, time, places, feelings, school…), then its kind if useful (verb, adjective, phrase, slang).
 - If a piece isn't a word or phrase to translate, give it as: the piece | ? | 
 - Reply with only the lines: no heading, no numbering, no notes.`;
+}
+
+/** Trevor's list, one term a line: split at commas, except \, (a comma inside a phrase). */
+export function splitTerms(text: string) {
+  return text
+    .split(/(?<!\\),/)
+    .map((term) => term.replaceAll("\\,", ",").trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 /** The translator's lines, as terms with their meaning and tags. */

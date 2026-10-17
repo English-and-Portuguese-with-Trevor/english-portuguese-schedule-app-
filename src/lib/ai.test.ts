@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, parseVocab, questionMessage, questionsPrompt, SCENES, systemPrompt, turnCost, vocabPrompt } from "@/lib/ai";
+import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, parseVocab, questionMessage, splitTerms, questionsPrompt, SCENES, systemPrompt, turnCost, vocabPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -61,6 +61,8 @@ describe("ai", () => {
   it("translates vocab the right way round and reads the lines back as terms", () => {
     expect(vocabPrompt("pt")).toContain("The terms are in Brazilian Portuguese");
     expect(vocabPrompt("en")).toContain("translate each into Brazilian Portuguese");
+    expect(vocabPrompt("pt")).toContain("casa → a casa");
+    expect(splitTerms("casa, tudo bem\\, e você?,, feira ")).toBe("casa\ntudo bem, e você?\nfeira");
     expect(parseVocab("casa | a house / home | Home, Noun, x, y\n\nir embora | to leave | travel\nsem barra\nfeira | street market")).toEqual([
       { term: "casa", meaning: "a house / home", tags: ["home", "noun", "x"] },
       { term: "ir embora", meaning: "to leave", tags: ["travel"] },

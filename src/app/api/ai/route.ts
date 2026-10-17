@@ -12,6 +12,7 @@ import {
   MODEL,
   parseVocab,
   questionMessage,
+  splitTerms,
   questionsPrompt,
   SCENES,
   siteLanguageOf,
@@ -181,6 +182,7 @@ export async function POST(request: Request) {
     fallback = "";
     maxTokens = LIMITS.vocabMaxTokens;
     scene = body.scene;
+    said = splitTerms(text);
   } else {
     const site = siteLanguageOf(profile.site_language);
     system = questionsPrompt(site);
