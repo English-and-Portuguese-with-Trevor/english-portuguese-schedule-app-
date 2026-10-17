@@ -115,6 +115,10 @@ export default function PrivacyPage() {
               get an email a month before.
             </li>
             <li>
+              <strong>My mistakes:</strong> which of the questions you missed you tick as learned on the
+              notebook site. Trevor can see those ticks.
+            </li>
+            <li>
               <strong>AI practice:</strong> when you&apos;re logged in, everything you write to the conversation
               partner (Conversations site) and the lesson helper (Lessons site), the replies, and what each
               exchange cost. Trevor reads these to see how the practice is going.
@@ -167,7 +171,7 @@ export default function PrivacyPage() {
         <section className="flex flex-col gap-2">
           <h2>Speaking and listening</h2>
           <p>
-            The Activities site and some lessons read sentences aloud, and the Activities speaking drills
+            The Activities site, some lessons and your notes read text aloud, and the Activities speaking drills
             listen to you, using your browser&apos;s built-in speech features. In some browsers (Chrome, for
             example), your voice is sent to the browser&apos;s maker to turn it into text. The sites
             themselves never record, receive or store your voice, and no outside AI voice service is used.
