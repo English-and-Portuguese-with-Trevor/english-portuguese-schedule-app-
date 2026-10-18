@@ -130,10 +130,10 @@ const Body = z.discriminatedUnion("feature", [
   }),
 ]);
 
-// Only Trevor: the class-note tidy-up for good, the rest until he approves
-// each one for students (landing repo's CLAUDE.md, "Students see only what
-// Trevor approves").
-const ADMIN_ONLY = new Set(["vocab", "classnote", "writing", "story", "why"]);
+// Only Trevor: the class-note tidy-up for good, the vocab translator until he
+// approves it for students (landing repo's CLAUDE.md, "Students see only what
+// Trevor approves"; the writing coach, story builder and "why" were approved 2026-10-18).
+const ADMIN_ONLY = new Set(["vocab", "classnote"]);
 const POOL = new Set<string>(POOL_FEATURES);
 
 type Limits = { month_cost: number; pool_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };

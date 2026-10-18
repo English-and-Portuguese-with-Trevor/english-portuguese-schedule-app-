@@ -242,16 +242,14 @@ describe("POST /api/ai", () => {
     });
   });
 
-  describe("the tools pool (admin only until Trevor approves each one)", () => {
+  describe("the tools pool", () => {
     const post = (body: Record<string, unknown>) =>
       POST(new Request("https://schedule.test/api/ai", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json" }, body: JSON.stringify({ conversation: CONVERSATION, ...body }) }));
     const why = (extra: Record<string, unknown> = {}) =>
       post({ feature: "why", scene: "ser-estar", question: "Ela ___ médica.", options: ["é", "está"], picked: "está", correct: "é", ...extra });
 
-    it("refuses students, and holds the pool's own cap, not the monthly one", async () => {
+    it("holds the pool's own cap, not the monthly one", async () => {
       vi.stubEnv("ANTHROPIC_API_KEY", "k");
-      expect((await post({ feature: "story", scene: "praia", level: "A1", action: "start" })).status).toBe(403);
-      mocks.admin = true;
       mocks.limits = { ...mocks.limits, month_cost: 45 };
       expect((await post({ feature: "story", scene: "praia", level: "A1", action: "start" })).status).toBe(200);
       expect(mocks.inserts[0]).toMatchObject({ feature: "story", scene: "praia", student: "(start)" });

@@ -120,8 +120,9 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>AI practice:</strong> when you&apos;re logged in, everything you write to the conversation
-              partner (Conversations site) and the lesson helper (Lessons site), the replies, and what each
-              exchange cost. Trevor reads these to see how the practice is going.
+              partner (Conversations site), the lesson helper, the question and writing coaches and the story
+              builder (Lessons site), the knowledge checks you ask &ldquo;Why was this wrong?&rdquo; about, the
+              replies, and what each exchange cost. Trevor reads these to see how the practice is going.
             </li>
             <li>
               <strong>From Trevor:</strong> the lessons and activities he assigns you.
@@ -180,11 +181,13 @@ export default function PrivacyPage() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h2>AI conversation partner and lesson helper</h2>
+          <h2>AI conversation partner, lesson helper and coaches</h2>
           <p>
-            The conversation partner and the lesson helper are answered by Claude, an AI model from
-            Anthropic. Each message you send, with the conversation so far, the scene or the lesson text and
-            your level, goes to Anthropic to write the reply. Nothing else about you is sent: not your name,
+            The conversation partner, the lesson helper, the question and writing coaches, the story builder
+            and &ldquo;Why was this wrong?&rdquo; are answered by Claude, an AI model from Anthropic. Each
+            message you send (or the text you write, or the knowledge check and the answer you picked), with
+            the conversation so far, the scene, task or lesson text and your level, goes to Anthropic to
+            write the reply. Nothing else about you is sent: not your name,
             email, progress or results. Anthropic doesn&apos;t use what it receives to train its models.
             The partner&apos;s voice and the Speak button use your browser&apos;s own speech features, as described
             above, and the voice is off until you turn it on. These chats are kept with your account and
