@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Classes with Trevor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --cream:#f5f0e8; --cream-mid:#ebe4d5; --sage:#d7dcd1; --forest:#1b4332; --forest-mid:#2d6a4f; --leaf:#55b88a; --gold:#f4c430; --gold-deep:#c9970a; --gold-text:#8a6508; --ink:#12231a; --line:rgba(18,35,26,.12); --muted:#4f5f56; }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  .page { width: 210mm; height: 297mm; padding: 7mm; break-after: page; }
+  .page:last-child { break-after: auto; }
+  /* The frame: a forest line with a thin gold line inside, 9mm in from the paper's edge; the material sits 10mm inside it. */
+  .inner { height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 5mm 6mm; border: 2px solid var(--forest); border-radius: 16px; }
+  html, body { margin: 0; background: var(--cream); color: var(--ink); font-family: "Inter", system-ui, sans-serif; font-size: 9.8pt; line-height: 1.4; }
+  h1, h2, .brand { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; margin: 0; }
+  header { display: flex; align-items: center; gap: 14px; padding: 2px 0 12px; border-bottom: 2px solid var(--gold); }
+  header img { width: 58px; height: 58px; }
+  .brand { font-size: 17pt; line-height: 1.12; color: var(--forest); }
+  .brand em { color: var(--gold-deep); font-style: italic; }
+  .brand small { display: block; font-size: 11.5pt; color: var(--forest-mid); }
+  .hero { margin: 14px 0 10px; }
+  h1 { font-size: 26pt; line-height: 1.1; color: var(--forest); }
+  .sub { margin: 4px 0 0; font-size: 12pt; color: var(--forest-mid); }
+  .updated { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 999px; background: var(--cream-mid); color: var(--gold-text); font-size: 9pt; font-weight: 600; }
+  section { margin-top: 8px; background: var(--cream-mid); border-radius: 16px; padding: 8px 10px 7px; }
+  section.sage { background: var(--sage); }
+  section.sage .card { background: rgba(255,255,255,.75); }
+  h2 { font-size: 16.5pt; color: var(--forest); margin-bottom: 6px; }
+  h2::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); margin-right: 8px; vertical-align: 2px; }
+  p { margin: 0 0 7px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0; padding: 0; list-style: none; }
+  .facts li { padding: 3px 10px; border-radius: 999px; background: var(--cream); border: 1px solid var(--line); font-size: 9pt; font-weight: 500; color: var(--forest); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 6px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 7px 11px; }
+  .card b { display: block; color: var(--forest); font-weight: 600; margin-bottom: 2px; }
+  .card.wide { grid-column: 1 / -1; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 6px; background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  th { background: var(--forest); color: var(--cream); text-align: left; font-weight: 500; font-size: 9.5pt; padding: 7px 12px; }
+  td { padding: 5px 12px; border-top: 1px solid var(--line); vertical-align: top; }
+  td.price { font-family: "DM Serif Display", Georgia, serif; font-size: 14pt; color: var(--forest); white-space: nowrap; }
+  tr.custom td.price { font-family: "Inter", system-ui, sans-serif; font-size: 10.6pt; font-weight: 600; }
+  .subbox { display: flex; gap: 14px; align-items: center; margin-top: auto; padding-top: 10px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px; }
+  .subbox b { display: block; color: var(--forest); font-weight: 600; margin-bottom: 2px; }
+  .subprices { display: flex; gap: 8px; flex-shrink: 0; }
+  .subprices div { background: var(--cream-mid); border-radius: 10px; padding: 6px 12px; text-align: center; min-width: 78px; }
+  .subprices span { display: block; font-size: 8.5pt; color: var(--muted); }
+  .subprices strong { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; font-size: 13pt; color: var(--forest); }
+        .steps { counter-reset: s; list-style: none; margin: 6px 0 0; padding: 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 34px; margin-bottom: 3px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: var(--ink); font-weight: 600; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  .contact { margin-top: 8px; background: var(--forest); color: var(--cream); border-radius: 18px; padding: 12px 18px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 16px; }
+  .contact a { color: #fff; text-decoration: none; font-weight: 600; }
+  .contact .links { font-size: 9.5pt; line-height: 1.7; text-align: left; }
+  .small { font-size: 8.8pt; color: var(--muted); margin: 8px 0 0; }
+  a { color: var(--forest-mid); }
+</style></head><body>
+<div class="page"><div class="inner">
+<header><img src="logo-transparent.png" alt=""><div class="brand">English <em>&amp;</em> Portuguese<small>With Trevor</small></div></header>
+<div class="hero"><h1>Classes with Trevor</h1><p class="sub">Private English and Portuguese classes, online, one-on-one</p><span class="updated">Prices and rules updated as of October 18, 2026</span></div>
+
+<section><h2>About me</h2><p>I've been a language teacher for 13+ years. Today I teach private English and Portuguese classes online, one-on-one, with 200+ students so far.</p><p>I'm from Arkansas, USA. I earned my degree in Spanish at the University of the Ozarks and taught Spanish at the University of Missouri, where I took my first Portuguese classes. In 2020 I went to Brazil with the Fulbright program to teach English at the Federal University of Pará, then stayed three years teaching at English schools and a bilingual school.</p>
+<ul class="facts"><li>13+ years teaching</li><li>Fulbright teacher</li><li>3 years in Brazil</li><li>200+ students</li></ul></section>
+
+<section class="sage"><h2>Private classes</h2><p>Every class is one hour, one-on-one, on Google Meet, at a time you pick in the schedule app. Times show in your own time zone; I teach from Denver (Mountain Time).</p><p>English classes are taught 100% in English. Portuguese classes start in English and bridge into Portuguese conversation.</p>
+<div class="grid"><div class="card"><b>Conversation first</b>You talk from day one. Grammar comes in as you need it, and the words stick because you have used them.</div><div class="card"><b>Once or twice a week</b>Pick the times that work for you. A calendar invite with your Meet link arrives right away.</div><div class="card"><b>Every level welcome</b>Start from zero in Portuguese or polish advanced English. Classes meet you where you are and move at your pace.</div><div class="card"><b>Built around your goals</b>Travel, work, exams, or just confidence: we work on what you need, with conversation, grammar, videos, music, games and homework as it fits.</div><div class="card wide"><b>Everything on the site included</b>Lessons, flashcards, activities and daily puzzles, so the language stays with you between classes. No subscription needed.</div></div></section>
+</div></div>
+<div class="page"><div class="inner">
+<section><h2>Prices</h2><p>Packages are paid up front, before the first class, and used at your own pace. Paying from Brazil? You can also pay in reais; ask me for the amount.</p>
+<table><thead><tr><th>Package</th><th>Price</th><th>Per class</th><th>Usual pace</th></tr></thead><tbody>
+<tr><td><b>4 classes</b></td><td class="price">$100</td><td>$25</td><td>Once a week</td></tr><tr><td><b>8 classes</b></td><td class="price">$184</td><td>$23</td><td>Twice a week</td></tr><tr class="custom"><td><b>Custom package</b></td><td class="price">On request</td><td></td><td>Any other number of classes or pace</td></tr>
+</tbody></table></section>
+
+<section class="sage"><h2>Cancellation policy</h2><p>Every package comes with one free cancellation, no questions asked. After that, the 24-hour rule applies.</p>
+<div class="grid"><div class="card"><b>More than 24 hours ahead</b>Cancel or move a class in the app as often as you need. It never counts.</div><div class="card"><b>Less than 24 hours ahead, or a missed class</b>The first time in a package is free: the class doesn't count and we find another time. After that, it counts as one of your classes.</div><div class="card"><b>If I cancel a class</b>It never counts, and you book another time.</div><div class="card"><b>Good to know</b>A class requested less than 72 hours ahead stays pending until I approve it. Packages aren't refunded; you use one up by taking the classes you paid for.</div></div>
+<p class="small">Full class policy: <a href="https://schedule.englishandportuguesewithtrevor.com/policy">schedule.englishandportuguesewithtrevor.com/policy</a></p></section>
+
+<section><h2>How to get started</h2>
+<ol class="steps"><li>Pick your package: 4 classes, 8 classes, or a custom one.</li><li>Book your times at schedule.englishandportuguesewithtrevor.com. Booking means you agree to the class policy.</li><li>Pay for the package before the first class, and we're set.</li></ol>
+<div class="contact"><div>Questions? Write me and I'll get back to you within a day.</div><div class="links"><a href="mailto:englishportuguesewithtrevor@gmail.com">englishportuguesewithtrevor@gmail.com</a><br><a href="https://englishandportuguesewithtrevor.com">englishandportuguesewithtrevor.com</a><br><a href="https://schedule.englishandportuguesewithtrevor.com">schedule.englishandportuguesewithtrevor.com</a></div></div>
+<p class="small">The sites and classes are for adults. For a student under 18, a parent or guardian creates the account, books the classes and is my contact.</p></section>
+<div class="subbox" id="subbox" style="margin-top:auto"><div><b>No classes, just the materials?</b>The lesson subscription opens every lesson, activity, hard mode and daily puzzle on the site, in both languages. Cancel anytime in Settings.</div><div class="subprices"><div><span>Monthly</span><strong>$7.99</strong></div><div><span>Yearly</span><strong>$59.99</strong></div></div></div>
+</div></div>
+</body></html>
