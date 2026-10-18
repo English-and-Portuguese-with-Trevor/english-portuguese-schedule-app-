@@ -97,8 +97,8 @@ const html = (d) => `<!doctype html>
   .inner { height: 100%; display: flex; flex-direction: column; overflow: hidden; padding: 5mm 6mm; border: 2px solid var(--forest); border-radius: 16px; }
   html, body { margin: 0; background: var(--cream); color: var(--ink); font-family: "Inter", system-ui, sans-serif; font-size: 9.8pt; line-height: 1.4; }
   h1, h2, .brand { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; margin: 0; }
-  header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 2px 0 12px; border-bottom: 2px solid var(--gold); }
-  header img { height: 64px; width: auto; justify-self: center; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 2px 0 12px; border-bottom: 2px solid var(--gold); }
+  header img { height: 64px; width: auto; }
   .brand { font-size: 17pt; line-height: 1.12; color: var(--forest); }
   .brand em { color: var(--gold-deep); font-style: italic; }
   .brand small { display: block; font-size: 11.5pt; color: var(--forest-mid); }
@@ -139,7 +139,7 @@ const html = (d) => `<!doctype html>
   a { color: var(--forest-mid); }
 </style></head><body>
 <div class="page"><div class="inner">
-<header><div class="brand">English <em>&amp;</em> Portuguese<small>With Trevor</small></div><img src="logo-transparent.png" alt=""><div></div></header>
+<header><div class="brand">English <em>&amp;</em> Portuguese<small>With Trevor</small></div><img src="logo-transparent.png" alt=""></header>
 <div class="hero"><h1>${esc(d.title)}</h1><p class="sub">${esc(d.sub)}</p><span class="updated">${esc(d.updated)}</span></div>
 
 <section><h2>${esc(d.about.h)}</h2>${d.about.p.map((x) => `<p>${esc(x)}</p>`).join("")}
