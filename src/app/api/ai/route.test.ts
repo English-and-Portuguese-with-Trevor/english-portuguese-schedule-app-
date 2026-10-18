@@ -263,6 +263,16 @@ describe("POST /api/ai", () => {
       expect(mocks.create).toHaveBeenCalledTimes(2);
     });
 
+    it("grades the writing and hands the feedback back without the grade line", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      mocks.admin = true;
+      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "Grade: 7/10\n✓ Good verbs.\n**Eu acordo cedo.**" }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 20, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      const res = await post({ feature: "writing", scene: "ar", task: "Write about your morning.", action: "say", text: "Eu acorda cedo." });
+      expect(await res.json()).toEqual({ reply: "✓ Good verbs.\n**Eu acordo cedo.**", grade: 7, ended: false });
+      // The ledger keeps the whole reply, grade included, for Trevor's AI tab.
+      expect(mocks.inserts[0]).toMatchObject({ feature: "writing", student: "Task: Write about your morning.\nMy text: Eu acorda cedo.", reply: "Grade: 7/10\n✓ Good verbs.\n**Eu acordo cedo.**" });
+    });
+
     it("gives an explanation once per check, pick and language, and from its own rows after that", async () => {
       vi.stubEnv("ANTHROPIC_API_KEY", "k");
       mocks.admin = true;

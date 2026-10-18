@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classnotePrompt, helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
+import { classnotePrompt, helperPrompt, LEVELS, LIMITS, OFF_TAG, parseGrade, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -84,6 +84,10 @@ describe("ai", () => {
       expect(es).not.toContain("last try");
       expect(writingPrompt("fr", true)).toContain("last try");
       expect(writingMessage("Write about your morning.", "Eu acordo cedo.")).toBe("Task: Write about your morning.\nMy text: Eu acordo cedo.");
+      expect(es).toContain("Grade: N/10");
+      expect(parseGrade("Grade: 8/10\n✓ Good verbs.\n**Eu acordo cedo.**")).toEqual({ grade: 8, reply: "✓ Good verbs.\n**Eu acordo cedo.**" });
+      expect(parseGrade("**Grade: 10/10**\n✓ Perfect.")).toEqual({ grade: 10, reply: "✓ Perfect." });
+      expect(parseGrade("✓ No grade line.")).toEqual({ grade: null, reply: "✓ No grade line." });
     });
 
     it("writes a story on a theme at the student's level, in Portuguese only", () => {

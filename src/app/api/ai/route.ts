@@ -11,6 +11,7 @@ import {
   LEVELS,
   LIMITS,
   MODEL,
+  parseGrade,
   parseVocab,
   POOL_FEATURES,
   questionMessage,
@@ -337,6 +338,10 @@ export async function POST(request: Request) {
       limits.conversation_turns + 1 >= turnCap ||
       limits.off_topic_turns + (offTopic ? 1 : 0) >= LIMITS.offTopicTurns;
     if (body.feature === "vocab") return Response.json({ items: parseVocab(reply) }, { headers: CORS });
+    if (body.feature === "writing") {
+      const graded = parseGrade(reply);
+      return Response.json({ reply: graded.reply, grade: graded.grade, ended }, { headers: CORS });
+    }
     return Response.json({ reply, ended }, { headers: CORS });
   } catch (error) {
     console.error("[api/ai] failed:", error);

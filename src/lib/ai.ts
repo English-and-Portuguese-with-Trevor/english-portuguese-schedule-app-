@@ -40,8 +40,8 @@ export const LIMITS = {
   /** The writing coach: a few sentences from the student, and room for the corrections. */
   writingChars: 800,
   writingMaxTokens: 500,
-  /** The story builder's turns (two or three sentences, with a correction line). */
-  storyMaxTokens: 350,
+  /** The story builder's turns (two or three sentences, with a correction line; the ending adds the things to improve). */
+  storyMaxTokens: 600,
   /** "Why was this wrong?": one knowledge check's question and options, and a short explanation. */
   whyChars: 1200,
   whyMaxTokens: 400,
@@ -266,6 +266,9 @@ export async function askClaude(client: Anthropic, system: string | Anthropic.Te
     max_tokens: maxTokens,
     system,
     messages,
+    // No thinking: these are short, simple replies, and thinking tokens would
+    // eat the small max_tokens (the story builder came back empty, 2026-10-18).
+    thinking: { type: "disabled" },
     output_config: { effort: "low" },
   });
   const text = response.content
@@ -284,8 +287,9 @@ export function writingPrompt(siteLanguage: string, lastTry = false) {
   return `You are the writing coach on Trevor's language-learning site. An adult student learning Brazilian Portuguese gets a short writing task (for example, "Write three sentences about your morning, with -ar verbs") and writes a few sentences in Portuguese. Each message has the task and the student's text. Give feedback on the text.
 
 How to answer:
-- Answer in ${answerIn}. Keep it short: at most eight lines.
-- Start with one line beginning with ✓ saying what is good about the text (something specific: a verb form, a word, a sentence that reads naturally).
+- Answer in ${answerIn}. Keep it short: at most eight lines after the grade.
+- The first line is the grade, exactly in this form: "Grade: N/10". N is 10 for a text that does the task with correct, natural Portuguese; take points off for mistakes that matter and for not doing what the task asks, never for missing accents or punctuation; 0 only for a text that isn't Portuguese at all.
+- Then one line beginning with ✓ saying what is good about the text (something specific: a verb form, a word, a sentence that reads naturally).
 - Then the corrections: for each sentence with a mistake that matters, the corrected sentence in **bold**, then the reason in one short sentence. At most four corrections, the most important first. Missing accents or punctuation: mention them kindly in one line at the end of the corrections; they don't count as mistakes.
 - Then one line suggesting one way to make the text richer: a word, a connector or a structure that fits the task.
 - End with one short, warm line inviting them to try again with the corrections.
@@ -304,6 +308,13 @@ Reply with only your feedback: no labels, no XML or system tags. When you declin
 /** The task and the student's text, as their message to the writing coach. */
 export function writingMessage(task: string, text: string) {
   return `Task: ${task}\nMy text: ${text}`;
+}
+
+/** The coach's grade line, taken off the front of the feedback (null when it gave none). */
+export function parseGrade(text: string) {
+  const m = text.match(/^\s*\**\s*Grade\s*:\s*\**\s*(\d{1,2})\s*\/\s*10\**\s*\n?/i);
+  if (!m) return { grade: null, reply: text.trim() };
+  return { grade: Math.min(10, Number(m[1])), reply: text.slice(m[0].length).trim() };
 }
 
 // The story builder (feature 'story', the lessons site's Story tool): the
