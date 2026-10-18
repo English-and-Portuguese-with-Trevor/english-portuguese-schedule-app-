@@ -19,7 +19,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-56 overflow-y-auto overscroll-contain rounded-md border bg-background p-1 text-foreground shadow-md",
+        "z-60 max-h-(--radix-dropdown-menu-content-available-height) min-w-56 overflow-y-auto overscroll-contain rounded-md border bg-background p-1 text-foreground shadow-md",
         className,
       )}
       {...props}
@@ -86,7 +86,7 @@ const DropdownMenuSubContent = React.forwardRef<
     <DropdownMenuPrimitive.SubContent
       ref={ref}
       className={cn(
-        "z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-48 overflow-y-auto overscroll-contain rounded-md border bg-background p-1 text-foreground shadow-md",
+        "z-60 max-h-(--radix-dropdown-menu-content-available-height) min-w-48 overflow-y-auto overscroll-contain rounded-md border bg-background p-1 text-foreground shadow-md",
         className,
       )}
       {...props}
