@@ -98,7 +98,7 @@ const html = (d) => `<!doctype html>
   html, body { margin: 0; background: var(--cream); color: var(--ink); font-family: "Inter", system-ui, sans-serif; font-size: 9.8pt; line-height: 1.4; }
   h1, h2, .brand { font-family: "DM Serif Display", Georgia, serif; font-weight: 400; margin: 0; }
   header { display: flex; align-items: center; gap: 14px; padding: 2px 0 12px; border-bottom: 2px solid var(--gold); }
-  header img { width: 58px; height: 58px; }
+  header img { height: 64px; width: auto; }
   .brand { font-size: 17pt; line-height: 1.12; color: var(--forest); }
   .brand em { color: var(--gold-deep); font-style: italic; }
   .brand small { display: block; font-size: 11.5pt; color: var(--forest-mid); }
