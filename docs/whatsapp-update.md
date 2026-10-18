@@ -15,11 +15,16 @@ Whenever classes done reach the package (none left), add
 under them "*⚠️ Your package has ended. Let me know if you'd like to renew!*"
 ("*⚠️ Seu pacote terminou. Me avise se quiser renovar!*").
 Every package has one free cancellation, no questions asked (Trevor,
-2026-10-18): the first late cancellation or missed class in a package doesn't
-count, so use the regular text and don't add it to the classes done. After
-that, a late cancellation (inside 24 hours or missed, so it counts) gets the
-late-cancel version: the same text with the thank-you line swapped for one
-saying the class counts.
+2026-10-18). The text never mentions it until it's used. When Trevor says a
+student used theirs, write "Free cancel used <date>" in the sheet's Notas
+column for that student (one per package; clear it when a new package
+starts), send the free-cancel version that time (the regular text with the
+thank-you line swapped for one saying the class didn't count and the next
+late one would), and from then on, for the rest of that package, add
+"*🎟️ FREE CANCELLATION: USED*" ("*🎟️ CANCELAMENTO GRÁTIS: USADO*") as the
+last line in the package box. After it, a late cancellation (inside 24 hours
+or missed, so it counts) gets the late-cancel version: the same text with
+the thank-you line swapped for one saying the class counts.
 
 ## English
 
@@ -62,6 +67,52 @@ Até lá!
 ━━━━━━━━━━━━━━
 *✅ AULAS FEITAS: {done} DE {package}*
 *📦 AULAS RESTANTES: {left}*
+━━━━━━━━━━━━━━
+```
+
+## English, free cancellation used
+
+```
+*English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
+
+https://schedule.englishandportuguesewithtrevor.com
+
+Hi {name}! We missed you in today's class. It was canceled less than 24 hours before, so I used your package's one free cancellation: this class doesn't count. From now on, a class canceled less than 24 hours before, or missed, counts toward your package.
+
+📅 Next class: {weekday}, {month} {day}, at {time} ({time zone})
+
+🎥 Class link: {meet link}
+
+See you then!
+
+━━━━━━━━━━━━━━
+*✅ CLASSES COMPLETED: {done} OF {package}*
+*📦 CLASSES LEFT: {left}*
+*🎟️ FREE CANCELLATION: USED*
+━━━━━━━━━━━━━━
+```
+
+## Portuguese, free cancellation used
+
+```
+*English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
+
+https://schedule.englishandportuguesewithtrevor.com
+
+Oi, {name}! Sentimos sua falta na aula de hoje. Como o cancelamento foi com menos de 24 horas de antecedência, usei o cancelamento grátis do seu pacote: esta aula não conta. A partir de agora, uma aula cancelada com menos de 24 horas, ou perdida, conta no pacote.
+
+📅 Próxima aula: {weekday}, {day} de {month}, às {time} ({time zone})
+
+🎥 Link da aula: {meet link}
+
+Até lá!
+
+━━━━━━━━━━━━━━
+*✅ AULAS FEITAS: {done} DE {package}*
+*📦 AULAS RESTANTES: {left}*
+*🎟️ CANCELAMENTO GRÁTIS: USADO*
 ━━━━━━━━━━━━━━
 ```
 
