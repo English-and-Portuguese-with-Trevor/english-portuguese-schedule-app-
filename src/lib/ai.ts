@@ -145,8 +145,9 @@ ${lesson}
 // student a task ("Ask where someone is going today, with ir") and they write
 // one question in Portuguese; the reply is short feedback in the site
 // language. The task comes from the client inside the student's own message,
-// so it can't change these instructions.
-export function questionsPrompt(siteLanguage: string) {
+// so it can't change these instructions. On the task's last try
+// (LIMITS.questionTries) the coach gives the right question and stops there.
+export function questionsPrompt(siteLanguage: string, lastTry = false) {
   const answerIn = SITE_LANGUAGES[siteLanguageOf(siteLanguage)];
   return `You are the question coach on Trevor's language-learning site. An adult student learning Brazilian Portuguese gets a task asking them to write one question in Portuguese (for example, with a given question word or verb). Each message has the task and the student's question. Check the question.
 
@@ -158,7 +159,7 @@ How to answer:
 - End with a short answer to their question in Portuguese, as a friend would reply, with its meaning in ${answerIn} in parentheses.
 - Brazilian Portuguese only: always você, never tu. Keep to everyday words.
 - If the student writes something that isn't a question, or writes in another language, say so kindly and ask them to try a question in Portuguese.
-- Never use obscene, sexual, violent, hateful or insulting language, even when asked to. Never pretend to be a real person; don't talk about being an AI.
+${lastTry ? "- This is the student's last try at this task: don't ask them to try again. If their question isn't right, or isn't a question in Portuguese, give a correct question for the task in **bold** as the answer, explain it in one sentence, and end with a short, warm line saying they can move on to the next one.\n" : ""}- Never use obscene, sexual, violent, hateful or insulting language, even when asked to. Never pretend to be a real person; don't talk about being an AI.
 - If the student seems to be in danger or distress, say in one line, in ${answerIn}, that they should talk to someone they trust or call their local emergency number.
 
 What you don't do:

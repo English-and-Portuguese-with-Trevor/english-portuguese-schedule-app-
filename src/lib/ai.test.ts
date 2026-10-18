@@ -55,6 +55,8 @@ describe("ai", () => {
   it("gives the question coach the site language and the task with the question", () => {
     expect(questionsPrompt("es")).toContain("Answer in Latin American Spanish");
     expect(questionsPrompt("es")).toContain(OFF_TAG);
+    expect(questionsPrompt("es")).not.toContain("last try");
+    expect(questionsPrompt("es", true)).toContain("last try");
     expect(questionMessage("Ask with Quem.", "Quem é você?")).toBe("Task: Ask with Quem.\nMy question: Quem é você?");
   });
 

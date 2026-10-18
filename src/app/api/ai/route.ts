@@ -186,7 +186,7 @@ export async function POST(request: Request) {
     said = splitTerms(text);
   } else {
     const site = siteLanguageOf(profile.site_language);
-    system = questionsPrompt(site);
+    system = questionsPrompt(site, limits.conversation_turns + 1 >= LIMITS.questionTries);
     fallback = STAY_WITH_LESSON[site];
     scene = body.scene;
     // Saved with its task, so the history and Trevor's AI tab read it whole.
