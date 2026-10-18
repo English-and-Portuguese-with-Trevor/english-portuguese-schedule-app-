@@ -20,6 +20,8 @@ export const LIMITS = {
   historyTurns: 12,
   /** A conversation ends by itself after this many turns. */
   conversationTurns: 40,
+  /** Checks the question coach gives one task (a conversation per task; Trevor, 2026-10-18). */
+  questionTries: 4,
   /** Turns a student may take in one minute (a stuck client or a script hits this first). */
   minuteTurns: 6,
   /** Declined requests before the conversation is ended. */

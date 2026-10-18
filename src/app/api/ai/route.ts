@@ -146,7 +146,8 @@ export async function POST(request: Request) {
   if (Number(limits.month_cost) >= Number(settings.monthly_cap)) return refuse("budget", 403);
   if (limits.minute_turns >= LIMITS.minuteTurns) return refuse("slow", 429);
   if (limits.day_turns >= settings.daily_turns) return refuse("daily", 429);
-  if (limits.conversation_turns >= LIMITS.conversationTurns || limits.off_topic_turns >= LIMITS.offTopicTurns) return refuse("ended", 409);
+  const turnCap = body.feature === "questions" ? LIMITS.questionTries : LIMITS.conversationTurns;
+  if (limits.conversation_turns >= turnCap || limits.off_topic_turns >= LIMITS.offTopicTurns) return refuse("ended", 409);
 
   // What this feature tells the model, and what it says when the safety check stops a reply.
   let system: string | Anthropic.TextBlockParam[];
@@ -236,7 +237,7 @@ export async function POST(request: Request) {
     if (error) console.error("[api/ai] ledger insert failed:", error.message);
     const ended =
       body.action === "end" ||
-      limits.conversation_turns + 1 >= LIMITS.conversationTurns ||
+      limits.conversation_turns + 1 >= turnCap ||
       limits.off_topic_turns + (offTopic ? 1 : 0) >= LIMITS.offTopicTurns;
     if (body.feature === "vocab") return Response.json({ items: parseVocab(reply) }, { headers: CORS });
     return Response.json({ reply, ended }, { headers: CORS });
