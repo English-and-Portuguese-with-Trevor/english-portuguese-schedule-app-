@@ -14,6 +14,9 @@ misses that a package has ended, in as few words as that takes (Trevor, 2026-10-
 Whenever classes done reach the package (none left), add
 under them "*⚠️ Your package has ended. Let me know if you'd like to renew!*"
 ("*⚠️ Seu pacote terminou. Me avise se quiser renovar!*").
+After a late cancellation (inside 24 hours or missed, so it counts), use the
+late-cancel version: the same text with the thank-you line swapped for one
+saying the class counts.
 
 ## English
 
@@ -46,6 +49,50 @@ https://englishandportuguesewithtrevor.com
 https://schedule.englishandportuguesewithtrevor.com
 
 Oi, {name}! Obrigado pela aula de hoje 😊
+
+📅 Próxima aula: {weekday}, {day} de {month}, às {time} ({time zone})
+
+🎥 Link da aula: {meet link}
+
+Até lá!
+
+━━━━━━━━━━━━━━
+*✅ AULAS FEITAS: {done} DE {package}*
+*📦 AULAS RESTANTES: {left}*
+━━━━━━━━━━━━━━
+```
+
+## English, late cancellation
+
+```
+*English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
+
+https://schedule.englishandportuguesewithtrevor.com
+
+Hi {name}! We missed you in today's class. Since it was canceled less than 24 hours before, it counts toward your package.
+
+📅 Next class: {weekday}, {month} {day}, at {time} ({time zone})
+
+🎥 Class link: {meet link}
+
+See you then!
+
+━━━━━━━━━━━━━━
+*✅ CLASSES COMPLETED: {done} OF {package}*
+*📦 CLASSES LEFT: {left}*
+━━━━━━━━━━━━━━
+```
+
+## Portuguese, late cancellation
+
+```
+*English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
+
+https://schedule.englishandportuguesewithtrevor.com
+
+Oi, {name}! Sentimos sua falta na aula de hoje. Como o cancelamento foi com menos de 24 horas de antecedência, a aula conta no pacote.
 
 📅 Próxima aula: {weekday}, {day} de {month}, às {time} ({time zone})
 
