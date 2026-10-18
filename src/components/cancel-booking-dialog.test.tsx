@@ -47,7 +47,7 @@ describe("CancelBookingDialog", () => {
     const { user, onCancel } = renderDialog({ id: "b1", startTime: hoursFromNow(5), status: "CONFIRMED" });
     expect(screen.getByText("Cancel this class?")).toBeInTheDocument();
     expect(screen.getByText("Thursday, September 24 at 8:00 PM (Mountain Daylight Time)")).toBeInTheDocument();
-    expect(screen.getByText(/less than 24 hours, so it still counts as a class/)).toBeInTheDocument();
+    expect(screen.getByText(/less than 24 hours, so it counts as a class unless/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Cancel anyway" }));
     expect(onCancel).toHaveBeenCalledWith("b1");

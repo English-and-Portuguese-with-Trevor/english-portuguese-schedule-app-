@@ -84,8 +84,8 @@ export const STRINGS = {
     Book: "Reservar",
     "Withdraw this request?": "¿Retirar esta solicitud?",
     "Cancel this class?": "¿Cancelar esta clase?",
-    "This class starts in less than {hours} hours, so it still counts as a class.":
-      "Esta clase empieza en menos de {hours} horas, así que contará como clase igualmente.",
+    "This class starts in less than {hours} hours, so it counts as a class unless it's your package's one free cancellation.":
+      "Esta clase empieza en menos de {hours} horas, así que cuenta como clase, salvo que sea la cancelación gratis de tu paquete.",
     "The time will open up for other students.":
       "El horario quedará libre para otros alumnos.",
     "Keep it": "Mantenerla",
@@ -297,7 +297,8 @@ export const STRINGS = {
     "Classes come in packages of 4 or 8, paid before the package starts. A class counts as used when it takes place.": "Las clases vienen en paquetes de 4 u 8, que se pagan antes de empezar el paquete. Una clase cuenta como usada cuando se realiza.",
     "Cancellations and changes": "Cancelaciones y cambios",
     "You can cancel or move a class in the app up to 24 hours before it starts, at no cost.": "Puedes cancelar o mover una clase en la app hasta 24 horas antes de que empiece, sin costo.",
-    "A class canceled less than 24 hours before, or missed, counts as used.": "Una clase cancelada con menos de 24 horas de anticipación, o a la que no asistes, cuenta como usada.",
+    "Every package comes with one free cancellation, no questions asked: the first class you cancel late or miss in a package doesn't count, and you book another time.": "Cada paquete incluye una cancelación gratis, sin preguntas: la primera clase que cancelas tarde o a la que faltas en un paquete no cuenta, y reservas otro horario.",
+    "After that, a class canceled less than 24 hours before, or missed, counts as used.": "Después, una clase cancelada con menos de 24 horas de anticipación, o a la que no asistes, cuenta como usada.",
     "If Trevor cancels a class, it doesn't count and you book another time.": "Si Trevor cancela una clase, no cuenta y reservas otro horario.",
     "A class requested less than 72 hours ahead stays pending until Trevor approves it.": "Una clase solicitada con menos de 72 horas de anticipación queda pendiente hasta que Trevor la apruebe.",
     "Students under 18": "Alumnos menores de 18 años",
@@ -396,8 +397,8 @@ export const STRINGS = {
     Book: "Agendar",
     "Withdraw this request?": "Retirar este pedido?",
     "Cancel this class?": "Cancelar esta aula?",
-    "This class starts in less than {hours} hours, so it still counts as a class.":
-      "Esta aula começa em menos de {hours} horas, então ainda vai contar como aula.",
+    "This class starts in less than {hours} hours, so it counts as a class unless it's your package's one free cancellation.":
+      "Esta aula começa em menos de {hours} horas, então conta como aula, a não ser que seja o cancelamento grátis do seu pacote.",
     "The time will open up for other students.":
       "O horário fica livre para outros alunos.",
     "Keep it": "Manter",
@@ -608,7 +609,8 @@ export const STRINGS = {
     "Classes come in packages of 4 or 8, paid before the package starts. A class counts as used when it takes place.": "As aulas vêm em pacotes de 4 ou 8, pagos antes de o pacote começar. Uma aula conta como usada quando acontece.",
     "Cancellations and changes": "Cancelamentos e mudanças",
     "You can cancel or move a class in the app up to 24 hours before it starts, at no cost.": "Você pode cancelar ou mudar uma aula no app até 24 horas antes de ela começar, sem custo.",
-    "A class canceled less than 24 hours before, or missed, counts as used.": "Uma aula cancelada com menos de 24 horas de antecedência, ou perdida, conta como usada.",
+    "Every package comes with one free cancellation, no questions asked: the first class you cancel late or miss in a package doesn't count, and you book another time.": "Cada pacote inclui um cancelamento grátis, sem perguntas: a primeira aula que você cancela em cima da hora ou perde em um pacote não conta, e você reserva outro horário.",
+    "After that, a class canceled less than 24 hours before, or missed, counts as used.": "Depois disso, uma aula cancelada com menos de 24 horas de antecedência, ou perdida, conta como usada.",
     "If Trevor cancels a class, it doesn't count and you book another time.": "Se o Trevor cancelar uma aula, ela não conta e você reserva outro horário.",
     "A class requested less than 72 hours ahead stays pending until Trevor approves it.": "Uma aula pedida com menos de 72 horas de antecedência fica pendente até o Trevor aprovar.",
     "Students under 18": "Alunos menores de 18 anos",
@@ -708,8 +710,8 @@ export const STRINGS = {
     Book: "Réserver",
     "Withdraw this request?": "Retirer cette demande ?",
     "Cancel this class?": "Annuler ce cours ?",
-    "This class starts in less than {hours} hours, so it still counts as a class.":
-      "Ce cours commence dans moins de {hours} heures, il comptera donc quand même comme un cours.",
+    "This class starts in less than {hours} hours, so it counts as a class unless it's your package's one free cancellation.":
+      "Ce cours commence dans moins de {hours} heures, il compte donc comme un cours, sauf s'il s'agit de l'annulation gratuite de votre forfait.",
     "The time will open up for other students.":
       "Le créneau se libérera pour d'autres élèves.",
     "Keep it": "La garder",
@@ -919,7 +921,8 @@ export const STRINGS = {
     "Classes come in packages of 4 or 8, paid before the package starts. A class counts as used when it takes place.": "Les cours s'achètent par forfaits de 4 ou 8, payés avant le début du forfait. Un cours compte comme utilisé quand il a lieu.",
     "Cancellations and changes": "Annulations et changements",
     "You can cancel or move a class in the app up to 24 hours before it starts, at no cost.": "Vous pouvez annuler ou déplacer un cours dans l'appli jusqu'à 24 heures avant son début, sans frais.",
-    "A class canceled less than 24 hours before, or missed, counts as used.": "Un cours annulé moins de 24 heures avant, ou manqué, compte comme utilisé.",
+    "Every package comes with one free cancellation, no questions asked: the first class you cancel late or miss in a package doesn't count, and you book another time.": "Chaque forfait comprend une annulation gratuite, sans justification : le premier cours que vous annulez tardivement ou manquez dans un forfait ne compte pas, et vous réservez un autre créneau.",
+    "After that, a class canceled less than 24 hours before, or missed, counts as used.": "Ensuite, un cours annulé moins de 24 heures avant, ou manqué, compte comme utilisé.",
     "If Trevor cancels a class, it doesn't count and you book another time.": "Si Trevor annule un cours, il ne compte pas et vous réservez un autre créneau.",
     "A class requested less than 72 hours ahead stays pending until Trevor approves it.": "Un cours demandé moins de 72 heures à l'avance reste en attente jusqu'à ce que Trevor l'approuve.",
     "Students under 18": "Élèves de moins de 18 ans",

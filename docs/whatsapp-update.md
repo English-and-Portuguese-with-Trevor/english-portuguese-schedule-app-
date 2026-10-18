@@ -14,7 +14,10 @@ misses that a package has ended, in as few words as that takes (Trevor, 2026-10-
 Whenever classes done reach the package (none left), add
 under them "*⚠️ Your package has ended. Let me know if you'd like to renew!*"
 ("*⚠️ Seu pacote terminou. Me avise se quiser renovar!*").
-After a late cancellation (inside 24 hours or missed, so it counts), use the
+Every package has one free cancellation, no questions asked (Trevor,
+2026-10-18): the first late cancellation or missed class in a package doesn't
+count, so use the regular text and don't add it to the classes done. After
+that, a late cancellation (inside 24 hours or missed, so it counts) gets the
 late-cancel version: the same text with the thank-you line swapped for one
 saying the class counts.
 

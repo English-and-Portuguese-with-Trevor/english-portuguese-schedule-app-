@@ -77,7 +77,7 @@ export function CancelBookingDialog({
         </DialogHeader>
         {late ? (
           <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
-            {t("This class starts in less than {hours} hours, so it still counts as a class.", {
+            {t("This class starts in less than {hours} hours, so it counts as a class unless it's your package's one free cancellation.", {
               hours: LATE_CANCEL_HOURS,
             })}
           </p>

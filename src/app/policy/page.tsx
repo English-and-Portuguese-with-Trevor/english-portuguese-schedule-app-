@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_EMAIL = "englishportuguesewithtrevor@gmail.com";
-const UPDATED = "2026-10-03";
+const UPDATED = "2026-10-18";
 
 /**
  * The rules for private classes (Trevor, 2026-10-03): booking a class means
@@ -40,7 +40,10 @@ export default async function PolicyPage() {
       title: t("Cancellations and changes"),
       lines: [
         t("You can cancel or move a class in the app up to 24 hours before it starts, at no cost."),
-        t("A class canceled less than 24 hours before, or missed, counts as used."),
+        t(
+          "Every package comes with one free cancellation, no questions asked: the first class you cancel late or miss in a package doesn't count, and you book another time.",
+        ),
+        t("After that, a class canceled less than 24 hours before, or missed, counts as used."),
         t("If Trevor cancels a class, it doesn't count and you book another time."),
         t("A class requested less than 72 hours ahead stays pending until Trevor approves it."),
       ],

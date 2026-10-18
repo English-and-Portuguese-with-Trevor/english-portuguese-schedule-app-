@@ -313,7 +313,7 @@ export const emails = {
       ],
       location: meet(meetLink),
       button: { label: "View or cancel your lesson", url: SITE_URL },
-      footerNote: "Canceling less than 24 hours before the lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before the lesson counts as a class, except for your package's one free cancellation.",
     });
   },
 
@@ -360,7 +360,7 @@ export const emails = {
       details: studentDetails(lesson),
       location: meet(meetLink),
       button: { label: "View or cancel your lesson", url: SITE_URL },
-      footerNote: "Canceling less than 24 hours before the lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before the lesson counts as a class, except for your package's one free cancellation.",
     });
   },
 
@@ -495,7 +495,7 @@ export const emails = {
       details: studentDetails(lesson),
       location: meet(meetLink),
       button: { label: "View or cancel your lesson", url: SITE_URL },
-      footerNote: "Canceling less than 24 hours before the lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before the lesson counts as a class, except for your package's one free cancellation.",
     });
   },
 
@@ -517,7 +517,7 @@ export const emails = {
         },
       ],
       button: { label: "View or cancel your lessons", url: SITE_URL },
-      footerNote: "Canceling less than 24 hours before a lesson still counts as a class.",
+      footerNote: "Canceling less than 24 hours before a lesson counts as a class, except for your package's one free cancellation.",
     });
     return email;
   },
@@ -568,7 +568,7 @@ export const emails = {
     }
     return toAdmin(lesson, how.late ? "Late cancellation" : "Lesson canceled", {
       heading: how.late ? "Late cancellation: this lesson still counts" : "A lesson was canceled",
-      intro: how.late ? "The student canceled less than 24 hours before the start, so it still counts as a class." : undefined,
+      intro: how.late ? "The student canceled less than 24 hours before the start, so it still counts as a class, unless it's their package's one free cancellation." : undefined,
       details: adminDetails(lesson),
       button: { label: "Open bookings", url: `${SITE_URL}/admin/bookings` },
     });
