@@ -15,7 +15,10 @@ Whenever classes done reach the package (none left), add
 under them "*⚠️ Your package has ended. Let me know if you'd like to renew!*"
 ("*⚠️ Seu pacote terminou. Me avise se quiser renovar!*").
 Every package has one free cancellation, no questions asked (Trevor,
-2026-10-18). The text never mentions it until it's used. When Trevor says a
+2026-10-18), starting with each student's next package: a package already
+under way on 2026-10-18 has none, and when the student renews Trevor sends
+them the "What I offer" documents (English and Portuguese) with the new
+rules. The text never mentions it until it's used. When Trevor says a
 student used theirs, write "Free cancel used <date>" in the sheet's Notas
 column for that student (one per package; clear it when a new package
 starts), send the free-cancel version that time (the regular text with the
