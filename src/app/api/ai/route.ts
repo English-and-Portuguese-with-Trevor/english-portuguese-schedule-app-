@@ -4,13 +4,17 @@ import { z } from "zod";
 import {
   askClaude,
   backToScene,
+  classnotePrompt,
   END_PROMPT,
   FREE_LESSONS_URL,
   helperPrompt,
   LEVELS,
   LIMITS,
+  madlibsPrompt,
   MODEL,
+  parseMadlibs,
   parseVocab,
+  POOL_FEATURES,
   questionMessage,
   splitTerms,
   questionsPrompt,
@@ -18,9 +22,17 @@ import {
   siteLanguageOf,
   START_PROMPT,
   STAY_WITH_LESSON,
+  STORY_END,
+  STORY_START,
+  STORY_THEMES,
+  storyPrompt,
   systemPrompt,
   turnCost,
   vocabPrompt,
+  whyMessage,
+  whyPrompt,
+  writingMessage,
+  writingPrompt,
   type Language,
 } from "@/lib/ai";
 import { checkAdmin } from "@/lib/auth/require-admin";
@@ -28,10 +40,13 @@ import { createServerJobClient } from "@/lib/integration-status";
 import { createClient } from "@/lib/supabase/server";
 
 // The AI features (CLAUDE.md, "AI features"): the conversation partner, the
-// lesson helper, the question coach and Trevor's vocab translator. The sites on englishandportuguesewithtrevor.com call
-// this with the shared login cookie. The key lives only here
-// (ANTHROPIC_API_KEY). Before every call: the student is logged in and not
-// blocked, the kill switch is on, this month's spend is under the cap, and
+// lesson helper, the question coach, Trevor's vocab translator, and (from
+// the tools pool) the writing coach, the story builder, the mad libs check,
+// "Why was this wrong?" and the class-note tidy-up. The sites on
+// englishandportuguesewithtrevor.com call this with the shared login cookie.
+// The key lives only here (ANTHROPIC_API_KEY). Before every call: the
+// student is logged in and not blocked, the kill switch is on, this month's
+// spend is under the cap (the pool's features: the pool under its cap), and
 // the student's turns are under the minute and daily caps; a conversation
 // ends by itself after 40 turns or 3 declined requests. Every call, failed
 // ones too, is a row in ai_turns.
@@ -79,9 +94,58 @@ const Body = z.discriminatedUnion("feature", [
     action: z.literal("say"),
     text: z.string().max(LIMITS.vocabChars),
   }),
+  z.object({
+    feature: z.literal("writing"),
+    conversation: z.uuid(),
+    // The lesson id, or the Writing tool's id.
+    scene: z.string().min(1).max(80),
+    task: z.string().min(1).max(LIMITS.taskChars),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.writingChars),
+  }),
+  z.object({
+    feature: z.literal("story"),
+    conversation: z.uuid(),
+    scene: z.string().max(40),
+    level: z.enum(LEVELS),
+    action: z.enum(["start", "say", "end"]),
+    text: z.string().max(LIMITS.textChars).optional(),
+  }),
+  z.object({
+    feature: z.literal("madlibs"),
+    conversation: z.uuid(),
+    // The template's id.
+    scene: z.string().min(1).max(80),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.madlibsChars),
+  }),
+  z.object({
+    feature: z.literal("why"),
+    conversation: z.uuid(),
+    // The lesson id.
+    scene: z.string().min(1).max(80),
+    question: z.string().min(1).max(LIMITS.whyChars),
+    options: z.array(z.string().max(300)).min(2).max(8),
+    picked: z.string().min(1).max(300),
+    correct: z.string().min(1).max(300),
+  }),
+  z.object({
+    feature: z.literal("classnote"),
+    conversation: z.uuid(),
+    // The booking's id.
+    scene: z.string().min(1).max(80),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.classnoteChars),
+  }),
 ]);
 
-type Limits = { month_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
+// Only Trevor: the class-note tidy-up for good, the rest until he approves
+// each one for students (landing repo's CLAUDE.md, "Students see only what
+// Trevor approves").
+const ADMIN_ONLY = new Set(["vocab", "classnote", "writing", "story", "madlibs", "why"]);
+const POOL = new Set<string>(POOL_FEATURES);
+
+type Limits = { month_cost: number; pool_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
 type FreeLesson = { title: string; learning: string; text: string };
 
 /** The lessons site's free lessons, kept ten minutes (a deploy there shows up by the next conversation). */
@@ -119,18 +183,33 @@ export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return refuse("bad", 400);
   const body = parsed.data;
-  // Only Trevor until he approves it for students.
-  if (body.feature === "vocab" && !(await checkAdmin(supabase)).ok) return refuse("blocked", 403);
-  const text = body.text?.trim() ?? "";
-  if (body.action === "say" && !text) return refuse("bad", 400);
+  if (ADMIN_ONLY.has(body.feature) && !(await checkAdmin(supabase)).ok) return refuse("blocked", 403);
+  const text = ("text" in body ? body.text?.trim() : "") ?? "";
+  if ("action" in body && body.action === "say" && !text) return refuse("bad", 400);
 
   const db = createServerJobClient();
   const [{ data: profile }, { data: settings }, { data: limitsData }] = await Promise.all([
     db.from("profiles").select("ai_blocked, learning_language, role, lesson_access, site_language").eq("id", user.id).single(),
-    db.from("ai_settings").select("enabled, monthly_cap, daily_turns").eq("id", true).single(),
+    db.from("ai_settings").select("enabled, monthly_cap, tools_cap, daily_turns").eq("id", true).single(),
     db.rpc("ai_limits", { p_user: user.id, p_conversation: body.conversation }),
   ]);
   if (!profile || profile.ai_blocked) return refuse("blocked", 403);
+  const site = siteLanguageOf(profile.site_language);
+
+  // An explanation already given for this check, pick and language costs nothing again.
+  if (body.feature === "why") {
+    const { data: earlier } = await db
+      .from("ai_turns")
+      .select("reply")
+      .eq("feature", "why")
+      .eq("scene", body.scene)
+      .eq("student", whyMessage(body.question, body.options, body.picked, body.correct, site))
+      .neq("reply", "")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (earlier?.reply) return Response.json({ reply: earlier.reply }, { headers: CORS });
+  }
   // Both read as "off" to the student; the reason goes to the function logs (Vercel > Logs).
   if (!settings) {
     console.error("[api/ai] ai_settings is unreadable: is SUPABASE_SERVICE_ROLE_KEY set and the ai_turns migration run?");
@@ -143,10 +222,12 @@ export async function POST(request: Request) {
   if (!settings.enabled) return refuse("off", 403);
   const limits = limitsData as Limits | null;
   if (!limits) return refuse("failed", 500);
-  if (Number(limits.month_cost) >= Number(settings.monthly_cap)) return refuse("budget", 403);
+  if (POOL.has(body.feature)) {
+    if (Number(limits.pool_cost) >= Number(settings.tools_cap)) return refuse("budget", 403);
+  } else if (Number(limits.month_cost) >= Number(settings.monthly_cap)) return refuse("budget", 403);
   if (limits.minute_turns >= LIMITS.minuteTurns) return refuse("slow", 429);
   if (limits.day_turns >= settings.daily_turns) return refuse("daily", 429);
-  const turnCap = body.feature === "questions" ? LIMITS.questionTries : LIMITS.conversationTurns;
+  const turnCap = body.feature === "questions" || body.feature === "writing" ? LIMITS.questionTries : LIMITS.conversationTurns;
   if (limits.conversation_turns >= turnCap || limits.off_topic_turns >= LIMITS.offTopicTurns) return refuse("ended", 409);
 
   // What this feature tells the model, and what it says when the safety check stops a reply.
@@ -155,6 +236,8 @@ export async function POST(request: Request) {
   let maxTokens = LIMITS.maxTokens;
   let scene: string;
   let said = text;
+  let open = START_PROMPT;
+  let close = END_PROMPT;
   if (body.feature === "partner") {
     // profiles.learning_language holds "English" or "Portuguese" (the sites' "I'm learning"), Portuguese when unset.
     const language: Language = profile.learning_language === "English" ? "en" : "pt";
@@ -172,7 +255,6 @@ export async function POST(request: Request) {
       if (!row?.text) return refuse("bad", 400);
       lesson = { title: null, text: row.text };
     }
-    const site = siteLanguageOf(profile.site_language);
     // The lesson is the long, repeated part: cached between a conversation's turns.
     system = [{ type: "text", text: helperPrompt(lesson.title, lesson.text, site), cache_control: { type: "ephemeral" } }];
     fallback = STAY_WITH_LESSON[site];
@@ -184,14 +266,44 @@ export async function POST(request: Request) {
     maxTokens = LIMITS.vocabMaxTokens;
     scene = body.scene;
     said = splitTerms(text);
-  } else {
-    const site = siteLanguageOf(profile.site_language);
+  } else if (body.feature === "questions") {
     system = questionsPrompt(site, limits.conversation_turns + 1 >= LIMITS.questionTries);
     fallback = STAY_WITH_LESSON[site];
     scene = body.scene;
     // Saved with its task, so the history and Trevor's AI tab read it whole.
     said = questionMessage(body.task.trim(), text);
+  } else if (body.feature === "writing") {
+    system = writingPrompt(site, limits.conversation_turns + 1 >= LIMITS.questionTries);
+    fallback = STAY_WITH_LESSON[site];
+    maxTokens = LIMITS.writingMaxTokens;
+    scene = body.scene;
+    said = writingMessage(body.task.trim(), text);
+  } else if (body.feature === "story") {
+    if (!STORY_THEMES[body.scene]) return refuse("bad", 400);
+    system = storyPrompt(body.level, body.scene);
+    fallback = backToScene("pt");
+    maxTokens = LIMITS.storyMaxTokens;
+    scene = body.scene;
+    open = STORY_START;
+    close = STORY_END;
+  } else if (body.feature === "madlibs") {
+    system = madlibsPrompt();
+    fallback = "";
+    maxTokens = LIMITS.madlibsMaxTokens;
+    scene = body.scene;
+  } else if (body.feature === "why") {
+    system = whyPrompt(site);
+    fallback = STAY_WITH_LESSON[site];
+    maxTokens = LIMITS.whyMaxTokens;
+    scene = body.scene;
+    said = whyMessage(body.question, body.options, body.picked, body.correct, site);
+  } else {
+    system = classnotePrompt();
+    fallback = "";
+    maxTokens = LIMITS.classnoteMaxTokens;
+    scene = body.scene;
   }
+  const action = "action" in body ? body.action : "say";
 
   // The history comes from our own rows, never from the client.
   const { data: earlier } = await db
@@ -201,10 +313,10 @@ export async function POST(request: Request) {
     .eq("conversation_id", body.conversation)
     .order("created_at", { ascending: false })
     .limit(LIMITS.historyTurns);
-  const prompt = body.action === "start" ? START_PROMPT : body.action === "end" ? END_PROMPT : said;
+  const prompt = action === "start" ? open : action === "end" ? close : said;
   const messages: Anthropic.MessageParam[] = [];
   for (const turn of (earlier ?? []).reverse()) {
-    messages.push({ role: "user", content: turn.student === "(start)" ? START_PROMPT : turn.student === "(end)" ? END_PROMPT : turn.student });
+    messages.push({ role: "user", content: turn.student === "(start)" ? open : turn.student === "(end)" ? close : turn.student });
     if (turn.reply) messages.push({ role: "assistant", content: turn.reply });
   }
   messages.push({ role: "user", content: prompt });
@@ -214,7 +326,7 @@ export async function POST(request: Request) {
     feature: body.feature,
     conversation_id: body.conversation,
     scene,
-    student: body.action === "say" ? said : `(${body.action})`,
+    student: action === "say" ? said : `(${action})`,
     model: MODEL,
   };
   try {
@@ -236,10 +348,11 @@ export async function POST(request: Request) {
     // The reply is already paid for; a missing ledger row goes to the logs.
     if (error) console.error("[api/ai] ledger insert failed:", error.message);
     const ended =
-      body.action === "end" ||
+      action === "end" ||
       limits.conversation_turns + 1 >= turnCap ||
       limits.off_topic_turns + (offTopic ? 1 : 0) >= LIMITS.offTopicTurns;
     if (body.feature === "vocab") return Response.json({ items: parseVocab(reply) }, { headers: CORS });
+    if (body.feature === "madlibs") return Response.json({ bad: parseMadlibs(reply) }, { headers: CORS });
     return Response.json({ reply, ended }, { headers: CORS });
   } catch (error) {
     console.error("[api/ai] failed:", error);

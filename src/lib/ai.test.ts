@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, parseVocab, questionMessage, splitTerms, questionsPrompt, SCENES, systemPrompt, turnCost, vocabPrompt } from "@/lib/ai";
+import { classnotePrompt, helperPrompt, LEVELS, LIMITS, madlibsPrompt, OFF_TAG, parseMadlibs, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -70,5 +70,51 @@ describe("ai", () => {
       { term: "ir embora", meaning: "to leave", tags: ["travel"] },
       { term: "feira", meaning: "street market", tags: [] },
     ]);
+  });
+
+  describe("the tools pool", () => {
+    it("names the five features paid from the pool", () => {
+      expect([...POOL_FEATURES]).toEqual(["writing", "story", "madlibs", "why", "classnote"]);
+    });
+
+    it("coaches writing in the site language, with a last-try line, and sends the task with the text", () => {
+      const es = writingPrompt("es");
+      expect(es).toContain("Latin American Spanish");
+      expect(es).toContain(OFF_TAG);
+      expect(es).not.toContain("last try");
+      expect(writingPrompt("fr", true)).toContain("last try");
+      expect(writingMessage("Write about your morning.", "Eu acordo cedo.")).toBe("Task: Write about your morning.\nMy text: Eu acordo cedo.");
+    });
+
+    it("writes a story on a theme at the student's level, in Portuguese only", () => {
+      const prompt = storyPrompt("A2", "praia");
+      expect(prompt).toContain(STORY_THEMES.praia);
+      expect(prompt).toContain("A2");
+      expect(prompt).toContain("never tu");
+      expect(Object.keys(STORY_THEMES).length).toBeGreaterThanOrEqual(6);
+    });
+
+    it("reads the mad libs check's lines, keeping only the words that don't fit", () => {
+      expect(madlibsPrompt()).toContain("plural noun");
+      expect(parseMadlibs("1: ok\n2: verb\n3: OK\n4: english\n5: sentence\n6: rude\nthanks")).toEqual([
+        { n: 2, is: "verb" },
+        { n: 4, is: "english" },
+        { n: 5, is: "other" },
+        { n: 6, is: "rude" },
+      ]);
+    });
+
+    it("explains a knowledge check in the site language, the language in the message so the row can be found again", () => {
+      expect(whyPrompt("pt")).toContain("Brazilian Portuguese");
+      expect(whyMessage("Ela ___ médica.", ["é", "está"], "está", "é", "fr")).toBe("Question: Ela ___ médica.\nOptions: é | está\nThe student picked: está\nThe right answer: é\nExplain in: French");
+      expect(whyMessage("Q", ["a", "b"], "a", "b", "xx")).toContain("Explain in: English");
+    });
+
+    it("tidies a class note in plain text, from the note alone", () => {
+      const prompt = classnotePrompt();
+      expect(prompt).toContain("no markdown");
+      expect(prompt).toContain("never add material");
+      expect(LIMITS.classnoteChars).toBeGreaterThanOrEqual(2000);
+    });
   });
 });

@@ -4,9 +4,12 @@ const mocks = vi.hoisted(() => ({
   userId: "u1" as string | null,
   profile: { ai_blocked: false, learning_language: "Portuguese", role: "student", lesson_access: "none", site_language: "en" } as Record<string, unknown> | null,
   lessonText: "## Ser vs. Estar\n\nSer is for what something is." as string | null,
-  settings: { enabled: true, monthly_cap: 45, daily_turns: 30 },
-  limits: { month_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 },
+  settings: { enabled: true, monthly_cap: 45, tools_cap: 30, daily_turns: 30 },
+  limits: { month_cost: 0, pool_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 },
   earlier: [] as { student: string; reply: string }[],
+  admin: false,
+  // An earlier "Why was this wrong?" row for the same check, if any.
+  explained: null as { reply: string } | null,
   inserts: [] as Record<string, unknown>[],
   create: vi.fn<(request: unknown) => Promise<unknown>>(async () => ({
     content: [{ type: "text", text: "Bom dia! O que você vai querer?" }],
@@ -23,12 +26,20 @@ vi.mock("@anthropic-ai/sdk", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ auth: { getUser: async () => ({ data: { user: mocks.userId ? { id: mocks.userId } : null } }) } }),
 }));
+vi.mock("@/lib/auth/require-admin", () => ({
+  checkAdmin: async () => (mocks.admin ? { ok: true, adminId: "u1" } : { ok: false, status: 403, reason: "not-admin", error: "Admin only." }),
+}));
 vi.mock("@/lib/integration-status", () => ({
   createServerJobClient: () => ({
     from: (table: string) => {
       if (table === "ai_turns") {
+        // The history (user, conversation; order; limit) and the "why" lookup (feature, scene, student; neq; order; limit; maybeSingle).
+        const limit = () => Object.assign(Promise.resolve({ data: [...mocks.earlier].reverse() }), { maybeSingle: async () => ({ data: mocks.explained }) });
+        const chain: Record<string, unknown> = {};
+        for (const step of ["eq", "neq", "order"]) chain[step] = () => chain;
+        chain.limit = limit;
         return {
-          select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ limit: async () => ({ data: [...mocks.earlier].reverse() }) }) }) }) }),
+          select: () => chain,
           insert: async (row: Record<string, unknown>) => {
             mocks.inserts.push(row);
             return { error: null };
@@ -70,10 +81,12 @@ afterEach(() => {
   mocks.userId = "u1";
   mocks.profile = { ai_blocked: false, learning_language: "Portuguese", role: "student", lesson_access: "none", site_language: "en" };
   mocks.lessonText = "## Ser vs. Estar\n\nSer is for what something is.";
-  mocks.settings = { enabled: true, monthly_cap: 45, daily_turns: 30 };
-  mocks.limits = { month_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 };
+  mocks.settings = { enabled: true, monthly_cap: 45, tools_cap: 30, daily_turns: 30 };
+  mocks.limits = { month_cost: 0, pool_cost: 0, day_turns: 0, minute_turns: 0, conversation_turns: 0, off_topic_turns: 0 };
   mocks.earlier = [];
   mocks.inserts = [];
+  mocks.admin = false;
+  mocks.explained = null;
   vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
@@ -226,6 +239,57 @@ describe("POST /api/ai", () => {
       mocks.profile = { ...mocks.profile, site_language: "pt" };
       mocks.create.mockResolvedValueOnce({ content: [], stop_reason: "refusal", usage: { input_tokens: 10, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
       expect(await (await helper("...")).json()).toEqual({ reply: "Vamos continuar com a lição.", ended: false });
+    });
+  });
+
+  describe("the tools pool (admin only until Trevor approves each one)", () => {
+    const post = (body: Record<string, unknown>) =>
+      POST(new Request("https://schedule.test/api/ai", { method: "POST", headers: { origin: ORIGIN, "content-type": "application/json" }, body: JSON.stringify({ conversation: CONVERSATION, ...body }) }));
+    const why = (extra: Record<string, unknown> = {}) =>
+      post({ feature: "why", scene: "ser-estar", question: "Ela ___ médica.", options: ["é", "está"], picked: "está", correct: "é", ...extra });
+
+    it("refuses students, and holds the pool's own cap, not the monthly one", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      expect((await post({ feature: "story", scene: "praia", level: "A1", action: "start" })).status).toBe(403);
+      mocks.admin = true;
+      mocks.limits = { ...mocks.limits, month_cost: 45 };
+      expect((await post({ feature: "story", scene: "praia", level: "A1", action: "start" })).status).toBe(200);
+      expect(mocks.inserts[0]).toMatchObject({ feature: "story", scene: "praia", student: "(start)" });
+      mocks.limits = { ...mocks.limits, month_cost: 0, pool_cost: 30 };
+      expect((await (await post({ feature: "story", scene: "praia", level: "A1", action: "start" })).json()).error).toBe("budget");
+      expect((await (await post({ feature: "writing", scene: "ar", task: "Write about your morning.", action: "say", text: "Eu acordo cedo." })).json()).error).toBe("budget");
+      // The partner isn't held by the pool.
+      expect((await say("Oi")).status).toBe(200);
+      expect(mocks.create).toHaveBeenCalledTimes(2);
+    });
+
+    it("gives an explanation once per check, pick and language, and from its own rows after that", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      mocks.admin = true;
+      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "Ser for professions." }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 20, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      expect(await (await why()).json()).toEqual({ reply: "Ser for professions.", ended: false });
+      expect(mocks.inserts[0]).toMatchObject({ feature: "why", scene: "ser-estar", student: "Question: Ela ___ médica.\nOptions: é | está\nThe student picked: está\nThe right answer: é\nExplain in: English" });
+      mocks.explained = { reply: "Ser for professions." };
+      mocks.limits = { ...mocks.limits, pool_cost: 30 };
+      expect(await (await why()).json()).toEqual({ reply: "Ser for professions." });
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+    });
+
+    it("answers the mad libs check with the words that don't fit", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      mocks.admin = true;
+      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "1: ok\n2: verb\n3: ok\n4: english" }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 20, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      const res = await post({ feature: "madlibs", scene: "praia", action: "say", text: "1. noun: cachorro\n2. noun: correr\n3. adjective: feliz\n4. place: beach" });
+      expect(await res.json()).toEqual({ bad: [{ n: 2, is: "verb" }, { n: 4, is: "english" }] });
+    });
+
+    it("tidies a class note for Trevor only", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      expect((await post({ feature: "classnote", scene: "b1", action: "say", text: "ser/estar, hw p. 3" })).status).toBe(403);
+      mocks.admin = true;
+      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "O que vimos\n- ser e estar" }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 20, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      expect(await (await post({ feature: "classnote", scene: "b1", action: "say", text: "ser/estar, hw p. 3" })).json()).toMatchObject({ reply: "O que vimos\n- ser e estar" });
+      expect(mocks.inserts[0]).toMatchObject({ feature: "classnote", scene: "b1" });
     });
   });
 });

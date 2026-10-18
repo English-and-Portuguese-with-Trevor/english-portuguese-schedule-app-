@@ -359,9 +359,9 @@ export type Database = {
         ]
       }
       ai_settings: {
-        Row: { id: boolean; enabled: boolean; monthly_cap: number; daily_turns: number; updated_at: string }
-        Insert: { id?: boolean; enabled?: boolean; monthly_cap?: number; daily_turns?: number; updated_at?: string }
-        Update: { id?: boolean; enabled?: boolean; monthly_cap?: number; daily_turns?: number; updated_at?: string }
+        Row: { id: boolean; enabled: boolean; monthly_cap: number; tools_cap: number; daily_turns: number; updated_at: string }
+        Insert: { id?: boolean; enabled?: boolean; monthly_cap?: number; tools_cap?: number; daily_turns?: number; updated_at?: string }
+        Update: { id?: boolean; enabled?: boolean; monthly_cap?: number; tools_cap?: number; daily_turns?: number; updated_at?: string }
         Relationships: []
       }
       ai_turns: {
@@ -698,6 +698,7 @@ export type Database = {
         Returns: { id: number; message: string; created_at: string }[]
       }
       ai_limits: { Args: { p_user: string; p_conversation: string }; Returns: Json }
+      ai_pool_cost: { Args: Record<string, never>; Returns: number }
       record_integration_status: {
         Args: { p_message: string; p_ok: boolean; p_secret: string; p_service: string }
         Returns: undefined
