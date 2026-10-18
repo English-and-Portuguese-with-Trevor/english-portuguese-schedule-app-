@@ -275,14 +275,6 @@ describe("POST /api/ai", () => {
       expect(mocks.create).toHaveBeenCalledTimes(1);
     });
 
-    it("answers the mad libs check with the words that don't fit", async () => {
-      vi.stubEnv("ANTHROPIC_API_KEY", "k");
-      mocks.admin = true;
-      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "1: ok\n2: verb\n3: ok\n4: english" }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 20, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
-      const res = await post({ feature: "madlibs", scene: "praia", action: "say", text: "1. noun: cachorro\n2. noun: correr\n3. adjective: feliz\n4. place: beach" });
-      expect(await res.json()).toEqual({ bad: [{ n: 2, is: "verb" }, { n: 4, is: "english" }] });
-    });
-
     it("tidies a class note for Trevor only", async () => {
       vi.stubEnv("ANTHROPIC_API_KEY", "k");
       expect((await post({ feature: "classnote", scene: "b1", action: "say", text: "ser/estar, hw p. 3" })).status).toBe(403);

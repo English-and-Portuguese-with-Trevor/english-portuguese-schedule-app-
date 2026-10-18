@@ -42,9 +42,6 @@ export const LIMITS = {
   writingMaxTokens: 500,
   /** The story builder's turns (two or three sentences, with a correction line). */
   storyMaxTokens: 350,
-  /** The mad libs check: one line per blank in, one line per blank out. */
-  madlibsChars: 600,
-  madlibsMaxTokens: 200,
   /** "Why was this wrong?": one knowledge check's question and options, and a short explanation. */
   whyChars: 1200,
   whyMaxTokens: 400,
@@ -57,9 +54,11 @@ export const LIMITS = {
  * The features paid from the tools pool (ai_settings.tools_cap: $30 of the
  * bonus credits, counted since the start, not monthly; Trevor, 2026-10-18),
  * apart from the partner's monthly cap. The same list sits in the
- * ai_limits and ai_pool_cost functions (20261018120000_ai_tools_pool.sql).
+ * ai_limits and ai_pool_cost functions (20261018120000_ai_tools_pool.sql,
+ * which also names 'madlibs': the mad libs check went to plain logic on the
+ * lessons site the same day and never calls here).
  */
-export const POOL_FEATURES = ["writing", "story", "madlibs", "why", "classnote"] as const;
+export const POOL_FEATURES = ["writing", "story", "why", "classnote"] as const;
 
 export const LEVELS = ["A1", "A2", "B1", "B2"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -343,30 +342,6 @@ Reply with only the story text (and the ✏️ line when there is one): no label
 
 export const STORY_START = "(Open the story with your first lines.)";
 export const STORY_END = "(The student is ending the story. Finish it, then the things to improve.)";
-
-// The mad libs check (feature 'madlibs', the lessons site's Mad libs tool):
-// the student's words for the blanks, one a line as "n. kind: word"; back
-// comes one line per number, "n: ok" or what the word is. The tool shows its
-// own built-in lines for the ones that don't fit.
-export const MADLIBS_KINDS = ["noun", "plural noun", "adjective", "verb", "place", "animal", "food", "color", "profession", "body part"] as const;
-
-export function madlibsPrompt() {
-  return `You check the words an adult student picked for a Brazilian Portuguese fill-in-the-blanks game. Each line of the message is "n. kind: word", where kind is one of: ${MADLIBS_KINDS.join(", ")}. A verb must be in the infinitive (comer, dormir). A place is somewhere you can go (praia, escola, banheiro). A noun is any thing or person; a plural noun is a plural (gatos, casas).
-
-Answer with exactly one line per number, in order: "n: ok" when the word is a Portuguese word (or a loanword Brazilians use, like pizza or shopping) of that kind; be generous with spelling slips and missing accents. Otherwise "n: " followed by one of: noun, verb, adjective (the word is Portuguese but of another kind), english (an English word), rude (obscene, insulting or hateful), other (not a word, or something that doesn't fit, like a whole sentence). Nothing else: no notes, no quotation marks.`;
-}
-
-/** The check's lines, as the numbers that don't fit with what the word is. */
-export function parseMadlibs(text: string) {
-  const bad: { n: number; is: string }[] = [];
-  for (const line of text.split("\n")) {
-    const m = line.match(/^\s*(\d+)\s*:\s*([a-z]+)/i);
-    if (!m) continue;
-    const is = m[2].toLowerCase();
-    if (is !== "ok") bad.push({ n: Number(m[1]), is: ["noun", "verb", "adjective", "english", "rude"].includes(is) ? is : "other" });
-  }
-  return bad;
-}
 
 // "Why was this wrong?" (feature 'why', the lessons' knowledge checks): one
 // explanation per question, pick and site language, kept in ai_turns and

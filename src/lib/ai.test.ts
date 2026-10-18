@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classnotePrompt, helperPrompt, LEVELS, LIMITS, madlibsPrompt, OFF_TAG, parseMadlibs, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
+import { classnotePrompt, helperPrompt, LEVELS, LIMITS, OFF_TAG, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -74,7 +74,7 @@ describe("ai", () => {
 
   describe("the tools pool", () => {
     it("names the five features paid from the pool", () => {
-      expect([...POOL_FEATURES]).toEqual(["writing", "story", "madlibs", "why", "classnote"]);
+      expect([...POOL_FEATURES]).toEqual(["writing", "story", "why", "classnote"]);
     });
 
     it("coaches writing in the site language, with a last-try line, and sends the task with the text", () => {
@@ -92,16 +92,6 @@ describe("ai", () => {
       expect(prompt).toContain("A2");
       expect(prompt).toContain("never tu");
       expect(Object.keys(STORY_THEMES).length).toBeGreaterThanOrEqual(6);
-    });
-
-    it("reads the mad libs check's lines, keeping only the words that don't fit", () => {
-      expect(madlibsPrompt()).toContain("plural noun");
-      expect(parseMadlibs("1: ok\n2: verb\n3: OK\n4: english\n5: sentence\n6: rude\nthanks")).toEqual([
-        { n: 2, is: "verb" },
-        { n: 4, is: "english" },
-        { n: 5, is: "other" },
-        { n: 6, is: "rude" },
-      ]);
     });
 
     it("explains a knowledge check in the site language, the language in the message so the row can be found again", () => {

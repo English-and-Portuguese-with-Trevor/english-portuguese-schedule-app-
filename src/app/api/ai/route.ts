@@ -10,9 +10,7 @@ import {
   helperPrompt,
   LEVELS,
   LIMITS,
-  madlibsPrompt,
   MODEL,
-  parseMadlibs,
   parseVocab,
   POOL_FEATURES,
   questionMessage,
@@ -41,8 +39,8 @@ import { createClient } from "@/lib/supabase/server";
 
 // The AI features (CLAUDE.md, "AI features"): the conversation partner, the
 // lesson helper, the question coach, Trevor's vocab translator, and (from
-// the tools pool) the writing coach, the story builder, the mad libs check,
-// "Why was this wrong?" and the class-note tidy-up. The sites on
+// the tools pool) the writing coach, the story builder, "Why was this
+// wrong?" and the class-note tidy-up. The sites on
 // englishandportuguesewithtrevor.com call this with the shared login cookie.
 // The key lives only here (ANTHROPIC_API_KEY). Before every call: the
 // student is logged in and not blocked, the kill switch is on, this month's
@@ -112,14 +110,6 @@ const Body = z.discriminatedUnion("feature", [
     text: z.string().max(LIMITS.textChars).optional(),
   }),
   z.object({
-    feature: z.literal("madlibs"),
-    conversation: z.uuid(),
-    // The template's id.
-    scene: z.string().min(1).max(80),
-    action: z.literal("say"),
-    text: z.string().max(LIMITS.madlibsChars),
-  }),
-  z.object({
     feature: z.literal("why"),
     conversation: z.uuid(),
     // The lesson id.
@@ -142,7 +132,7 @@ const Body = z.discriminatedUnion("feature", [
 // Only Trevor: the class-note tidy-up for good, the rest until he approves
 // each one for students (landing repo's CLAUDE.md, "Students see only what
 // Trevor approves").
-const ADMIN_ONLY = new Set(["vocab", "classnote", "writing", "story", "madlibs", "why"]);
+const ADMIN_ONLY = new Set(["vocab", "classnote", "writing", "story", "why"]);
 const POOL = new Set<string>(POOL_FEATURES);
 
 type Limits = { month_cost: number; pool_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
@@ -286,11 +276,6 @@ export async function POST(request: Request) {
     scene = body.scene;
     open = STORY_START;
     close = STORY_END;
-  } else if (body.feature === "madlibs") {
-    system = madlibsPrompt();
-    fallback = "";
-    maxTokens = LIMITS.madlibsMaxTokens;
-    scene = body.scene;
   } else if (body.feature === "why") {
     system = whyPrompt(site);
     fallback = STAY_WITH_LESSON[site];
@@ -352,7 +337,6 @@ export async function POST(request: Request) {
       limits.conversation_turns + 1 >= turnCap ||
       limits.off_topic_turns + (offTopic ? 1 : 0) >= LIMITS.offTopicTurns;
     if (body.feature === "vocab") return Response.json({ items: parseVocab(reply) }, { headers: CORS });
-    if (body.feature === "madlibs") return Response.json({ bad: parseMadlibs(reply) }, { headers: CORS });
     return Response.json({ reply, ended }, { headers: CORS });
   } catch (error) {
     console.error("[api/ai] failed:", error);
