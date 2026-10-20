@@ -7,6 +7,7 @@ import {
   type LearningLanguage,
   type Prefs,
   type SiteLanguage,
+  type StartChoice,
   type StartPage,
   START_PAGES,
   type Theme,
@@ -57,7 +58,7 @@ export function syncFromProfile(profile: {
     patch.site = profile.site_language;
   else if (saved.site) save("set_site_language", { lang: saved.site });
   if ((START_PAGES as readonly string[]).includes(profile.start_page ?? ""))
-    patch.start = profile.start_page as StartPage;
+    patch.start = profile.start_page as StartChoice;
   else if (saved.start) save("set_start_page", { page: saved.start });
   const next = writePrefs(patch);
   applyThemeAttribute(next.theme);
@@ -77,7 +78,8 @@ export function setSiteLanguage(language: SiteLanguage): Promise<unknown> {
 }
 
 // The sections' names, for "App start" and "What I use the app for".
-export const START_LABELS: Record<StartPage, string> = {
+export const START_LABELS: Record<StartChoice, string> = {
+  home: tr("Home"),
   lessons: tr("Lessons"),
   flashcards: tr("Flashcards"),
   activities: tr("Activities"),
@@ -86,7 +88,7 @@ export const START_LABELS: Record<StartPage, string> = {
 };
 
 /** Which section the installed app opens on (the account menu's "App start"). */
-export function setStartPage(page: StartPage) {
+export function setStartPage(page: StartChoice) {
   writePrefs({ start: page });
   save("set_start_page", { page });
 }

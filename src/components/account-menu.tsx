@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useT } from "@/i18n/client";
 import { tr } from "@/i18n/translate";
-import { readPrefs, START_PAGES, type LearningLanguage, type StartPage } from "@/lib/prefs";
+import { readPrefs, START_CHOICES, type LearningLanguage, type StartChoice } from "@/lib/prefs";
 import { setStartPage, START_LABELS } from "@/lib/preferences";
 import { logout } from "@/lib/actions/auth";
 
@@ -89,7 +89,7 @@ export default function AccountMenu({
   const first = firstName(fullName, email);
   const t = useT();
   // The cookie is only readable in the browser; read it after hydration.
-  const [start, setStart] = useState<StartPage | null>(null);
+  const [start, setStart] = useState<StartChoice | null>(null);
   const [cookieLearning, setCookieLearning] = useState<LearningLanguage | null>(null);
   useEffect(() => {
     const prefs = readPrefs();
@@ -180,7 +180,7 @@ export default function AccountMenu({
           <ChevronDown aria-hidden className={`${start ? "" : "ml-auto "}transition-transform ${open === "start" ? "rotate-180" : ""}`} />
         </DropdownMenuItem>
         {open === "start" &&
-          START_PAGES.map((page) => (
+          START_CHOICES.map((page) => (
             <DropdownMenuItem
               key={page}
               className="pl-8"
