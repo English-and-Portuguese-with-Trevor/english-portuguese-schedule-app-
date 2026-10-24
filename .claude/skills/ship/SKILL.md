@@ -27,12 +27,14 @@ Also on the clock: the landing's daily database backup (about 2 min a day) and t
 5. **Near the end of the month, or when in doubt, estimate the account's usage first** (the billing API isn't reachable from a session; Trevor reads the exact figure at https://github.com/organizations/English-and-Portuguese-with-Trevor/settings/billing). Where `gh` works:
    ```bash
    M=$(date -u +%Y-%m-01)
+   runs() { local p=1 n total=0; while :; do
+     n=$(gh api "repos/English-and-Portuguese-with-Trevor/$1/actions/runs?per_page=100&page=$p&created=>=$M" --jq '.workflow_runs | length')
+     total=$((total + n)); [ "$n" -lt 100 ] && break; p=$((p + 1)); done; echo "$total"; }
    for r in lessons:4 english-and-portuguese-with-trevor.github.io:3 activities:3 flashcards:2 dailies:2 conversations:2 notebook:2; do
-     n=$(gh api --paginate "repos/English-and-Portuguese-with-Trevor/${r%%:*}/actions/runs?per_page=100&created=>=$M" --jq '.workflow_runs | length' | awk '{s+=$1} END {print s+0}')
-     echo "${r%%:*}: $n runs, about $((n * ${r##*:})) min"
+     n=$(runs "${r%%:*}"); echo "${r%%:*}: $n runs, about $((n * ${r##*:})) min"
    done
    ```
-   Add the lines up. Under about 100 minutes left in the month, push only fixes, and ask Trevor before anything else.
+   (Page by hand: `gh api --paginate` follows links the session's proxy refuses.)    Add the lines up. Under about 100 minutes left in the month, push only fixes, and ask Trevor before anything else.
 6. **Tell Trevor in one line** what went out and which repos deployed.
 
 ## Never
