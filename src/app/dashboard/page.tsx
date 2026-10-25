@@ -3,6 +3,8 @@ import { addDays, format, subDays } from "date-fns";
 import { BookingBoard } from "@/components/booking-board";
 import { ClassNotes } from "@/components/class-notes";
 import { ClassProgressCard } from "@/components/class-progress-card";
+import { Homework } from "@/components/homework";
+import { markHomework } from "@/lib/actions/homework";
 import { getDisplayNames } from "@/lib/display-names";
 import { learningToLessonLanguage } from "@/lib/prefs";
 import { generateUpcomingSlots } from "@/lib/slots";
@@ -48,6 +50,7 @@ export default async function DashboardPage() {
     { data: recentClasses },
     { data: daysOff },
     { data: noteRows },
+    { data: homeworkRows },
   ] = await Promise.all([
     supabase.from("availability_rules").select("*").eq("is_active", true),
     supabase
@@ -98,6 +101,10 @@ export default async function DashboardPage() {
           .eq("bookings.student_id", profile!.id)
           .order("updated_at", { ascending: false })
           .limit(20),
+    // The homework Trevor gives on the student hub (homework), newest first.
+    isAdmin
+      ? { data: [] }
+      : supabase.from("homework").select("id, text, done_at").eq("user_id", profile!.id).order("created_at", { ascending: false }).limit(30),
   ]);
   const notes = (noteRows ?? [])
     .map((n) => ({ bookingId: n.booking_id, start: n.bookings.session_slots.start_time, notes: n.notes }))
@@ -153,6 +160,7 @@ export default async function DashboardPage() {
           lessonAccess={profile!.lesson_access as LessonAccess}
         />
       )}
+      <Homework items={(homeworkRows ?? []).map((h) => ({ id: h.id, text: h.text, doneAt: h.done_at }))} onMark={markHomework} />
       <ClassNotes notes={notes} />
       <BookingBoard
         role={profile!.role as Role}

@@ -48,7 +48,15 @@ export const LIMITS = {
   /** Trevor's class notes, tidied. */
   classnoteChars: 4000,
   classnoteMaxTokens: 1000,
+  /** The student hub (landing repo): what the student has been studying, as the hub sends it with a class write-up or a homework request. */
+  contextChars: 12_000,
+  /** The class write-up: the note for the student and up to HOMEWORK_MAX homework items. */
+  classplanMaxTokens: 1400,
+  homeworkMaxTokens: 700,
 };
+
+/** The most homework items a student has at once (the hub keeps to it too). */
+export const HOMEWORK_MAX = 10;
 
 /**
  * The features paid from the tools pool (ai_settings.tools_cap: $30 of the
@@ -56,9 +64,10 @@ export const LIMITS = {
  * apart from the partner's monthly cap. The same list sits in the
  * ai_limits and ai_pool_cost functions (20261018120000_ai_tools_pool.sql,
  * which also names 'madlibs': the mad libs check went to plain logic on the
- * lessons site the same day and never calls here).
+ * lessons site the same day and never calls here); 'classplan' and
+ * 'homework' (the student hub, 2026-10-25) joined in 20261025120000_homework.sql.
  */
-export const POOL_FEATURES = ["writing", "story", "why", "classnote"] as const;
+export const POOL_FEATURES = ["writing", "story", "why", "classnote", "classplan", "homework"] as const;
 
 export const LEVELS = ["A1", "A2", "B1", "B2"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -386,4 +395,69 @@ Palavras novas / New words
 word — meaning (the meaning in the student's other language: English for Portuguese words, Portuguese for English words)
 
 Use only what the notes say: never add material, exercises, words or dates the teacher didn't mention. Fix spelling and expand abbreviations. Keep links exactly as written. Reply with only the note: no greeting, no sign-off, no XML or system tags.`;
+}
+
+// The student hub (admin only, the admin dashboard's /admin/#/hub/<id>, landing
+// repo; Trevor, 2026-10-25). Two features paid from the tools pool:
+// 'classplan' turns Trevor's shorthand on today's class into the note the
+// student reads plus a homework list drawn from the difficulties he noted;
+// 'homework' drafts homework prompts from what the student has been studying.
+// The hub sends what it knows about the student (lessons finished, scores,
+// misses, the lessons and topics that exist) as plain text in the message,
+// never in the instructions. Trevor edits everything before it's saved.
+const HOMEWORK_RULES = `Each homework item is one line starting with "- ": one concrete thing to do between classes, doable in 5 to 15 minutes, aimed at a difficulty noted. Mix kinds: practice on Trevor's sites (name the exact lesson, topic or deck from the lists when one fits: "Lessons: Ser vs. Estar, the Practice step", "Activities: Food and drink", "Flashcards: the -AR verbs deck", "Conversations: the Na padaria scene"), writing (a few sentences on a set subject using the point practiced), speaking (record yourself saying…), listening or reading. Never invent a lesson, topic or deck that isn't in the lists. Keep the words or sentences to practice in the language being learned.`;
+
+export function classplanPrompt() {
+  return `You write up a private language class for the student, from the teacher's shorthand notes. Trevor teaches English and Brazilian Portuguese online. His notes say what the class covered, what the student found hard, new words and sometimes homework; a section "About the student" may follow with what they have been studying on his sites, their recent mistakes, and the lessons, topics and decks that exist there.
+
+Reply in two parts separated by a line with only "===".
+
+Part 1, the note the student reads, in the language most of Trevor's notes are written in (Portuguese: você, never tu). Plain text only: no markdown, no **, no #. This shape, leaving out any part the notes say nothing about:
+
+O que vimos / What we covered
+- one line per point
+
+Palavras novas / New words
+word — meaning (the meaning in the student's other language: English for Portuguese words, Portuguese for English words)
+
+Use only what the notes say: never add material, words or dates the teacher didn't mention. Fix spelling and expand abbreviations. Keep links exactly as written. Don't put the homework in the note; it goes in part 2. No greeting, no sign-off.
+
+Part 2, the homework: at most ${HOMEWORK_MAX} items, in the same language as the note. Start with anything the notes set as homework, as written. Then add items for the difficulties the notes mention and, if there is room, for the recent mistakes under "About the student". ${HOMEWORK_RULES} Fewer good items beat ten thin ones.
+
+Reply with only the two parts: no labels, no XML or system tags.`;
+}
+
+/** Trevor's notes and, when the hub has it, what it knows about the student, as the message. */
+export function classplanMessage(notes: string, context?: string) {
+  return context?.trim() ? `Class notes:\n${notes}\n\nAbout the student:\n${context.trim()}` : `Class notes:\n${notes}`;
+}
+
+/** The two parts of a class write-up: the note, and the homework lines after the === line. */
+export function parseClassPlan(text: string) {
+  const [note = "", ...rest] = text.split(/^\s*={3,}\s*$/m);
+  return { note: note.trim(), homework: parseHomework(rest.join("\n")) };
+}
+
+export function homeworkPrompt() {
+  return `You draft homework for a private language student of Trevor, who teaches English and Brazilian Portuguese online. The message says what the student has been studying on his sites, their recent mistakes, the lessons, topics and decks that exist there, and sometimes a focus Trevor wants.
+
+Write at most ${HOMEWORK_MAX} homework items, the most useful first. Write them in the student's own language: English for a student learning Portuguese, Portuguese for a student learning English (você, never tu). When a focus is given, every item serves it; otherwise aim at the recent mistakes and the lessons just finished. ${HOMEWORK_RULES} Fewer good items beat ten thin ones.
+
+Reply with only the lines, each starting with "- ": no heading, no numbering, no notes, no XML or system tags.`;
+}
+
+/** Trevor's focus (may be empty) and what the hub knows about the student, as the message. */
+export function homeworkMessage(focus: string | undefined, context: string) {
+  return `${focus?.trim() ? `Focus: ${focus.trim()}\n\n` : ""}About the student:\n${context.trim()}`;
+}
+
+/** The homework lines ("- …", "• …" or "1. …"), at most HOMEWORK_MAX, each cut at 500 characters. */
+export function parseHomework(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^(?:[-•*]|\d{1,2}[.)])\s+/.test(line))
+    .map((line) => line.replace(/^(?:[-•*]|\d{1,2}[.)])\s+/, "").trim().slice(0, 500))
+    .filter(Boolean)
+    .slice(0, HOMEWORK_MAX);
 }

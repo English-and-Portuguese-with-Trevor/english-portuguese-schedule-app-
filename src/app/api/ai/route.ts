@@ -5,13 +5,19 @@ import {
   askClaude,
   backToScene,
   classnotePrompt,
+  classplanMessage,
+  classplanPrompt,
   END_PROMPT,
   FREE_LESSONS_URL,
   helperPrompt,
+  homeworkMessage,
+  homeworkPrompt,
   LEVELS,
   LIMITS,
   MODEL,
+  parseClassPlan,
   parseGrade,
+  parseHomework,
   parseVocab,
   POOL_FEATURES,
   questionMessage,
@@ -41,7 +47,8 @@ import { createClient } from "@/lib/supabase/server";
 // The AI features (CLAUDE.md, "AI features"): the conversation partner, the
 // lesson helper, the question coach, Trevor's vocab translator, and (from
 // the tools pool) the writing coach, the story builder, "Why was this
-// wrong?" and the class-note tidy-up. The sites on
+// wrong?", the class-note tidy-up and the student hub's class write-up and
+// homework drafts. The sites on
 // englishandportuguesewithtrevor.com call this with the shared login cookie.
 // The key lives only here (ANTHROPIC_API_KEY). Before every call: the
 // student is logged in and not blocked, the kill switch is on, this month's
@@ -128,12 +135,31 @@ const Body = z.discriminatedUnion("feature", [
     action: z.literal("say"),
     text: z.string().max(LIMITS.classnoteChars),
   }),
+  z.object({
+    feature: z.literal("classplan"),
+    conversation: z.uuid(),
+    // The booking's id.
+    scene: z.string().min(1).max(80),
+    action: z.literal("say"),
+    text: z.string().max(LIMITS.classnoteChars),
+    // What the hub knows about the student, plain text.
+    context: z.string().max(LIMITS.contextChars).optional(),
+  }),
+  z.object({
+    feature: z.literal("homework"),
+    conversation: z.uuid(),
+    // The student's id.
+    scene: z.string().min(1).max(80),
+    focus: z.string().max(LIMITS.taskChars).optional(),
+    context: z.string().min(1).max(LIMITS.contextChars),
+  }),
 ]);
 
-// Only Trevor: the class-note tidy-up for good, the vocab translator until he
-// approves it for students (landing repo's CLAUDE.md, "Students see only what
-// Trevor approves"; the writing coach, story builder and "why" were approved 2026-10-18).
-const ADMIN_ONLY = new Set(["vocab", "classnote"]);
+// Only Trevor: the class-note tidy-up and the student hub's two features for
+// good, the vocab translator until he approves it for students (landing
+// repo's CLAUDE.md, "Students see only what Trevor approves"; the writing
+// coach, story builder and "why" were approved 2026-10-18).
+const ADMIN_ONLY = new Set(["vocab", "classnote", "classplan", "homework"]);
 const POOL = new Set<string>(POOL_FEATURES);
 
 type Limits = { month_cost: number; pool_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
@@ -283,6 +309,18 @@ export async function POST(request: Request) {
     maxTokens = LIMITS.whyMaxTokens;
     scene = body.scene;
     said = whyMessage(body.question, body.options, body.picked, body.correct, site);
+  } else if (body.feature === "classplan") {
+    system = classplanPrompt();
+    fallback = "";
+    maxTokens = LIMITS.classplanMaxTokens;
+    scene = body.scene;
+    said = classplanMessage(text, body.context);
+  } else if (body.feature === "homework") {
+    system = homeworkPrompt();
+    fallback = "";
+    maxTokens = LIMITS.homeworkMaxTokens;
+    scene = body.scene;
+    said = homeworkMessage(body.focus, body.context);
   } else {
     system = classnotePrompt();
     fallback = "";
@@ -338,6 +376,11 @@ export async function POST(request: Request) {
       limits.conversation_turns + 1 >= turnCap ||
       limits.off_topic_turns + (offTopic ? 1 : 0) >= LIMITS.offTopicTurns;
     if (body.feature === "vocab") return Response.json({ items: parseVocab(reply) }, { headers: CORS });
+    if (body.feature === "classplan") {
+      const plan = parseClassPlan(reply);
+      return Response.json({ reply: plan.note, homework: plan.homework }, { headers: CORS });
+    }
+    if (body.feature === "homework") return Response.json({ items: parseHomework(reply) }, { headers: CORS });
     if (body.feature === "writing") {
       const graded = parseGrade(reply);
       return Response.json({ reply: graded.reply, grade: graded.grade, ended }, { headers: CORS });

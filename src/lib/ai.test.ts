@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classnotePrompt, helperPrompt, LEVELS, LIMITS, OFF_TAG, parseGrade, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
+import { classnotePrompt, classplanMessage, classplanPrompt, helperPrompt, HOMEWORK_MAX, homeworkMessage, homeworkPrompt, parseClassPlan, parseHomework, LEVELS, LIMITS, OFF_TAG, parseGrade, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -73,8 +73,8 @@ describe("ai", () => {
   });
 
   describe("the tools pool", () => {
-    it("names the five features paid from the pool", () => {
-      expect([...POOL_FEATURES]).toEqual(["writing", "story", "why", "classnote"]);
+    it("names the features paid from the pool", () => {
+      expect([...POOL_FEATURES]).toEqual(["writing", "story", "why", "classnote", "classplan", "homework"]);
     });
 
     it("coaches writing in the site language, with a last-try line, and sends the task with the text", () => {
@@ -109,6 +109,30 @@ describe("ai", () => {
       expect(prompt).toContain("no markdown");
       expect(prompt).toContain("never add material");
       expect(LIMITS.classnoteChars).toBeGreaterThanOrEqual(2000);
+    });
+
+    it("writes a class up as the student's note plus at most ten homework items", () => {
+      const prompt = classplanPrompt();
+      expect(prompt).toContain('"==="');
+      expect(prompt).toContain(`at most ${HOMEWORK_MAX} items`);
+      expect(prompt).toContain("Never invent a lesson");
+      expect(HOMEWORK_MAX).toBe(10);
+      expect(classplanMessage("ser/estar hard", "Learning: Portuguese")).toBe("Class notes:\nser/estar hard\n\nAbout the student:\nLearning: Portuguese");
+      expect(classplanMessage("ser/estar hard", "  ")).toBe("Class notes:\nser/estar hard");
+      expect(parseClassPlan("O que vimos\n- ser e estar\n===\n- Lessons: Ser vs. Estar\n- Escreva 5 frases.\nnot an item")).toEqual({
+        note: "O que vimos\n- ser e estar",
+        homework: ["Lessons: Ser vs. Estar", "Escreva 5 frases."],
+      });
+      expect(parseClassPlan("Just a note")).toEqual({ note: "Just a note", homework: [] });
+    });
+
+    it("drafts homework prompts from what the student is studying, ten at most", () => {
+      expect(homeworkPrompt()).toContain("student's own language");
+      expect(homeworkMessage("past tense", "Learning: Portuguese")).toBe("Focus: past tense\n\nAbout the student:\nLearning: Portuguese");
+      expect(homeworkMessage(undefined, "Learning: Portuguese")).toBe("About the student:\nLearning: Portuguese");
+      const lines = Array.from({ length: 12 }, (_, i) => `${i + 1}. Item ${i + 1}`).join("\n");
+      expect(parseHomework(lines)).toHaveLength(HOMEWORK_MAX);
+      expect(parseHomework("- a\n• b\n* c\nplain\n- ")).toEqual(["a", "b", "c"]);
     });
   });
 });

@@ -21,6 +21,9 @@ The history behind the rules in `CLAUDE.md`: what Trevor decided, when, and why 
 ## Class notes
 - 2026-10-03: after a class Trevor writes a few notes (what they covered, homework, new words) on the admin dashboard; the student reads them on the dashboard exactly as written. No email or push for them.
 
+## Homework (students)
+- 2026-10-25: the student hub (admin dashboard, landing repo) gives a student up to 10 homework items between classes, kept as rows in `homework` rather than inside the class note, so the student can tick each one off on the dashboard and Trevor sees the ticks. Drawn up by the AI from his class notes (`classplan`) or from what the student is studying (`homework`), admin only, paid from the tools pool; he edits before saving. No email or push, like class notes.
+
 ## My notes (students)
 - 2026-10-05: every private student gets their own notes on the notebook site, set up like Google Docs' tabs (topics with sub-notes as deep as they like), with tags, a search box and a tag menu; "My notes" in every account menu right under My progress.
 - 2026-10-06: private students means the students on the Planilha, so a `class_package` on the profile; admins too. Only a private student, an admin or an account with `profiles.notes_access` can start a note (`20261006000000_notes_for_private_students.sql`, `20261006020000_notes_access.sql`). Every account in the database that day got `notes_access`, testers and future students; new accounts start without it. It's not a class package, so no class emails or hour-long classes come with it. Anyone keeps the notes they have, so a student whose package ends keeps them until the cleanup.

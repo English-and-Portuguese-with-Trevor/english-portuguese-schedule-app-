@@ -291,5 +291,27 @@ describe("POST /api/ai", () => {
       expect(await (await post({ feature: "classnote", scene: "b1", action: "say", text: "ser/estar, hw p. 3" })).json()).toMatchObject({ reply: "O que vimos\n- ser e estar" });
       expect(mocks.inserts[0]).toMatchObject({ feature: "classnote", scene: "b1" });
     });
+
+    it("writes a class up for Trevor only: the note and the homework list, both parsed", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      expect((await post({ feature: "classplan", scene: "b1", action: "say", text: "ser/estar hard", context: "Learning: Portuguese" })).status).toBe(403);
+      mocks.admin = true;
+      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "O que vimos\n- ser e estar\n===\n- Lessons: Ser vs. Estar\n- Escreva 5 frases." }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 40, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      expect(await (await post({ feature: "classplan", scene: "b1", action: "say", text: "ser/estar hard", context: "Learning: Portuguese" })).json()).toEqual({
+        reply: "O que vimos\n- ser e estar",
+        homework: ["Lessons: Ser vs. Estar", "Escreva 5 frases."],
+      });
+      expect(mocks.inserts[0]).toMatchObject({ feature: "classplan", scene: "b1", student: "Class notes:\nser/estar hard\n\nAbout the student:\nLearning: Portuguese" });
+    });
+
+    it("drafts homework for Trevor only, from the context, with an optional focus", async () => {
+      vi.stubEnv("ANTHROPIC_API_KEY", "k");
+      expect((await post({ feature: "homework", scene: "u2", context: "Learning: Portuguese" })).status).toBe(403);
+      mocks.admin = true;
+      mocks.create.mockResolvedValueOnce({ content: [{ type: "text", text: "- Write five sentences with ir.\n- Activities: Food and drink" }], stop_reason: "end_turn", usage: { input_tokens: 300, output_tokens: 30, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } });
+      expect(await (await post({ feature: "homework", scene: "u2", focus: "ir", context: "Learning: Portuguese" })).json()).toEqual({ items: ["Write five sentences with ir.", "Activities: Food and drink"] });
+      expect(mocks.inserts[0]).toMatchObject({ feature: "homework", scene: "u2", student: "Focus: ir\n\nAbout the student:\nLearning: Portuguese" });
+      expect((await post({ feature: "homework", scene: "u2", context: "" })).status).toBe(400);
+    });
   });
 });

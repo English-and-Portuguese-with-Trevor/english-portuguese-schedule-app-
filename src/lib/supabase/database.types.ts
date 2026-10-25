@@ -278,6 +278,51 @@ export type Database = {
           },
         ]
       }
+      homework: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          done_at: string | null
+          id: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          id?: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          done_at?: string | null
+          id?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homework_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       combos: {
         Row: {
           deck_ids: string[]
@@ -671,6 +716,7 @@ export type Database = {
       cancel_my_booking: { Args: { p_booking_id: string }; Returns: undefined }
       flag_my_class: { Args: { p_booking_id: string; p_reason: string }; Returns: undefined }
       unflag_my_class: { Args: { p_booking_id: string }; Returns: undefined }
+      mark_homework: { Args: { p_id: string; p_done: boolean }; Returns: undefined }
       claim_student_reminders: {
         Args: { p_secret: string }
         Returns: {

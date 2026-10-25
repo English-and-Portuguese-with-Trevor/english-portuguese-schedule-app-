@@ -125,7 +125,8 @@ export default function PrivacyPage() {
               replies, and what each exchange cost. Trevor reads these to see how the practice is going.
             </li>
             <li>
-              <strong>From Trevor:</strong> the lessons and activities he assigns you.
+              <strong>From Trevor:</strong> the lessons and activities he assigns you, his notes on your classes,
+              and the homework he gives you, with the items you tick as done.
             </li>
             <li>
               <strong>Reported issues:</strong> if you report a problem in a lesson or activity, which one and
