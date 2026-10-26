@@ -166,3 +166,55 @@ Até lá!
 *📦 AULAS RESTANTES: {left}*
 ━━━━━━━━━━━━━━
 ```
+
+## English, class moved
+
+After a class is moved (by the student from the main site's header menu, by
+a reschedule Trevor approved, or by Trevor canceling and booking the new
+time), the regular text with the thank-you line swapped and the old time in
+brackets under the new one. Trevor copies it from the student hub or the
+lessons site's Notes panel; students never get it generated for them.
+
+```
+*English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
+
+https://schedule.englishandportuguesewithtrevor.com
+
+Hi {name}! Your class has been moved 📅
+
+📅 New time: {weekday}, {month} {day}, at {time} ({time zone})
+(was {weekday}, {month} {day}, at {time})
+
+🎥 Class link: {meet link}
+
+See you then!
+
+━━━━━━━━━━━━━━
+*✅ CLASSES COMPLETED: {done} OF {package}*
+*📦 CLASSES LEFT: {left}*
+━━━━━━━━━━━━━━
+```
+
+## Portuguese, class moved
+
+```
+*English & Portuguese with Trevor*
+https://englishandportuguesewithtrevor.com
+
+https://schedule.englishandportuguesewithtrevor.com
+
+Oi, {name}! Sua aula foi remarcada 📅
+
+📅 Novo horário: {weekday}, {day} de {month}, às {time} ({time zone})
+(antes: {weekday}, {day} de {month}, às {time})
+
+🎥 Link da aula: {meet link}
+
+Até lá!
+
+━━━━━━━━━━━━━━
+*✅ AULAS FEITAS: {done} DE {package}*
+*📦 AULAS RESTANTES: {left}*
+━━━━━━━━━━━━━━
+```
