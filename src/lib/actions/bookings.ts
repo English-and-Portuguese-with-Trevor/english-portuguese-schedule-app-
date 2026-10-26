@@ -15,7 +15,11 @@ import {
 } from "@/lib/notifications";
 import { checkAdmin } from "@/lib/auth/require-admin";
 import { createClient } from "@/lib/supabase/server";
-import { WHATSAPP_PATTERN, type BookingAnswers, type FlagReason } from "@/lib/types";
+import {
+  WHATSAPP_PATTERN,
+  type BookingAnswers,
+  type FlagReason,
+} from "@/lib/types";
 import { tr } from "@/i18n/translate";
 
 type ActionResult = { error: string | null };
@@ -70,7 +74,11 @@ async function bookIndividualSlot(
     .limit(1);
 
   if (overlapping && overlapping.length > 0) {
-    return { error: tr("That time overlaps an existing class. Please pick another time.") };
+    return {
+      error: tr(
+        "That time overlaps an existing class. Please pick another time.",
+      ),
+    };
   }
 
   const { data: slot, error: slotErr } = await supabase
@@ -131,7 +139,9 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
   if (data.reschedule_of) {
     const { data: o } = await supabase
       .from("bookings")
-      .select("id, status, google_event_id, meet_link, session_slots(start_time, end_time)")
+      .select(
+        "id, status, google_event_id, meet_link, session_slots(start_time, end_time)",
+      )
       .eq("id", data.reschedule_of)
       .single();
     if (o?.session_slots) {
@@ -158,17 +168,31 @@ async function loadBooking(supabase: Supabase, bookingId: string) {
     language: data.lesson_language,
     whatsapp: data.whatsapp,
     adminTimezone,
-    rescheduledFrom: original ? { start: original.start, end: original.end } : null,
+    rescheduledFrom: original
+      ? { start: original.start, end: original.end }
+      : null,
   };
-  return { lesson, status: data.status, late: data.late_cancellation, eventId: data.google_event_id, original };
+  return {
+    lesson,
+    status: data.status,
+    late: data.late_cancellation,
+    eventId: data.google_event_id,
+    original,
+  };
 }
 
-function friendlyDbError(error: { code?: string; message: string }, rescheduling = false): string {
+function friendlyDbError(
+  error: { code?: string; message: string },
+  rescheduling = false,
+): string {
   // 23P01: overlaps another class; 23505: the slot already has a booking.
   if (error.code === "23P01" && rescheduling) {
-    return tr("That time overlaps your current class. Pick a time that doesn't overlap it.");
+    return tr(
+      "That time overlaps your current class. Pick a time that doesn't overlap it.",
+    );
   }
-  if (error.code === "23P01" || error.code === "23505") return tr("That time was just taken. Please pick another.");
+  if (error.code === "23P01" || error.code === "23505")
+    return tr("That time was just taken. Please pick another.");
   // P0001: a message the booking functions raise for the student (see i18n/server-messages.ts).
   if (error.code === "P0001") return error.message;
   console.error("[bookings] database error", error);
@@ -196,22 +220,28 @@ export async function requestBooking(
     // make Trevor his own student. Manual bookings go through adminBookStudent.
     return { error: "Admins book for students from the Bookings page." };
   } else {
-    if (!answers?.language) return { error: tr("Please choose English or Portuguese.") };
+    if (!answers?.language)
+      return { error: tr("Please choose English or Portuguese.") };
     const whatsapp = answers.whatsapp.trim();
-    if (whatsapp && !WHATSAPP_PATTERN.test(whatsapp)) return { error: tr("Please enter a valid WhatsApp number.") };
+    if (whatsapp && !WHATSAPP_PATTERN.test(whatsapp))
+      return { error: tr("Please enter a valid WhatsApp number.") };
 
-    const { data: bookingId, error } = await supabase.rpc("request_individual_booking", {
-      p_start: startIso,
-      p_end: endIso,
-      p_timezone: timezone,
-      p_language: answers.language,
-      p_whatsapp: whatsapp || undefined,
-    });
+    const { data: bookingId, error } = await supabase.rpc(
+      "request_individual_booking",
+      {
+        p_start: startIso,
+        p_end: endIso,
+        p_timezone: timezone,
+        p_language: answers.language,
+        p_whatsapp: whatsapp || undefined,
+      },
+    );
     if (error) return { error: friendlyDbError(error) };
 
     const booking = await loadBooking(supabase, bookingId);
     const pending = booking?.status === "PENDING";
-    if (booking) after(() => afterStudentBooking(supabase, booking.lesson, pending));
+    if (booking)
+      after(() => afterStudentBooking(supabase, booking.lesson, pending));
 
     revalidatePath("/dashboard");
     revalidatePath("/admin/bookings");
@@ -265,11 +295,17 @@ const MAX_SERIES = 26;
 export async function adminBookSeries(
   studentId: string,
   slots: { start: string; end: string }[],
-): Promise<ActionResult & { booked?: number; skipped?: { start: string; reason: string }[] }> {
+): Promise<
+  ActionResult & {
+    booked?: number;
+    skipped?: { start: string; reason: string }[];
+  }
+> {
   const supabase = await createClient();
   const admin = await checkAdmin(supabase);
   if (!admin.ok) return { error: admin.error };
-  if (slots.length < 1 || slots.length > MAX_SERIES) return { error: `Book between 1 and ${MAX_SERIES} classes at a time.` };
+  if (slots.length < 1 || slots.length > MAX_SERIES)
+    return { error: `Book between 1 and ${MAX_SERIES} classes at a time.` };
 
   const bookedIds: string[] = [];
   const skipped: { start: string; reason: string }[] = [];
@@ -302,7 +338,10 @@ export async function adminBookSeries(
   return { error: null, booked: bookedIds.length, skipped };
 }
 
-export async function cancelBooking(bookingId: string, reason?: string): Promise<ActionResult> {
+export async function cancelBooking(
+  bookingId: string,
+  reason?: string,
+): Promise<ActionResult> {
   const { supabase, profile } = await requireProfile();
   if (profile.role === "admin") {
     const admin = await checkAdmin(supabase);
@@ -328,7 +367,10 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
     const by = profile.role === "admin" ? "admin" : "student";
     after(async () => {
       // Read back the late flag the database just set.
-      const late = by === "student" ? ((await loadBooking(supabase, bookingId))?.late ?? false) : false;
+      const late =
+        by === "student"
+          ? ((await loadBooking(supabase, bookingId))?.late ?? false)
+          : false;
       await afterCancellation(before.lesson, {
         by,
         wasPending: before.status === "PENDING",
@@ -344,9 +386,15 @@ export async function cancelBooking(bookingId: string, reason?: string): Promise
 }
 
 /** Student flags one of their classes; the database makes the admin alert (flag_my_class). */
-export async function flagClass(bookingId: string, reason: FlagReason): Promise<ActionResult> {
+export async function flagClass(
+  bookingId: string,
+  reason: FlagReason,
+): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("flag_my_class", { p_booking_id: bookingId, p_reason: reason });
+  const { error } = await supabase.rpc("flag_my_class", {
+    p_booking_id: bookingId,
+    p_reason: reason,
+  });
   if (error) return { error: friendlyDbError(error) };
   revalidatePath("/dashboard");
   return { error: null };
@@ -355,7 +403,9 @@ export async function flagClass(bookingId: string, reason: FlagReason): Promise<
 /** Student takes back their flag on a class (unflag_my_class), which also removes its alert. */
 export async function unflagClass(bookingId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("unflag_my_class", { p_booking_id: bookingId });
+  const { error } = await supabase.rpc("unflag_my_class", {
+    p_booking_id: bookingId,
+  });
   if (error) return { error: friendlyDbError(error) };
   revalidatePath("/dashboard");
   return { error: null };
@@ -369,7 +419,9 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
 
   // Confirms the request and, for a reschedule, cancels the class it
   // replaces, in one transaction (approve_booking).
-  const { data: outcome, error } = await supabase.rpc("approve_booking", { p_booking_id: bookingId });
+  const { data: outcome, error } = await supabase.rpc("approve_booking", {
+    p_booking_id: bookingId,
+  });
   if (error) return { error: error.message };
 
   if (outcome !== "not_pending") {
@@ -388,6 +440,50 @@ export async function confirmBooking(bookingId: string): Promise<ActionResult> {
   revalidatePath("/admin/bookings");
   revalidatePath("/dashboard");
   return { error: null };
+}
+
+/**
+ * Student moves a confirmed lesson to another time in one step
+ * (move_booking, 2026-10-26): confirmed at once with 72 hours' notice for
+ * the new time and more than a day before the old one, else a request like
+ * requestReschedule. Answers which, so the page can say so.
+ */
+export async function moveBooking(
+  bookingId: string,
+  startIso: string,
+  endIso: string,
+  timezone?: string,
+): Promise<ActionResult & { outcome?: "moved" | "requested" }> {
+  const { supabase } = await requireProfile();
+
+  const { data, error } = await supabase
+    .rpc("move_booking", {
+      p_booking_id: bookingId,
+      p_start: startIso,
+      p_end: endIso,
+      p_timezone: timezone,
+    })
+    .single();
+  if (error) return { error: friendlyDbError(error, true) };
+  const { outcome, booking_id: newId } = data as {
+    outcome: "moved" | "requested";
+    booking_id: string;
+  };
+
+  const booking = await loadBooking(supabase, newId);
+  if (booking) {
+    if (outcome === "moved" && booking.original) {
+      // The original lesson's calendar event moves to the new time (same Meet link).
+      const original = booking.original;
+      after(() => afterRescheduleApproval(supabase, booking.lesson, original));
+    } else {
+      after(() => afterRescheduleRequest(booking.lesson));
+    }
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/admin/bookings");
+  return { error: null, outcome };
 }
 
 /**

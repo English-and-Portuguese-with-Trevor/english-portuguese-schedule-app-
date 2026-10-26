@@ -753,6 +753,10 @@ export type Database = {
         Args: { p_booking_id: string; p_end: string; p_start: string; p_timezone?: string }
         Returns: string
       }
+      move_booking: {
+        Args: { p_booking_id: string; p_end: string; p_start: string; p_timezone?: string }
+        Returns: { outcome: string; booking_id: string }[]
+      }
       set_learning_language: { Args: { lang: string }; Returns: undefined }
       set_start_page: { Args: { page: string }; Returns: undefined }
       set_app_uses: { Args: { p_uses: string[] }; Returns: undefined }
