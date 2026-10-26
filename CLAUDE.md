@@ -120,6 +120,7 @@ Every site's header shows the brand on two lines, "English & Portuguese" over "w
 ## Working with Trevor
 - SQL that Trevor has to run himself (Supabase > SQL Editor) goes in the chat as one code block, never as a file, unless he says otherwise (Trevor, 2026-10-10).
 - Credits (Trevor, 2026-10-10): work in the one repo the task needs and don't open the others; read only the files the change touches; no subagents or whole-site audits unless he asks; keep replies short, with no restated plans and no summaries of what the diff already shows.
+- The improvements list (Trevor, 2026-10-26): `docs/improvements.md` in the landing repo, one list for every site. "Add to the list" adds an item there from any session; "prompts for the list" turns items into stand-alone prompts for new sessions, one repo each (the `improve` skill, `.claude/skills/improve/SKILL.md`, the same file in every repo).
 
 ## Keep it simple
 - Make the smallest change that does the job. No new dependency, helper, abstraction, option or setting unless this task needs it now; use what the browser, Node and the existing code already provide first.
