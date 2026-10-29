@@ -14,7 +14,7 @@ import {
   homeworkPrompt,
   LEVELS,
   LIMITS,
-  MODEL,
+  modelFor,
   parseClassPlan,
   parseGrade,
   parseHomework,
@@ -162,7 +162,7 @@ const Body = z.discriminatedUnion("feature", [
 const ADMIN_ONLY = new Set(["vocab", "classnote", "classplan", "homework"]);
 const POOL = new Set<string>(POOL_FEATURES);
 
-type Limits = { month_cost: number; pool_cost: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
+type Limits = { month_cost: number; pool_cost: number; period_cost?: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
 type FreeLesson = { title: string; learning: string; text: string };
 
 /** The lessons site's free lessons, kept ten minutes (a deploy there shows up by the next conversation). */
@@ -328,6 +328,7 @@ export async function POST(request: Request) {
     scene = body.scene;
   }
   const action = "action" in body ? body.action : "say";
+  const model = modelFor(limits.period_cost);
 
   // The history comes from our own rows, never from the client.
   const { data: earlier } = await db
@@ -351,11 +352,11 @@ export async function POST(request: Request) {
     conversation_id: body.conversation,
     scene,
     student: action === "say" ? said : `(${action})`,
-    model: MODEL,
+    model,
   };
   try {
     const client = new Anthropic({ maxRetries: 1, timeout: 30_000 });
-    const answer = await askClaude(client, system, messages, maxTokens);
+    const answer = await askClaude(client, system, messages, maxTokens, model);
     const refused = answer.stopReason === "refusal";
     const reply = refused || !answer.reply ? fallback : answer.reply;
     const offTopic = refused || answer.offTopic;
@@ -366,7 +367,7 @@ export async function POST(request: Request) {
       input_tokens: answer.usage.input_tokens,
       cached_tokens: answer.usage.cache_read_input_tokens ?? 0,
       output_tokens: answer.usage.output_tokens,
-      cost: turnCost(MODEL, answer.usage),
+      cost: turnCost(model, answer.usage),
       stop_reason: answer.stopReason,
     });
     // The reply is already paid for; a missing ledger row goes to the logs.

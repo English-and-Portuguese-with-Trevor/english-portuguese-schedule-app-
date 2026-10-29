@@ -8,9 +8,24 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export const MODEL = "claude-haiku-5-5";
 
+/**
+ * Every feature runs on Sonnet until this month's spend (every feature, the
+ * month from the 27th like the cap) reaches SONNET_UNTIL dollars, then on
+ * Haiku for the rest of the month (Trevor, 2026-10-29: few students use the
+ * tools yet, so they get the better model while it's cheap).
+ */
+export const SONNET = "claude-sonnet-5-5";
+export const SONNET_UNTIL = 20;
+
+/** The model for this turn; Haiku when the month's spend can't be read. */
+export function modelFor(periodCost: number | undefined) {
+  return periodCost !== undefined && Number(periodCost) < SONNET_UNTIL ? SONNET : MODEL;
+}
+
 /** US dollars per million tokens. An upgrade is one more row and a new MODEL. */
 export const PRICES: Record<string, { input: number; cacheWrite: number; cacheRead: number; output: number }> = {
   "claude-haiku-5-5": { input: 0.1, cacheWrite: 0.125, cacheRead: 0.01, output: 0.5 },
+  "claude-sonnet-5-5": { input: 2, cacheWrite: 2.5, cacheRead: 0.2, output: 10 },
 };
 
 export const LIMITS = {
@@ -285,15 +300,16 @@ export function turnCost(model: string, usage: Usage) {
 }
 
 /** One request, one reply, no tools: the model can't loop on its own. */
-export async function askClaude(client: Anthropic, system: string | Anthropic.TextBlockParam[], messages: Anthropic.MessageParam[], maxTokens = LIMITS.maxTokens) {
+export async function askClaude(client: Anthropic, system: string | Anthropic.TextBlockParam[], messages: Anthropic.MessageParam[], maxTokens = LIMITS.maxTokens, model: string = MODEL) {
   const response = await client.messages.create({
-    model: MODEL,
+    model,
     max_tokens: maxTokens,
     system,
     messages,
     // No thinking: these are short, simple replies, and thinking tokens would
     // eat the small max_tokens (the story builder came back empty, 2026-10-18).
-    thinking: { type: "disabled" },
+    // Sonnet refuses "disabled"; "between_tools" is its no-thinking mode.
+    thinking: model === SONNET ? { type: "between_tools" } : { type: "disabled" },
     output_config: { effort: "low" },
   });
   const text = response.content
@@ -476,4 +492,53 @@ export function parseHomework(text: string) {
     .map((line) => line.replace(/^(?:[-•*]|\d{1,2}[.)])\s+/, "").trim().slice(0, 500))
     .filter(Boolean)
     .slice(0, HOMEWORK_MAX);
+}
+
+// The class notes writer (admin only, this app's /admin/notes; Trevor,
+// 2026-10-29): Trevor picks one of a student's classes and types his simple
+// notes; they come back as the note the student reads and, when the notes
+// mention difficulties, lessons on his site to study. The model picks only
+// from the site's own lesson list (lessons.json), by id; the action drops any
+// id that isn't on it. Always Sonnet. Trevor edits everything before saving.
+export const STUDY_MAX = 5;
+
+export function studyNotePrompt() {
+  return `You tidy a teacher's notes after a private language class, for the student to read, and suggest what to study. Trevor teaches English and Brazilian Portuguese online. His notes are shorthand: what the class covered, what the student found hard, homework, new words, sometimes mixed languages. After them comes the list of lessons on Trevor's site for the language the student is learning, one per line as "id | title".
+
+Reply in two parts separated by a line with only "===".
+
+Part 1, the note the student reads, in the language most of the notes are written in (Portuguese: você, never tu). Plain text only: no markdown, no **, no #. This shape, leaving out any part the notes say nothing about:
+
+O que vimos / What we covered
+- one line per point
+
+Tarefa / Homework
+- one line per task
+
+Palavras novas / New words
+word — meaning (the meaning in the student's other language: English for Portuguese words, Portuguese for English words)
+
+Use only what the notes say: never add material, exercises, words or dates the teacher didn't mention. Fix spelling and expand abbreviations. Keep links exactly as written. No greeting, no sign-off.
+
+Part 2, suggested study, only for difficulties the notes mention (something the student found hard, got wrong or mixed up). At most ${STUDY_MAX} lines, the most useful first, each exactly "id | what to review there, in one short sentence", in the same language as the note. Use only ids from the list; pick a lesson only when it really teaches that point. If the notes mention no difficulty, or no lesson fits, leave part 2 empty.
+
+Reply with only the two parts: no labels, no XML or system tags.`;
+}
+
+/** Trevor's notes and the site's lessons, as the message. */
+export function studyNoteMessage(notes: string, lessons: { id: string; title: string }[]) {
+  return `Class notes:\n${notes}\n\nLessons on Trevor's site:\n${lessons.map((l) => `${l.id} | ${l.title}`).join("\n")}`;
+}
+
+/** The note, and the suggested lessons (only ids on the list, each once, at most STUDY_MAX). */
+export function parseStudyNote(text: string, lessons: { id: string; title: string }[]) {
+  const [note = "", ...rest] = text.split(/^\s*={3,}\s*$/m);
+  const titles = new Map(lessons.map((l) => [l.id, l.title]));
+  const study: { id: string; title: string; why: string }[] = [];
+  for (const line of rest.join("\n").split("\n")) {
+    const [id = "", ...why] = line.replace(/^\s*(?:[-•*]|\d{1,2}[.)])\s+/, "").split("|");
+    const title = titles.get(id.trim());
+    if (title && !study.some((s) => s.id === id.trim())) study.push({ id: id.trim(), title, why: why.join("|").trim() });
+  }
+  return { note: note.trim(), study: study.slice(0, STUDY_MAX) };
 }

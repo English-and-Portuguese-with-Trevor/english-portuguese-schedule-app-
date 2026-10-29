@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ClipboardList,
   LayoutDashboard,
+  NotebookPen,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -39,6 +40,7 @@ const ADMIN_LINKS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/admin/bookings", label: "Bookings", icon: ClipboardList },
   { href: "/admin/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/notes", label: "Notes", icon: NotebookPen },
 ];
 
 export function AppShell({
@@ -164,7 +166,7 @@ export function AppShell({
         {isAdmin && (
           <nav
             aria-label="Admin (phone)"
-            className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-7 border-t bg-background pb-[env(safe-area-inset-bottom)] sm:hidden"
           >
             {ADMIN_LINKS.map(({ href, label, icon: Icon }) => (
               <Link
@@ -172,7 +174,7 @@ export function AppShell({
                 href={href}
                 aria-current={pathname === href ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-muted-foreground",
+                  "flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-muted-foreground",
                   pathname === href && "text-foreground",
                 )}
               >

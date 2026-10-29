@@ -126,6 +126,23 @@ describe("POST /api/ai", () => {
     expect(mocks.inserts[0].cost).toBeCloseTo((700 * 0.1 + 20 * 0.5) / 1_000_000, 9);
   });
 
+  it("runs on Sonnet (thinking off its way) until the month's spend reaches SONNET_UNTIL, then on Haiku", async () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "k");
+    mocks.limits = { ...mocks.limits, period_cost: 19.99 } as typeof mocks.limits;
+    expect((await say("Um pão, por favor.")).status).toBe(200);
+    const sonnet = mocks.create.mock.calls[0][0] as { model: string; thinking: { type: string } };
+    expect(sonnet.model).toBe("claude-sonnet-5-5");
+    expect(sonnet.thinking).toEqual({ type: "between_tools" });
+    expect(mocks.inserts[0]).toMatchObject({ model: "claude-sonnet-5-5" });
+    expect(mocks.inserts[0].cost).toBeCloseTo((700 * 2 + 20 * 10) / 1_000_000, 9);
+
+    mocks.limits = { ...mocks.limits, period_cost: 20 } as typeof mocks.limits;
+    expect((await say("Um café.")).status).toBe(200);
+    const haiku = mocks.create.mock.calls[1][0] as { model: string; thinking: { type: string } };
+    expect(haiku.model).toBe("claude-haiku-5-5");
+    expect(haiku.thinking).toEqual({ type: "disabled" });
+  });
+
   it("refuses bad bodies, empty and overlong messages, and a scene from the other language", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "k");
     expect((await say("")).status).toBe(400);

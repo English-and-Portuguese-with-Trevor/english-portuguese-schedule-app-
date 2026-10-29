@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { classnotePrompt, classplanMessage, classplanPrompt, helperPrompt, HOMEWORK_MAX, homeworkMessage, homeworkPrompt, parseClassPlan, parseHomework, LEVELS, LIMITS, OFF_TAG, parseGrade, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
+import { modelFor, parseStudyNote, studyNoteMessage, classnotePrompt, classplanMessage, classplanPrompt, helperPrompt, HOMEWORK_MAX, homeworkMessage, homeworkPrompt, parseClassPlan, parseHomework, LEVELS, LIMITS, OFF_TAG, parseGrade, parseReply, parseVocab, POOL_FEATURES, questionMessage, splitTerms, questionsPrompt, SCENES, STORY_THEMES, storyPrompt, systemPrompt, turnCost, vocabPrompt, whyMessage, whyPrompt, writingMessage, writingPrompt } from "@/lib/ai";
 
 describe("ai", () => {
   it("prices a Haiku turn in dollars, cached tokens cheaper", () => {
@@ -136,5 +136,35 @@ describe("ai", () => {
       expect(parseHomework(lines)).toHaveLength(HOMEWORK_MAX);
       expect(parseHomework("- a\n• b\n* c\nplain\n- ")).toEqual(["a", "b", "c"]);
     });
+  });
+});
+
+describe("Sonnet until the threshold", () => {
+  it("picks Sonnet under SONNET_UNTIL and Haiku at it or when the spend is unknown", () => {
+    expect(modelFor(0)).toBe("claude-sonnet-5-5");
+    expect(modelFor(19.99)).toBe("claude-sonnet-5-5");
+    expect(modelFor(20)).toBe("claude-haiku-5-5");
+    expect(modelFor(undefined)).toBe("claude-haiku-5-5");
+  });
+});
+
+describe("class notes writer", () => {
+  const lessons = [
+    { id: "ser-estar", title: "Ser vs. Estar" },
+    { id: "ar", title: "-AR Verbs" },
+  ];
+  it("sends the notes with the site's lessons", () => {
+    expect(studyNoteMessage("struggled w/ estar", lessons)).toContain("ser-estar | Ser vs. Estar");
+  });
+  it("keeps only lessons on the list, each once", () => {
+    const draft = parseStudyNote("O que vimos\n- ser e estar\n===\n- ser-estar | Revise estar para lugares.\nmade-up | Nope\nser-estar | again\nar | Os verbos -ar.", lessons);
+    expect(draft.note).toBe("O que vimos\n- ser e estar");
+    expect(draft.study).toEqual([
+      { id: "ser-estar", title: "Ser vs. Estar", why: "Revise estar para lugares." },
+      { id: "ar", title: "-AR Verbs", why: "Os verbos -ar." },
+    ]);
+  });
+  it("has no study when there's no second part", () => {
+    expect(parseStudyNote("Just a note.", lessons)).toEqual({ note: "Just a note.", study: [] });
   });
 });
