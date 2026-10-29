@@ -1,8 +1,8 @@
 import { isGoogleConfigured } from "@/lib/google";
 import { createServerJobClient } from "@/lib/integration-status";
+import { siteFile } from "@/lib/site-files";
 import { emails, sendNotification, type LessonCatalog, type MonthlySummary } from "@/lib/notifications";
 
-const LESSONS_URL = "https://englishandportuguesewithtrevor.com/lessons/lessons.json";
 
 /**
  * On the 1st (the daily job), emails every student who did anything last
@@ -12,9 +12,7 @@ const LESSONS_URL = "https://englishandportuguesewithtrevor.com/lessons/lessons.
  */
 export async function sendMonthlySummaries(secret: string) {
   if (!isGoogleConfigured()) return 0;
-  const catalog: LessonCatalog = await fetch(LESSONS_URL)
-    .then((r) => (r.ok ? r.json() : []))
-    .catch(() => []);
+  const catalog = (await siteFile<LessonCatalog>("lessons")) ?? [];
   const supabase = createServerJobClient();
   const { data, error } = await supabase.rpc("claim_monthly_summaries", { p_secret: secret });
   if (error) throw new Error(`claim_monthly_summaries: ${error.message}`);

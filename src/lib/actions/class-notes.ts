@@ -6,11 +6,11 @@ import { askClaude, LIMITS, parseStudyNote, SONNET, studyNoteMessage, studyNoteP
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { createServerJobClient } from "@/lib/integration-status";
 import type { LessonCatalog } from "@/lib/notifications";
+import { siteFile } from "@/lib/site-files";
 
 // The class notes writer (/admin/notes; CLAUDE.md "Class notes"): Trevor picks
 // a student's class, his simple notes come back tidied with lessons to study,
 // and he saves the note the student reads (class_notes).
-const LESSONS_URL = "https://englishandportuguesewithtrevor.com/lessons/lessons.json";
 const LESSON_LINK = "https://englishandportuguesewithtrevor.com/lessons/#/";
 
 export type NoteClass = { id: string; start: string; notes: string | null };
@@ -59,9 +59,7 @@ export async function draftClassNote(
     db.from("profiles").select("learning_language").eq("id", booking.student_id).single(),
     db.from("ai_settings").select("enabled, tools_cap").eq("id", true).single(),
     db.rpc("ai_limits", { p_user: adminId, p_conversation: bookingId }),
-    fetch(LESSONS_URL)
-      .then((r) => (r.ok ? r.json() : []))
-      .catch(() => []) as Promise<LessonCatalog>,
+    siteFile<LessonCatalog>("lessons"),
   ]);
   if (!settings?.enabled || !process.env.ANTHROPIC_API_KEY) return { error: "The AI is switched off (AI tab on the admin dashboard)." };
   const limits = limitsData as { pool_cost: number } | null;
@@ -70,7 +68,7 @@ export async function draftClassNote(
 
   // Only the language the student is learning (Portuguese when unset).
   const english = student?.learning_language === "English";
-  const lessons = catalog.filter((l) => (l.learning === "English") === english).map(({ id, title }) => ({ id, title }));
+  const lessons = (catalog ?? []).filter((l) => (l.learning === "English") === english).map(({ id, title }) => ({ id, title }));
 
   const row = {
     user_id: adminId,

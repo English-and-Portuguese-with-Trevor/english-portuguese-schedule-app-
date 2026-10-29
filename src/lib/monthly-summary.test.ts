@@ -4,7 +4,9 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   sendEmail: vi.fn<(email: { to: string; subject: string; html: string; text: string }) => Promise<void>>(async () => {}),
   isGoogleConfigured: vi.fn(() => true),
+  catalog: [] as unknown,
 }));
+vi.mock("@/lib/site-files", () => ({ siteFile: async () => mocks.catalog }));
 vi.mock("@/lib/google", () => ({
   isGoogleConfigured: mocks.isGoogleConfigured,
   sendEmail: mocks.sendEmail,
@@ -64,7 +66,7 @@ const quiet: MonthlySummary = {
 
 beforeEach(() => {
   mocks.rpc.mockResolvedValue({ data: null, error: null });
-  vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => catalog })));
+  mocks.catalog = catalog;
 });
 
 afterEach(() => {

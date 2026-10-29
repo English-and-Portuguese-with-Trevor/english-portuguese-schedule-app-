@@ -249,6 +249,24 @@ export type Database = {
           },
         ]
       }
+      site_files: {
+        Row: {
+          body: Json
+          fetched_at: string
+          name: string
+        }
+        Insert: {
+          body: Json
+          fetched_at?: string
+          name: string
+        }
+        Update: {
+          body?: Json
+          fetched_at?: string
+          name?: string
+        }
+        Relationships: []
+      }
       class_notes: {
         Row: {
           booking_id: string

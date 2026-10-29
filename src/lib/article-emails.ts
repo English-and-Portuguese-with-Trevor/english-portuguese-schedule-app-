@@ -1,14 +1,12 @@
 import { isGoogleConfigured } from "@/lib/google";
 import { createServerJobClient } from "@/lib/integration-status";
+import { siteFile } from "@/lib/site-files";
 import { emails, sendNotification, type ArticleReader, type LessonCatalog } from "@/lib/notifications";
 
-const LESSONS_URL = "https://englishandportuguesewithtrevor.com/lessons/lessons.json";
 
 /** The articles lessons.json says came out on `day` (Denver); none if it can't be read. */
 export async function articlesReleasedOn(day: string): Promise<LessonCatalog> {
-  const catalog: LessonCatalog = await fetch(LESSONS_URL)
-    .then((r) => (r.ok ? r.json() : []))
-    .catch(() => []);
+  const catalog = (await siteFile<LessonCatalog>("lessons")) ?? [];
   return catalog.filter((l) => l.article && l.releaseOn === day);
 }
 

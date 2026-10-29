@@ -8,7 +8,6 @@ import {
   classplanMessage,
   classplanPrompt,
   END_PROMPT,
-  FREE_LESSONS_URL,
   helperPrompt,
   homeworkMessage,
   homeworkPrompt,
@@ -42,6 +41,7 @@ import {
 } from "@/lib/ai";
 import { checkAdmin } from "@/lib/auth/require-admin";
 import { createServerJobClient } from "@/lib/integration-status";
+import { siteFile } from "@/lib/site-files";
 import { createClient } from "@/lib/supabase/server";
 
 // The AI features (CLAUDE.md, "AI features"): the conversation partner, the
@@ -165,16 +165,6 @@ const POOL = new Set<string>(POOL_FEATURES);
 type Limits = { month_cost: number; pool_cost: number; period_cost?: number; day_turns: number; minute_turns: number; conversation_turns: number; off_topic_turns: number };
 type FreeLesson = { title: string; learning: string; text: string };
 
-/** The lessons site's free lessons, kept ten minutes (a deploy there shows up by the next conversation). */
-let freeLessonsCache: { at: number; lessons: Record<string, FreeLesson> } | null = null;
-async function freeLessons() {
-  if (freeLessonsCache && Date.now() - freeLessonsCache.at < 10 * 60_000) return freeLessonsCache.lessons;
-  const lessons: Record<string, FreeLesson> = await fetch(FREE_LESSONS_URL)
-    .then((r) => (r.ok ? r.json() : {}))
-    .catch(() => ({}));
-  if (Object.keys(lessons).length) freeLessonsCache = { at: Date.now(), lessons };
-  return lessons;
-}
 
 const hasLessonAccess = (profile: { role: string; lesson_access: string }) =>
   profile.role === "admin" || ["granted", "subscriber", "lifetime"].includes(profile.lesson_access);
@@ -263,7 +253,7 @@ export async function POST(request: Request) {
     fallback = backToScene(language);
     scene = body.scene;
   } else if (body.feature === "helper") {
-    const free = (await freeLessons())[body.lesson];
+    const free = (await siteFile<Record<string, FreeLesson>>("free-lessons"))?.[body.lesson];
     let lesson: { title: string | null; text: string };
     if (free) lesson = { title: free.title, text: free.text };
     else {

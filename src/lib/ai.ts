@@ -159,10 +159,10 @@ Reply with only the words you say in the scene: no labels, no quotation marks, n
 }
 
 // The lesson helper (feature 'helper'): questions about one lesson, answered
-// in the site language. The route reads the lesson itself (free-lessons.json
-// from the lessons site, or lesson_content.text for a paid lesson the student
-// can open), so the text never comes from the client.
-export const FREE_LESSONS_URL = "https://englishandportuguesewithtrevor.com/lessons/free-lessons.json";
+// in the site language. The route reads the lesson itself (the lessons site's
+// free-lessons.json, from the database's copy in site_files, or
+// lesson_content.text for a paid lesson the student can open), so the text
+// never comes from the client.
 
 const SITE_LANGUAGES: Record<string, string> = { en: "English", es: "Latin American Spanish", pt: "Brazilian Portuguese", fr: "French" };
 

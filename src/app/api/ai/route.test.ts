@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   // An earlier "Why was this wrong?" row for the same check, if any.
   explained: null as { reply: string } | null,
   inserts: [] as Record<string, unknown>[],
+  free: null as unknown,
   create: vi.fn<(request: unknown) => Promise<unknown>>(async () => ({
     content: [{ type: "text", text: "Bom dia! O que você vai querer?" }],
     stop_reason: "end_turn",
@@ -46,6 +47,7 @@ vi.mock("@/lib/integration-status", () => ({
           },
         };
       }
+      if (table === "site_files") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: mocks.free === null ? null : { body: mocks.free } }) }) }) };
       if (table === "lesson_content") return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: mocks.lessonText === null ? null : { text: mocks.lessonText } }) }) }) };
       const data = table === "profiles" ? mocks.profile : mocks.settings;
       return { select: () => ({ eq: () => ({ single: async () => ({ data }) }) }) };
@@ -87,6 +89,7 @@ afterEach(() => {
   mocks.inserts = [];
   mocks.admin = false;
   mocks.explained = null;
+  mocks.free = null;
   vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
@@ -213,7 +216,9 @@ describe("POST /api/ai", () => {
   });
 
   describe("the lesson helper", () => {
-    const stubFree = (lessons: unknown = FREE) => vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => lessons })));
+    const stubFree = (lessons: unknown = FREE) => {
+      mocks.free = lessons;
+    };
 
     it("answers about a free lesson from the lessons site's text, in the site language, caching the lesson", async () => {
       vi.stubEnv("ANTHROPIC_API_KEY", "k");
