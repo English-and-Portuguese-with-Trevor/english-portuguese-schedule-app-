@@ -12,7 +12,10 @@ create table if not exists public.site_files (
   fetched_at timestamptz not null default now()
 );
 alter table public.site_files enable row level security;
--- No policies: the server reads it with the service role only.
+-- No policies: the server reads it with the service role only. This project
+-- gives new tables to no role by default, so the grant is needed (without it
+-- the read failed silently and the helper still found no free lesson).
+grant select on public.site_files to service_role;
 
 create table if not exists private.site_file_requests (
   id bigint primary key,
