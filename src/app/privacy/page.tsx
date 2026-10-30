@@ -135,7 +135,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             Trevor can see your progress, your practice results and the answers you got wrong, so he can see
-            what to help you with. He can't see your notes unless you share them with him.
+            what to help you with. He can&apos;t see your notes unless you share them with him.
           </p>
         </section>
 
@@ -190,6 +190,10 @@ export default function PrivacyPage() {
             the conversation so far, the scene, task or lesson text and your level, goes to Anthropic to
             write the reply. Nothing else about you is sent: not your name,
             email, progress or results. Anthropic doesn&apos;t use what it receives to train its models.
+            For private students, Trevor also uses Claude to tidy up his class notes and to draft homework:
+            his notes on your class and a short summary of what you&apos;ve been studying (lessons finished,
+            scores and mistakes, without your name or email) go to Anthropic for that, and he reads and
+            edits everything before you see it.
             The partner&apos;s voice and the Speak button use your browser&apos;s own speech features, as described
             above, and the voice is off until you turn it on. These chats are kept with your account and
             deleted with it. There is a limit on how much each student can use them in a day.

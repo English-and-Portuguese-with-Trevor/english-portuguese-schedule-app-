@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   sendWelcomes: vi.fn(async () => 0),
   sendMonthlySummaries: vi.fn(async () => 3),
   sendArticleEmails: vi.fn(async () => 2),
-  articlesReleasedOn: vi.fn(async (_day: string) => [] as { id: string; title: string }[]),
+  articlesReleasedOn: vi.fn(async () => [] as { id: string; title: string }[]),
   sendClassUpdates: vi.fn(async () => 4),
   cleanUpNotes: vi.fn(async () => ({ warned: 1, deleted: 0 })),
 }));
