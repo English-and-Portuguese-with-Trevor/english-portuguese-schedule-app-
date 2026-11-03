@@ -114,6 +114,20 @@ describe("SlotPicker", () => {
     expect(screen.getByText(/Booked \(Trevor L\. 1\)/)).toBeInTheDocument();
   });
 
+  it("lets admins show the times in a student's zone", async () => {
+    const { user } = renderPicker("admin");
+    await user.selectOptions(screen.getByLabelText("Show times in"), "America/Sao_Paulo");
+    expect(screen.getByText(/Times shown in Brasilia Standard Time/)).toBeInTheDocument();
+    await user.click(dayChip("Monday, September 28"));
+    expect(screen.getByText(/5:30 – 6:30 PM · Booked/)).toBeInTheDocument(); // 2:30 PM in Denver
+    expect(screen.getByRole("button", { name: "5:00 PM" })).toBeInTheDocument();
+  });
+
+  it("shows students no zone menu", () => {
+    renderPicker("student");
+    expect(screen.queryByLabelText("Show times in")).not.toBeInTheDocument();
+  });
+
   it("lets students request times within 72 hours, marked as needing approval", async () => {
     const { user, onBook } = renderPicker("student");
     const soon = screen.getByRole("button", { name: "3:30 PM, needs approval" }); // today

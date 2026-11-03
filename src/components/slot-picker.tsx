@@ -1,6 +1,7 @@
 "use client";
 
 import { addDays, format, isSameDay, startOfDay } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -60,14 +61,39 @@ interface DayInfo {
   selectableCount: number;
 }
 
-/** The viewer's time zone as a readable name, e.g. "Mountain Daylight Time". */
-export function timeZoneLabel(lang?: SiteLanguage) {
+/** The viewer's time zone (or `timeZone`) as a readable name, e.g. "Mountain Daylight Time". */
+export function timeZoneLabel(lang?: SiteLanguage, timeZone?: string) {
   return (
-    new Intl.DateTimeFormat(lang && lang !== "en" ? LOCALES[lang] : undefined, { timeZoneName: "long" })
+    new Intl.DateTimeFormat(lang && lang !== "en" ? LOCALES[lang] : undefined, { timeZoneName: "long", timeZone })
       .formatToParts(new Date())
       .find((p) => p.type === "timeZoneName")?.value ?? null
   );
 }
+
+// Trevor's "Show times in" menu: the zones his students are usually in, so he
+// can screenshot his free times in theirs. Admin only, English only.
+const ADMIN_ZONES: [string, string][] = [
+  ["America/Los_Angeles", "Los Angeles"],
+  ["America/Denver", "Denver"],
+  ["America/Phoenix", "Phoenix"],
+  ["America/Chicago", "Chicago"],
+  ["America/New_York", "New York"],
+  ["America/Mexico_City", "Mexico City"],
+  ["America/Bogota", "Bogotá"],
+  ["America/Lima", "Lima"],
+  ["America/Santiago", "Santiago"],
+  ["America/Argentina/Buenos_Aires", "Buenos Aires"],
+  ["America/Manaus", "Manaus"],
+  ["America/Sao_Paulo", "São Paulo / Rio"],
+  ["Europe/London", "London"],
+  ["Europe/Lisbon", "Lisbon"],
+  ["Europe/Madrid", "Madrid"],
+  ["Europe/Paris", "Paris"],
+  ["Europe/Berlin", "Berlin"],
+  ["Asia/Dubai", "Dubai"],
+  ["Asia/Tokyo", "Tokyo"],
+  ["Australia/Sydney", "Sydney"],
+];
 
 export function SlotPicker({
   role,
@@ -90,13 +116,22 @@ export function SlotPicker({
   const isAdmin = role === "admin";
   const t = useT();
   const lang = useSiteLanguage();
-  const today = useMemo(() => startOfDay(new Date()), []);
+  const deviceZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
+  const [zone, setZone] = useState(deviceZone);
+  // Another zone's times as this device's clock times, so the day grouping and
+  // formatting below show that zone's days and hours. Only the admin, who
+  // can't book here, ever changes the zone.
+  const inZone = useMemo(
+    () => (d: Date) => (zone === deviceZone ? d : toZonedTime(d, zone)),
+    [zone, deviceZone],
+  );
+  const today = useMemo(() => startOfDay(inZone(new Date())), [inZone]);
   const days = useMemo(() => Array.from({ length: DAYS_SHOWN }, (_, i) => addDays(today, i)), [today]);
 
   const byDay = useMemo(() => {
     const busy: Busy[] = busySlots.map((b) => ({
-      start: new Date(b.start),
-      end: new Date(b.end),
+      start: inZone(new Date(b.start)),
+      end: inZone(new Date(b.end)),
       studentName: b.studentName,
       note: b.note,
     }));
@@ -104,10 +139,10 @@ export function SlotPicker({
     const map = new Map<string, DayInfo>();
     for (const day of days) {
       const slots: DaySlot[] = candidates
-        .filter((c) => isSameDay(new Date(c.start), day))
+        .filter((c) => isSameDay(inZone(new Date(c.start)), day))
         .map((c) => {
-          const start = new Date(c.start);
-          const end = new Date(c.end);
+          const start = inZone(new Date(c.start));
+          const end = inZone(new Date(c.end));
           const blocked = busy.some((b) => start < b.end && end > b.start);
           return { start, end, blocked, needsApproval: c.needsApproval };
         })
@@ -129,7 +164,7 @@ export function SlotPicker({
       });
     }
     return map;
-  }, [candidates, busySlots, days]);
+  }, [candidates, busySlots, days, inZone]);
 
   const firstDayWithOpenings = days.find((d) => (byDay.get(format(d, "yyyy-MM-dd"))?.selectableCount ?? 0) > 0);
   const [selectedKey, setSelectedKey] = useState(() => format(firstDayWithOpenings ?? today, "yyyy-MM-dd"));
@@ -146,7 +181,7 @@ export function SlotPicker({
   const answersValid = !askQuestions || (language !== null && whatsappValid);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const tzLabel = useMemo(() => timeZoneLabel(lang) ?? t("your local time"), [lang, t]);
+  const tzLabel = useMemo(() => timeZoneLabel(lang, zone) ?? t("your local time"), [lang, t, zone]);
 
   function confirm() {
     if (!pendingSlot) return;
@@ -167,6 +202,24 @@ export function SlotPicker({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-xs text-muted-foreground">{t("Times shown in {zone}.", { zone: tzLabel })}</p>
+      {isAdmin && (
+        <label className="flex items-center gap-2 text-sm">
+          Show times in
+          <select
+            value={zone}
+            onChange={(e) => setZone(e.target.value)}
+            className="rounded-full border bg-background px-3 py-1.5 text-sm"
+          >
+            {!ADMIN_ZONES.some(([z]) => z === deviceZone) && <option value={deviceZone}>{deviceZone} (this device)</option>}
+            {ADMIN_ZONES.map(([z, city]) => (
+              <option key={z} value={z}>
+                {city}
+                {z === deviceZone ? " (this device)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {isAdmin && (
         // Admin-only text stays in English. The calendar is read-only for the
         // admin; booking here would make Trevor his own student.
