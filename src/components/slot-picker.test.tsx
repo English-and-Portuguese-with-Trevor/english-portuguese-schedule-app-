@@ -133,6 +133,32 @@ describe("SlotPicker", () => {
     });
   });
 
+  it("lets the admin confirm or decline a request from its row", async () => {
+    const candidates = generateUpcomingSlots(SCHEDULE, { now: NOW, days: 14 }).map((c) => ({
+      start: c.start.toISOString(),
+      end: c.end.toISOString(),
+      needsApproval: c.needsApproval,
+    }));
+    const onAnswer = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(
+      <SlotPicker
+        role="admin"
+        candidates={candidates}
+        busySlots={[{ ...MONDAY_BOOKING, pendingId: "b1" }]}
+        onBook={vi.fn(async () => null)}
+        onAnswer={onAnswer}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(dayChip("Monday, September 28"));
+    expect(screen.getByText(/Request \(Trevor L\. 1\)/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(onAnswer).toHaveBeenCalledWith("b1", true);
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    expect(onAnswer).toHaveBeenCalledWith("b1", false);
+  });
+
   it("gives admins a read-only calendar: no approval markers, no booking dialog", async () => {
     const { user, onBook } = renderPicker("admin");
     const soon = screen.getByRole("button", { name: "3:30 PM" });

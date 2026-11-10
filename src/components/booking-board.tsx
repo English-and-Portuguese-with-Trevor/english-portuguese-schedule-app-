@@ -4,7 +4,7 @@ import { Flag, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { cancelBooking, flagClass, requestBooking, requestReschedule, unflagClass } from "@/lib/actions/bookings";
+import { cancelBooking, confirmBooking, flagClass, requestBooking, requestReschedule, unflagClass } from "@/lib/actions/bookings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,6 +134,17 @@ export function BookingBoard({
     if (result.error) return t(result.error);
     setNotice({ kind: "success", text: t("Booking canceled.") });
     return null;
+  }
+
+  // Trevor answers a request from its row in the day's list.
+  async function handleAnswer(bookingId: string, confirm: boolean) {
+    const result = await (confirm ? confirmBooking(bookingId) : cancelBooking(bookingId));
+    setNotice(
+      result.error
+        ? { kind: "error", text: result.error }
+        : { kind: "success", text: confirm ? "Request confirmed." : "Request declined." },
+    );
+    router.refresh();
   }
 
   async function handleFlag(bookingId: string, reason: FlagReason) {
@@ -307,6 +318,7 @@ export function BookingBoard({
           candidates={candidates}
           busySlots={busySlots}
           onBook={rescheduling ? handleReschedule : handleBookSlot}
+          onAnswer={role === "admin" ? handleAnswer : undefined}
           previousAnswers={previousAnswers}
           rescheduleFrom={rescheduling?.start}
         />

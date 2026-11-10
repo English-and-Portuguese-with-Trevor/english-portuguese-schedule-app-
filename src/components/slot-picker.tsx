@@ -34,6 +34,8 @@ export interface BusySlotDTO {
   studentName?: string;
   /** The booking's note, shown to the admin after the name (e.g. "Hold: Tim"). */
   note?: string;
+  /** The booking's id while it waits for approval (admins only): the row gets Confirm and Decline. */
+  pendingId?: string;
 }
 
 const DAYS_SHOWN = 14;
@@ -52,6 +54,7 @@ interface Busy {
   end: Date;
   studentName?: string;
   note?: string;
+  pendingId?: string;
 }
 
 interface DayInfo {
@@ -74,6 +77,7 @@ export function SlotPicker({
   candidates,
   busySlots,
   onBook,
+  onAnswer,
   previousAnswers,
   rescheduleFrom,
 }: {
@@ -83,6 +87,8 @@ export function SlotPicker({
   /** Resolves to an error message, or null on success. Students always send answers. */
   onBook: (start: string, end: string, answers?: BookingAnswers) => Promise<string | null>;
   /** The student's answers from their last booking, to prefill the questions. */
+  /** The admin confirms or declines a request from its row. */
+  onAnswer?: (bookingId: string, confirm: boolean) => void;
   previousAnswers?: Partial<BookingAnswers>;
   /** Set while a student picks a new time for an existing lesson (ISO start). */
   rescheduleFrom?: string;
@@ -99,6 +105,7 @@ export function SlotPicker({
       end: new Date(b.end),
       studentName: b.studentName,
       note: b.note,
+      pendingId: b.pendingId,
     }));
 
     const map = new Map<string, DayInfo>();
@@ -210,11 +217,33 @@ export function SlotPicker({
             {info.busy.map((b) => (
               <li
                 key={b.start.toISOString()}
-                className="rounded-full bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
+                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-full bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
               >
-                {formatTimeRange(b.start, b.end, lang)} · {t("Booked")}
-                {isAdmin && b.studentName ? ` (${b.studentName})` : ""}
-                {isAdmin && b.note && <span className="text-muted-foreground"> · {b.note}</span>}
+                <span>
+                  {formatTimeRange(b.start, b.end, lang)} · {b.pendingId ? "Request" : t("Booked")}
+                  {isAdmin && b.studentName ? ` (${b.studentName})` : ""}
+                  {isAdmin && b.note && <span className="text-muted-foreground"> · {b.note}</span>}
+                </span>
+                {b.pendingId && onAnswer && (
+                  <span className="flex gap-1">
+                    <button
+                      type="button"
+                      className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground"
+                      onClick={() => onAnswer(b.pendingId!, true)}
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border bg-background px-2.5 py-0.5 text-xs font-medium"
+                      onClick={() =>
+                        window.confirm(b.studentName ? `Decline ${b.studentName}'s request?` : "Decline this request?") && onAnswer(b.pendingId!, false)
+                      }
+                    >
+                      Decline
+                    </button>
+                  </span>
+                )}
               </li>
             ))}
           </ul>
