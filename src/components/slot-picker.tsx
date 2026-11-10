@@ -228,7 +228,7 @@ export function SlotPicker({
             {info.busy.map((b) => (
               <li
                 key={b.start.toISOString()}
-                className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-full bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
+                className="flex flex-col gap-1.5 rounded-2xl bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
               >
                 <span>
                   {formatTimeRange(b.start, b.end, lang)} · {b.pending ? "Request" : t("Booked")}

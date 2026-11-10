@@ -4,7 +4,7 @@ import { format, isSameMonth, isToday } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { adminBookStudent } from "@/lib/actions/bookings";
 import { toggleAvailabilityRule } from "@/lib/actions/availability";
@@ -45,7 +45,7 @@ interface Entry {
 }
 
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const HOUR_PX = 48;
+const HOUR_PX = 72;
 /** Labels a month cell shows before "+N more". */
 const MONTH_CELL_LIMIT = 3;
 
@@ -69,6 +69,56 @@ function dotClass(b: CalendarBooking) {
   if (b.status === "PENDING") return "bg-amber-500";
   if (b.status === "CONFIRMED") return "bg-emerald-600 dark:bg-emerald-400";
   return "bg-muted-foreground/40";
+}
+
+/**
+ * Confirm and Decline on a request (or on the class a request would move), Cancel on a
+ * confirmed class: a row of small bubbles under the booking, for classes that aren't over.
+ */
+function EntryBubbles({
+  booking: b,
+  name,
+  moveId,
+  onConfirm,
+  onCancel,
+}: {
+  booking: CalendarBooking;
+  name: string;
+  /** The pending request to move this class, if there is one. */
+  moveId?: string;
+  onConfirm: (id: string) => void;
+  onCancel: (id: string) => void;
+}) {
+  const bubble = "rounded-full px-1.5 text-[10px] leading-4 font-medium";
+  const quiet = cn(bubble, "border border-border bg-background text-foreground");
+  const requestId = moveId ?? (b.status === "PENDING" ? b.id : null);
+  return (
+    <span className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      {requestId && (
+        <button type="button" className={cn(bubble, "bg-primary text-primary-foreground")} onClick={() => onConfirm(requestId)}>
+          {moveId || b.reschedule_of ? "Approve" : "Confirm"}
+        </button>
+      )}
+      {requestId && (
+        <button
+          type="button"
+          className={quiet}
+          onClick={() => window.confirm(`Decline ${name}'s request?`) && onCancel(requestId)}
+        >
+          Decline
+        </button>
+      )}
+      {b.status === "CONFIRMED" && (
+        <button
+          type="button"
+          className={quiet}
+          onClick={() => window.confirm(`Cancel ${name}'s class? This can't be undone.`) && onCancel(b.id)}
+        >
+          Cancel
+        </button>
+      )}
+    </span>
+  );
 }
 
 function LateMark() {
@@ -120,6 +170,16 @@ export function AdminCalendar({
   const entriesOn = (day: Date) => clipToDay(entries, day);
   const windowsOn = (day: Date) => clipToDay(windows, day);
   const nameOf = (b: CalendarBooking) => displayNames[b.student_id] ?? "Unknown";
+
+  // A pending reschedule, by the class it would move: that class gets the answer bubbles too.
+  const moveOf = new Map(
+    bookings.filter((b) => b.status === "PENDING" && b.reschedule_of).map((b) => [b.reschedule_of!, b.id]),
+  );
+  const now = new Date();
+  const actions = ({ booking: b, end }: Entry) =>
+    b.status === "CANCELLED" || end <= now ? null : (
+      <EntryBubbles booking={b} name={nameOf(b)} moveId={moveOf.get(b.id)} onConfirm={confirm} onCancel={cancel} />
+    );
 
   const href = (v: CalendarView, d?: Date) => `?view=${v}${d ? `&date=${dayKey(d)}` : ""}`;
   const title =
@@ -208,6 +268,7 @@ export function AdminCalendar({
           entriesOn={entriesOn}
           windowsOn={windowsOn}
           nameOf={nameOf}
+          actions={actions}
           onOpen={setOpenDay}
         />
       ) : (
@@ -218,6 +279,7 @@ export function AdminCalendar({
           entriesOn={entriesOn}
           windowsOn={windowsOn}
           nameOf={nameOf}
+          actions={actions}
           onOpen={setOpenDay}
         />
       )}
@@ -273,6 +335,7 @@ function MonthGrid({
   entriesOn,
   windowsOn,
   nameOf,
+  actions,
   onOpen,
 }: {
   days: Date[];
@@ -280,6 +343,7 @@ function MonthGrid({
   entriesOn: (day: Date) => Entry[];
   windowsOn: (day: Date) => Window[];
   nameOf: (b: CalendarBooking) => string;
+  actions: (entry: Entry) => ReactNode;
   onOpen: (key: string) => void;
 }) {
   return (
@@ -300,13 +364,15 @@ function MonthGrid({
           const today = isToday(day);
           const extra = dayEntries.length - MONTH_CELL_LIMIT;
           return (
-            <button
+            <div
               key={dayKey(day)}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => onOpen(dayKey(day))}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen(dayKey(day))}
               aria-label={`${format(day, "EEEE, MMMM d")}: ${dayEntries.length} ${dayEntries.length === 1 ? "class" : "classes"}`}
               className={cn(
-                "flex min-h-16 flex-col items-stretch gap-1 p-1 text-left outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-28 sm:p-1.5",
+                "flex min-h-16 cursor-pointer flex-col items-stretch gap-1 p-1 text-left outline-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:min-h-28 sm:p-1.5",
                 i % 7 !== 6 && "border-r",
                 i < days.length - 7 && "border-b",
                 !inMonth && "bg-muted/40",
@@ -324,16 +390,22 @@ function MonthGrid({
 
               {/* Wide screens: a label per class. */}
               <span className="hidden flex-col gap-0.5 sm:flex">
-                {dayEntries.slice(0, MONTH_CELL_LIMIT).map(({ booking: b, start }) => (
-                  <span
-                    key={b.id}
-                    className={cn("truncate rounded border px-1 py-px text-[11px] leading-4", statusClasses(b))}
-                  >
-                    <span className="font-medium tabular-nums">{shortTime(start)}</span> {nameOf(b)}
-                    {b.notes && <span className="opacity-80"> · {b.notes}</span>}
-                    {b.late_cancellation && <LateMark />}
-                  </span>
-                ))}
+                {dayEntries.slice(0, MONTH_CELL_LIMIT).map((entry) => {
+                  const { booking: b, start } = entry;
+                  return (
+                    <span
+                      key={b.id}
+                      className={cn("flex flex-col gap-0.5 rounded border px-1 py-px text-[11px] leading-4", statusClasses(b))}
+                    >
+                      <span className="truncate">
+                        <span className="font-medium tabular-nums">{shortTime(start)}</span> {nameOf(b)}
+                        {b.notes && <span className="opacity-80"> · {b.notes}</span>}
+                        {b.late_cancellation && <LateMark />}
+                      </span>
+                      {actions(entry)}
+                    </span>
+                  );
+                })}
                 {extra > 0 && <span className="px-1 text-[11px] text-muted-foreground">+{extra} more</span>}
               </span>
 
@@ -352,7 +424,7 @@ function MonthGrid({
                   </span>
                 </span>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
@@ -367,6 +439,7 @@ function WeekGrid({
   entriesOn,
   windowsOn,
   nameOf,
+  actions,
   onOpen,
 }: {
   days: Date[];
@@ -375,6 +448,7 @@ function WeekGrid({
   entriesOn: (day: Date) => Entry[];
   windowsOn: (day: Date) => Window[];
   nameOf: (b: CalendarBooking) => string;
+  actions: (entry: Entry) => ReactNode;
   onOpen: (key: string) => void;
 }) {
   const { first, last } = hourRange([...entries, ...windows], days);
@@ -442,7 +516,9 @@ function WeekGrid({
                   style={{ top: top(w.start, day), height: top(w.end, day) - top(w.start, day) }}
                 />
               ))}
-              {assignLanes(entriesOn(day)).map(({ booking: b, start, end, lane, lanes }) => (
+              {assignLanes(entriesOn(day)).map((entry) => {
+                const { booking: b, start, end, lane, lanes } = entry;
+                return (
                 <div
                   key={b.id}
                   className={cn(
@@ -457,14 +533,18 @@ function WeekGrid({
                     width: `calc(${100 / lanes}% - 4px)`,
                   }}
                 >
-                  <span className="block font-medium tabular-nums">
-                    {shortTime(start)}–{shortTime(end)}
+                  <span className="block truncate">
+                    <span className="font-medium tabular-nums">
+                      {shortTime(start)}–{shortTime(end)}
+                    </span>{" "}
+                    {nameOf(b)}
                     {b.late_cancellation && <LateMark />}
                   </span>
-                  <span className="block truncate">{nameOf(b)}</span>
+                  {actions(entry)}
                   {b.notes && <span className="block truncate text-[10px] opacity-80">{b.notes}</span>}
                 </div>
-              ))}
+                );
+              })}
             </div>
           ))}
         </div>
@@ -477,10 +557,12 @@ function WeekGrid({
           const dayWindows = windowsOn(day);
           return (
             <li key={dayKey(day)}>
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onOpen(dayKey(day))}
-                className="flex w-full gap-3 px-3 py-3 text-left hover:bg-accent/60"
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen(dayKey(day))}
+                className="flex w-full cursor-pointer gap-3 px-3 py-3 text-left hover:bg-accent/60"
               >
                 <span className="flex w-10 shrink-0 flex-col items-center">
                   <span className="text-xs text-muted-foreground">{format(day, "EEE")}</span>
@@ -495,23 +577,29 @@ function WeekGrid({
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   {dayEntries.length === 0 && <span className="text-sm text-muted-foreground">No classes</span>}
-                  {dayEntries.map(({ booking: b, start, end }) => (
-                    <span key={b.id} className={cn("truncate rounded border px-2 py-1 text-sm", statusClasses(b))}>
-                      <span className="font-medium tabular-nums">
-                        {shortTime(start)}–{shortTime(end)}
-                      </span>{" "}
-                      {nameOf(b)}
-                      {b.notes && <span className="opacity-80"> · {b.notes}</span>}
-                      {b.late_cancellation && <LateMark />}
-                    </span>
-                  ))}
+                  {dayEntries.map((entry) => {
+                    const { booking: b, start, end } = entry;
+                    return (
+                      <span key={b.id} className={cn("flex flex-col gap-1 rounded border px-2 py-1 text-sm", statusClasses(b))}>
+                        <span className="truncate">
+                          <span className="font-medium tabular-nums">
+                            {shortTime(start)}–{shortTime(end)}
+                          </span>{" "}
+                          {nameOf(b)}
+                          {b.notes && <span className="opacity-80"> · {b.notes}</span>}
+                          {b.late_cancellation && <LateMark />}
+                        </span>
+                        {actions(entry)}
+                      </span>
+                    );
+                  })}
                   {dayWindows.length > 0 && (
                     <span className="text-xs text-muted-foreground">
                       Open {dayWindows.map((w) => `${shortTime(w.start)}–${shortTime(w.end)}`).join(", ")}
                     </span>
                   )}
                 </span>
-              </button>
+              </div>
             </li>
           );
         })}
