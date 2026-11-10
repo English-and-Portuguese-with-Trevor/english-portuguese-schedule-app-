@@ -113,12 +113,13 @@ export default async function DashboardPage() {
 
   // Only admins see who booked a slot; students can't read other students'
   // bookings at all.
-  const studentBySlot = new Map<string, { name: string; note: string | null; pendingId?: string }>();
+  type SlotBooking = { id: string; status: string; name: string; note: string | null; rescheduleOf: string | null };
+  const studentBySlot = new Map<string, SlotBooking>();
   if (isAdmin && slots?.length) {
     const [{ data: activeBookings }, displayNames] = await Promise.all([
       supabase
         .from("bookings")
-        .select("id, status, session_slot_id, student_id, notes")
+        .select("id, status, session_slot_id, student_id, notes, reschedule_of")
         .in(
           "session_slot_id",
           slots.map((s) => s.id),
@@ -128,9 +129,11 @@ export default async function DashboardPage() {
     ]);
     for (const b of activeBookings ?? [])
       studentBySlot.set(b.session_slot_id, {
+        id: b.id,
+        status: b.status,
         name: displayNames[b.student_id],
         note: b.notes,
-        pendingId: b.status === "PENDING" ? b.id : undefined,
+        rescheduleOf: b.reschedule_of,
       });
   }
 
@@ -148,14 +151,25 @@ export default async function DashboardPage() {
 
   // Every OPEN slot is taken: canceling a booking cancels its slot, so a
   // slot only stays OPEN while it has an active booking.
-  const busySlots = (slots ?? []).map((s) => ({
-    start: s.start_time,
-    end: s.end_time,
-    studentName: studentBySlot.get(s.id)?.name,
-    // e.g. "Hold: Tim" on a time held for a student with no account yet.
-    note: studentBySlot.get(s.id)?.note ?? undefined,
-    pendingId: studentBySlot.get(s.id)?.pendingId,
-  }));
+  // A pending reschedule, by the class it would move: that class's row gets the answer buttons too.
+  const moveOf = new Map<string, { pendingId: string; start: string }>();
+  for (const s of slots ?? []) {
+    const b = studentBySlot.get(s.id);
+    if (b?.status === "PENDING" && b.rescheduleOf) moveOf.set(b.rescheduleOf, { pendingId: b.id, start: s.start_time });
+  }
+  const busySlots = (slots ?? []).map((s) => {
+    const b = studentBySlot.get(s.id);
+    return {
+      start: s.start_time,
+      end: s.end_time,
+      studentName: b?.name,
+      // e.g. "Hold: Tim" on a time held for a student with no account yet.
+      note: b?.note ?? undefined,
+      bookingId: b?.id,
+      pending: b?.status === "PENDING",
+      move: b && moveOf.get(b.id),
+    };
+  });
 
   return (
     <div className="flex flex-col gap-8">

@@ -145,7 +145,7 @@ describe("SlotPicker", () => {
       <SlotPicker
         role="admin"
         candidates={candidates}
-        busySlots={[{ ...MONDAY_BOOKING, pendingId: "b1" }]}
+        busySlots={[{ ...MONDAY_BOOKING, bookingId: "b1", pending: true }]}
         onBook={vi.fn(async () => null)}
         onAnswer={onAnswer}
       />,
@@ -154,9 +154,36 @@ describe("SlotPicker", () => {
     await user.click(dayChip("Monday, September 28"));
     expect(screen.getByText(/Request \(Trevor L\. 1\)/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(onAnswer).toHaveBeenCalledWith("b1", true);
+    expect(onAnswer).toHaveBeenCalledWith("b1", "confirm");
     await user.click(screen.getByRole("button", { name: "Decline" }));
-    expect(onAnswer).toHaveBeenCalledWith("b1", false);
+    expect(onAnswer).toHaveBeenCalledWith("b1", "decline");
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+  });
+
+  it("gives a confirmed class Cancel, and the answer buttons while a move is requested", async () => {
+    const candidates = generateUpcomingSlots(SCHEDULE, { now: NOW, days: 14 }).map((c) => ({
+      start: c.start.toISOString(),
+      end: c.end.toISOString(),
+      needsApproval: c.needsApproval,
+    }));
+    const onAnswer = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    render(
+      <SlotPicker
+        role="admin"
+        candidates={candidates}
+        busySlots={[{ ...MONDAY_BOOKING, bookingId: "b1", move: { pendingId: "b2", start: MONDAY_BOOKING.end } }]}
+        onBook={vi.fn(async () => null)}
+        onAnswer={onAnswer}
+      />,
+    );
+    const user = userEvent.setup();
+    await user.click(dayChip("Monday, September 28"));
+    expect(screen.getByText(/asks to move to/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Approve move" }));
+    expect(onAnswer).toHaveBeenCalledWith("b2", "confirm");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onAnswer).toHaveBeenCalledWith("b1", "cancel");
   });
 
   it("gives admins a read-only calendar: no approval markers, no booking dialog", async () => {

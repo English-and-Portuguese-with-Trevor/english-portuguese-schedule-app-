@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CancelBookingDialog, type CancellableBooking } from "@/components/cancel-booking-dialog";
 import { FlagClassDialog } from "@/components/flag-class-dialog";
-import { SlotPicker, timeZoneLabel, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
+import { SlotPicker, timeZoneLabel, type BookingAnswer, type BusySlotDTO, type CandidateSlotDTO } from "@/components/slot-picker";
 import { loadClient } from "@/lib/supabase/load-client";
 import { useSiteLanguage, useT } from "@/i18n/client";
 import { formatDate } from "@/i18n/format";
@@ -136,13 +136,13 @@ export function BookingBoard({
     return null;
   }
 
-  // Trevor answers a request from its row in the day's list.
-  async function handleAnswer(bookingId: string, confirm: boolean) {
-    const result = await (confirm ? confirmBooking(bookingId) : cancelBooking(bookingId));
+  // Trevor answers a request, or cancels a class, from its row in the day's list.
+  async function handleAnswer(bookingId: string, answer: BookingAnswer) {
+    const result = await (answer === "confirm" ? confirmBooking(bookingId) : cancelBooking(bookingId));
     setNotice(
       result.error
         ? { kind: "error", text: result.error }
-        : { kind: "success", text: confirm ? "Request confirmed." : "Request declined." },
+        : { kind: "success", text: { confirm: "Request confirmed.", decline: "Request declined.", cancel: "Class canceled." }[answer] },
     );
     router.refresh();
   }

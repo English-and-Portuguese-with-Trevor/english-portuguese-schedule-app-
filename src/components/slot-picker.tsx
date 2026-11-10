@@ -34,9 +34,16 @@ export interface BusySlotDTO {
   studentName?: string;
   /** The booking's note, shown to the admin after the name (e.g. "Hold: Tim"). */
   note?: string;
-  /** The booking's id while it waits for approval (admins only): the row gets Confirm and Decline. */
-  pendingId?: string;
+  /** Admins only: the booking, whether it waits for approval, and a pending request to move it. */
+  bookingId?: string;
+  pending?: boolean;
+  move?: { pendingId: string; start: string };
 }
+
+export type BookingAnswer = "confirm" | "decline" | "cancel";
+
+const bubble = "rounded-full px-2.5 py-0.5 text-xs font-medium";
+const who = (b: { studentName?: string }) => (b.studentName ? `${b.studentName}'s` : "this");
 
 const DAYS_SHOWN = 14;
 const STEP_MS = 15 * 60 * 1000;
@@ -54,7 +61,9 @@ interface Busy {
   end: Date;
   studentName?: string;
   note?: string;
-  pendingId?: string;
+  bookingId?: string;
+  pending?: boolean;
+  move?: { pendingId: string; start: string };
 }
 
 interface DayInfo {
@@ -87,8 +96,8 @@ export function SlotPicker({
   /** Resolves to an error message, or null on success. Students always send answers. */
   onBook: (start: string, end: string, answers?: BookingAnswers) => Promise<string | null>;
   /** The student's answers from their last booking, to prefill the questions. */
-  /** The admin confirms or declines a request from its row. */
-  onAnswer?: (bookingId: string, confirm: boolean) => void;
+  /** The admin confirms or declines a request, or cancels a class, from its row. */
+  onAnswer?: (bookingId: string, answer: BookingAnswer) => void;
   previousAnswers?: Partial<BookingAnswers>;
   /** Set while a student picks a new time for an existing lesson (ISO start). */
   rescheduleFrom?: string;
@@ -105,7 +114,9 @@ export function SlotPicker({
       end: new Date(b.end),
       studentName: b.studentName,
       note: b.note,
-      pendingId: b.pendingId,
+      bookingId: b.bookingId,
+      pending: b.pending,
+      move: b.move,
     }));
 
     const map = new Map<string, DayInfo>();
@@ -220,28 +231,48 @@ export function SlotPicker({
                 className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-full bg-secondary px-3 py-1.5 text-sm text-secondary-foreground"
               >
                 <span>
-                  {formatTimeRange(b.start, b.end, lang)} · {b.pendingId ? "Request" : t("Booked")}
+                  {formatTimeRange(b.start, b.end, lang)} · {b.pending ? "Request" : t("Booked")}
                   {isAdmin && b.studentName ? ` (${b.studentName})` : ""}
                   {isAdmin && b.note && <span className="text-muted-foreground"> · {b.note}</span>}
+                  {b.move && (
+                    <span className="font-medium"> · asks to move to {formatDate(b.move.start, "dayAtTime", lang)}</span>
+                  )}
                 </span>
-                {b.pendingId && onAnswer && (
+                {onAnswer && b.bookingId && (
                   <span className="flex gap-1">
-                    <button
-                      type="button"
-                      className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground"
-                      onClick={() => onAnswer(b.pendingId!, true)}
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-full border bg-background px-2.5 py-0.5 text-xs font-medium"
-                      onClick={() =>
-                        window.confirm(b.studentName ? `Decline ${b.studentName}'s request?` : "Decline this request?") && onAnswer(b.pendingId!, false)
-                      }
-                    >
-                      Decline
-                    </button>
+                    {(b.pending || b.move) && (
+                      <button
+                        type="button"
+                        className={cn(bubble, "bg-primary text-primary-foreground")}
+                        onClick={() => onAnswer(b.move?.pendingId ?? b.bookingId!, "confirm")}
+                      >
+                        {b.move ? "Approve move" : "Confirm"}
+                      </button>
+                    )}
+                    {(b.pending || b.move) && (
+                      <button
+                        type="button"
+                        className={cn(bubble, "border bg-background")}
+                        onClick={() =>
+                          window.confirm(`Decline ${who(b)} request?`) &&
+                          onAnswer(b.move?.pendingId ?? b.bookingId!, "decline")
+                        }
+                      >
+                        Decline
+                      </button>
+                    )}
+                    {!b.pending && (
+                      <button
+                        type="button"
+                        className={cn(bubble, "border bg-background")}
+                        onClick={() =>
+                          window.confirm(`Cancel ${who(b)} class? This can't be undone.`) &&
+                          onAnswer(b.bookingId!, "cancel")
+                        }
+                      >
+                        Cancel
+                      </button>
+                    )}
                   </span>
                 )}
               </li>
