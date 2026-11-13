@@ -1,10 +1,12 @@
 import { addDays, format, subDays } from "date-fns";
+import { redirect } from "next/navigation";
 
 import { BookingBoard } from "@/components/booking-board";
 import { ClassNotes } from "@/components/class-notes";
 import { ClassProgressCard } from "@/components/class-progress-card";
 import { Homework } from "@/components/homework";
 import { markHomework } from "@/lib/actions/homework";
+import { checkAdmin } from "@/lib/auth/require-admin";
 import { getDisplayNames } from "@/lib/display-names";
 import { learningToLessonLanguage } from "@/lib/prefs";
 import { generateUpcomingSlots } from "@/lib/slots";
@@ -33,6 +35,12 @@ export default async function DashboardPage() {
     .eq("id", user!.id)
     .single();
   const isAdmin = profile!.role === "admin";
+  // Without the Google Authenticator code the database hides who booked each
+  // class, so Trevor enters it first (on the admin dashboard, like /admin).
+  if (isAdmin) {
+    const check = await checkAdmin(supabase);
+    if (!check.ok && check.reason === "needs-code") redirect("https://englishandportuguesewithtrevor.com/admin/");
+  }
   // Students with lesson access can flag their classes.
   const canFlag = !isAdmin && ["granted", "subscriber", "lifetime"].includes(profile!.lesson_access);
   // Until Trevor marks them as his student, they book 30-minute classes.
