@@ -51,3 +51,23 @@ describe("AvailabilityManager Delete", () => {
     expect(screen.queryByText("09:00–17:00")).not.toBeInTheDocument();
   });
 });
+
+describe("AvailabilityManager time zone switcher", () => {
+  it("shows a window on the day and at the times of the chosen zone", () => {
+    // A Monday in January: Denver is UTC-7, São Paulo UTC-3.
+    vi.useFakeTimers({ now: new Date("2026-01-05T18:00:00Z"), toFake: ["Date"] });
+    render(
+      <AvailabilityManager
+        initialRules={[{ ...rule, start_time: "21:00:00", end_time: "22:00:00" }]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Show times in" }));
+    fireEvent.click(screen.getByRole("option", { name: "America/Sao_Paulo" }));
+
+    const tuesday = screen.getByText("Tuesday").closest("li")!;
+    expect(tuesday).toHaveTextContent("01:00–02:00");
+    expect(tuesday).toHaveTextContent("60 min · America/Sao_Paulo");
+    vi.useRealTimers();
+  });
+});

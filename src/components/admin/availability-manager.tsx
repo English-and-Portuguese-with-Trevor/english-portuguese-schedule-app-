@@ -1,5 +1,6 @@
 "use client";
 
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore, useTransition } from "react";
@@ -42,6 +43,25 @@ const COMMON_TIME_ZONES = [
 const noopSubscribe = () => () => {};
 const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+// A weekly window as it reads in another zone: its day and times there, taken
+// from its next occurrence (so the clocks' current offset, summer or winter).
+function inZone(rule: AvailabilityRule, zone: string) {
+  const now = new Date();
+  const today = formatInTimeZone(now, rule.timezone, "yyyy-MM-dd");
+  const daysAhead = (rule.day_of_week - Number(formatInTimeZone(now, rule.timezone, "i")) + 7) % 7;
+  const date = new Date(Date.parse(`${today}T12:00:00Z`) + daysAhead * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const start = fromZonedTime(`${date}T${rule.start_time}`, rule.timezone);
+  const end = fromZonedTime(`${date}T${rule.end_time}`, rule.timezone);
+  return {
+    day: Number(formatInTimeZone(start, zone, "i")) % 7,
+    start: formatInTimeZone(start, zone, "HH:mm"),
+    end: formatInTimeZone(end, zone, "HH:mm"),
+    zone,
+  };
+}
+
 export function AvailabilityManager({ initialRules }: { initialRules: AvailabilityRule[] }) {
   const router = useRouter();
   const [prevInitialRules, setPrevInitialRules] = useState(initialRules);
@@ -55,6 +75,8 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
     slotDurationMinutes: "60",
     timezone: "America/Denver",
   });
+  // "" shows each window as it was set, in its own zone.
+  const [viewZone, setViewZone] = useState("");
   // A new window arrives through router.refresh() as new initialRules.
   if (initialRules !== prevInitialRules) {
     setPrevInitialRules(initialRules);
@@ -120,6 +142,19 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
 
   // Monday first, the way the week reads; Sunday last.
   const week = [1, 2, 3, 4, 5, 6, 0];
+  const shown = rules
+    .map((rule) => ({
+      rule,
+      view: viewZone
+        ? inZone(rule, viewZone)
+        : {
+            day: rule.day_of_week,
+            start: rule.start_time.slice(0, 5),
+            end: rule.end_time.slice(0, 5),
+            zone: rule.timezone,
+          },
+    }))
+    .sort((a, b) => a.view.start.localeCompare(b.view.start));
 
   return (
     <div className="flex flex-col gap-6">
@@ -133,9 +168,29 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Label htmlFor="view-timezone">Show times in</Label>
+        <Select
+          value={viewZone || "own"}
+          onValueChange={(v) => setViewZone(v === "own" ? "" : v)}
+        >
+          <SelectTrigger id="view-timezone" className="w-56">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="own">My time (as set)</SelectItem>
+            {timeZones.map((zone) => (
+              <SelectItem key={zone} value={zone}>
+                {zone}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <ul className="divide-y rounded-lg border">
         {week.map((day) => {
-          const dayRules = rules.filter((r) => r.day_of_week === day);
+          const dayRules = shown.filter((r) => r.view.day === day);
           return (
             <li
               key={day}
@@ -146,7 +201,7 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
                 <span className="text-sm text-muted-foreground sm:py-1.5">No windows</span>
               ) : (
                 <ul className="flex flex-1 flex-col gap-1">
-                  {dayRules.map((rule) => (
+                  {dayRules.map(({ rule, view }) => (
                     <li key={rule.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span
                         className={
@@ -155,10 +210,10 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
                             : "text-sm tabular-nums text-muted-foreground line-through"
                         }
                       >
-                        {rule.start_time.slice(0, 5)}–{rule.end_time.slice(0, 5)}
+                        {view.start}–{view.end}
                       </span>
                       <span className="text-sm text-muted-foreground">
-                        {rule.slot_duration_minutes} min · {rule.timezone}
+                        {rule.slot_duration_minutes} min · {view.zone}
                       </span>
                       {!rule.is_active && <Badge variant="secondary">Off</Badge>}
                       <span className="ml-auto flex gap-1">
