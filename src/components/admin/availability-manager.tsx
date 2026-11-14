@@ -192,7 +192,7 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
             ))}
           </SelectContent>
         </Select>
-        <Label className="font-normal">
+        <Label className="flex items-center gap-2 font-normal">
           <Checkbox checked={allZones} onCheckedChange={(v) => setAllZones(v === true)} />
           All time zones
         </Label>
