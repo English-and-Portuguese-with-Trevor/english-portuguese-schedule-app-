@@ -12,6 +12,7 @@ import {
 } from "@/lib/actions/availability";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -77,6 +78,8 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
   });
   // "" shows each window as it was set, in its own zone.
   const [viewZone, setViewZone] = useState("");
+  // Off: the common zones. On: every zone the browser knows.
+  const [allZones, setAllZones] = useState(false);
   // A new window arrives through router.refresh() as new initialRules.
   if (initialRules !== prevInitialRules) {
     setPrevInitialRules(initialRules);
@@ -179,13 +182,20 @@ export function AvailabilityManager({ initialRules }: { initialRules: Availabili
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="own">My time (as set)</SelectItem>
-            {timeZones.map((zone) => (
+            {(allZones
+              ? Intl.supportedValuesOf("timeZone")
+              : Array.from(new Set([...(viewZone ? [viewZone] : []), ...timeZones]))
+            ).map((zone) => (
               <SelectItem key={zone} value={zone}>
                 {zone}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <Label className="font-normal">
+          <Checkbox checked={allZones} onCheckedChange={(v) => setAllZones(v === true)} />
+          All time zones
+        </Label>
       </div>
 
       <ul className="divide-y rounded-lg border">

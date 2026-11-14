@@ -70,4 +70,16 @@ describe("AvailabilityManager time zone switcher", () => {
     expect(tuesday).toHaveTextContent("60 min · America/Sao_Paulo");
     vi.useRealTimers();
   });
+
+  it("offers the rest of the world once All time zones is ticked", () => {
+    render(<AvailabilityManager initialRules={[rule]} />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Show times in" }));
+    expect(screen.queryByRole("option", { name: "Asia/Tokyo" })).not.toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "All time zones" }));
+    fireEvent.click(screen.getByRole("combobox", { name: "Show times in" }));
+    expect(screen.getByRole("option", { name: "Asia/Tokyo" })).toBeInTheDocument();
+  });
 });
