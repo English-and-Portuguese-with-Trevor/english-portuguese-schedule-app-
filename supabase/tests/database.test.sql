@@ -753,6 +753,60 @@ begin
   end if;
 end $$;
 
+-- Class done: only classes Trevor marks taught count toward the package
+do $$
+declare
+  v_s uuid := gen_random_uuid();
+  v_a uuid := gen_random_uuid();
+  v_past_slot uuid;
+  v_next_slot uuid;
+  v_past uuid;
+  v_next uuid;
+  v_ok boolean;
+begin
+  insert into auth.users (id, email, raw_user_meta_data, aud, role)
+  values
+    (v_s, 'db-test-done-student@example.com', '{"full_name":"Done Student"}', 'authenticated', 'authenticated'),
+    (v_a, 'db-test-done-admin@example.com', '{"full_name":"Done Admin"}', 'authenticated', 'authenticated');
+  update public.profiles set role = 'admin' where id = v_a;
+  update public.profiles set class_package = 4, earlier_classes = 1 where id = v_s;
+
+  insert into public.session_slots (start_time, end_time, status)
+  values ('2001-01-01 10:00+00', '2001-01-01 11:00+00', 'OPEN') returning id into v_past_slot;
+  insert into public.session_slots (start_time, end_time, status)
+  values (now() + interval '400 days', now() + interval '400 days 1 hour', 'OPEN') returning id into v_next_slot;
+  insert into public.bookings (session_slot_id, student_id, status, is_admin_override)
+  values (v_past_slot, v_s, 'CONFIRMED', true) returning id into v_past;
+  insert into public.bookings (session_slot_id, student_id, status, is_admin_override)
+  values (v_next_slot, v_s, 'CONFIRMED', true) returning id into v_next;
+
+  if (select completed from private.class_progress(v_s)) <> 1 then
+    raise exception 'FAIL: a past class not marked done does not count';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_s, 'role', 'authenticated')::text, true);
+  v_ok := false; begin perform public.mark_class_done(v_past, true); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: students cannot mark a class done'; end if;
+
+  perform set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated')::text, true);
+  if public.mark_class_done(v_past, true) is null then raise exception 'FAIL: admins mark a class done'; end if;
+  v_ok := false; begin perform public.mark_class_done(v_next, true); exception when others then v_ok := true; end;
+  if not v_ok then raise exception 'FAIL: a class that has not started cannot be marked done'; end if;
+  reset role;
+  if (select completed from private.class_progress(v_s)) <> 2 then
+    raise exception 'FAIL: a class marked done counts';
+  end if;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated')::text, true);
+  if public.mark_class_done(v_past, false) is not null then raise exception 'FAIL: admins take the mark back'; end if;
+  reset role;
+  if (select completed from private.class_progress(v_s)) <> 1 then
+    raise exception 'FAIL: taking the mark back stops it counting';
+  end if;
+end $$;
+
 select 'ALL DATABASE TESTS PASSED' as result;
 
 rollback;

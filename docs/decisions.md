@@ -93,3 +93,6 @@ The history behind the rules in `CLAUDE.md`: what Trevor decided, when, and why 
 ## Working with Trevor
 - 2026-10-10: SQL Trevor has to run himself goes in the chat as one code block, never as a file, unless he says otherwise.
 - 2026-10-10: credits: work in the one repo the task needs, read only the files the change touches, no subagents or whole-site audits unless he asks, short replies with no restated plans or diff summaries.
+
+## Classes count when Trevor marks them done
+- 2026-11-21: classes that didn't happen stayed confirmed and kept counting, so package counts drifted from the Planilha. Trevor: making the WhatsApp update is when he knows a class was done, so a class counts once it's marked done (the update's Class done button, or Claude when he asks for an update), not when its time passes.
