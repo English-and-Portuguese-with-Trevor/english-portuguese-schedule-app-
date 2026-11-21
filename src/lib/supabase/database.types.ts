@@ -136,6 +136,7 @@ export type Database = {
         Row: {
           cancellation_reason: string | null
           cancelled_at: string | null
+          completed_at: string | null
           created_at: string
           flag_reason: string | null
           google_event_id: string | null
@@ -156,6 +157,7 @@ export type Database = {
         Insert: {
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          completed_at?: string | null
           created_at?: string
           flag_reason?: string | null
           google_event_id?: string | null
@@ -176,6 +178,7 @@ export type Database = {
         Update: {
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          completed_at?: string | null
           created_at?: string
           flag_reason?: string | null
           google_event_id?: string | null
@@ -735,6 +738,7 @@ export type Database = {
       flag_my_class: { Args: { p_booking_id: string; p_reason: string }; Returns: undefined }
       unflag_my_class: { Args: { p_booking_id: string }; Returns: undefined }
       mark_homework: { Args: { p_id: string; p_done: boolean }; Returns: undefined }
+      mark_class_done: { Args: { p_booking: string; p_done?: boolean }; Returns: string | null }
       claim_student_reminders: {
         Args: { p_secret: string }
         Returns: {
